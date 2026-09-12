@@ -3,9 +3,12 @@
 # to prefix asset URLs with /ultima3/.
 name: Deploy to GitHub Pages
 
+# Only main publishes (the github-pages environment rejects other
+# branches), and the concurrency group cancels an older run, so a run for
+# any other branch would only cancel a real deploy.
 on:
   push:
-    branches: [main, dev/keen-ritchie-rdzalm]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
