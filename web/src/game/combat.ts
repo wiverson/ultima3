@@ -456,6 +456,7 @@ async function scriptTurn(world: World, io: GameIO, member: number): Promise<voi
 }
 
 async function memberTurn(world: World, io: GameIO, member: number): Promise<void> {
+  const c = world.combat!;
   for (;;) {
     io.printMessage(Msg.PlayerTurnPrefix);
     io.print(String(member + 1));
@@ -468,6 +469,12 @@ async function memberTurn(world: World, io: GameIO, member: number): Promise<voi
     const move = moveForKey(key, !world.classicMoves);
     if (move) {
       const delta = moveDelta(move);
+      // Walking into a monster attacks it (a convenience this port adds).
+      const me = c.members[member];
+      if (monsterAt(c, me.x + delta.dx, me.y + delta.dy) >= 0) {
+        await combatAttack(world, io, member, delta);
+        return;
+      }
       io.printMessage(delta.message);
       handleMove(world, io, member, delta.dx, delta.dy);
       return;
@@ -529,15 +536,29 @@ export function handleMove(world: World, io: GameIO, member: number, dx: number,
   p.tileUnder = arenaTile(c, xs, ys);
 }
 
-/** Mirrors `CombatAttack()`. */
-async function combatAttack(world: World, io: GameIO, member: number): Promise<void> {
+/**
+ * Mirrors `CombatAttack()`. With `preset` the direction is already known
+ * (the member walked into a monster) and is echoed instead of asked for.
+ */
+async function combatAttack(
+  world: World,
+  io: GameIO,
+  member: number,
+  preset?: { dx: number; dy: number; message: number },
+): Promise<void> {
   const c = world.combat!;
   const p = world.member(member);
   const me = c.members[member];
   const weapon = p.bytes[48];
   io.print(world.resources.strings.WeaponsArmour[weapon]);
   io.printMessage(Msg.AttackDir);
-  const dir = await getDirection(world, io, true);
+  let dir: { dx: number; dy: number } | null;
+  if (preset) {
+    io.printMessage(preset.message);
+    dir = preset;
+  } else {
+    dir = await getDirection(world, io, true);
+  }
   if (!dir || (dir.dx === 0 && dir.dy === 0)) return;
   io.sound(Sound.Swish[member]);
 

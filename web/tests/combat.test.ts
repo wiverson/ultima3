@@ -136,6 +136,36 @@ describe('a whole fight', () => {
     expect(totalExp).toBeGreaterThan(expBefore);
   });
 
+  it('walking into a monster attacks it instead of bumping', async () => {
+    const { world, io } = flatWorld();
+    for (let m = 0; m < 4; m++) {
+      const p = world.member(m);
+      p.hitPoints = 400;
+      p.bytes[18] = 99;
+      p.bytes[19] = 99;
+      p.bytes[48] = 6; // sword
+      p.bytes[54] = 1;
+    }
+    world.party.location = Location.Town; // one monster only
+
+    // Only ever step toward the monster; never press A.
+    io.keyProvider = () => {
+      const c = world.combat;
+      if (!c) return ' ';
+      const me = c.members[c.activeMember];
+      const target = c.monsters.find((m) => m.hp > 0);
+      if (!target) return ' ';
+      const dx = Math.sign(target.x - me.x);
+      const dy = Math.sign(target.y - me.y);
+      return dx === 0 ? (dy < 0 ? Key.Up : Key.Down) : dx < 0 ? Key.Left : Key.Right;
+    };
+
+    await combat(world, io, MapValue.Orc >> 1, 0);
+    expect(io.output).toContain('VICTORY');
+    expect(io.output).toContain('Sword attack');
+    expect(io.output).toContain('KILLED! Exp.+');
+  });
+
   it('a monster on the map becomes a chest on the terrain it stood on', async () => {
     const { world, io } = flatWorld();
     const m = world.monsters;
