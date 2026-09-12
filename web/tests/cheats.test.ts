@@ -1,0 +1,47 @@
+import { describe, it, expect } from 'vitest';
+import { newWorld, FakeIO } from './helpers.ts';
+import { CHEATS } from '../src/game/cheats.ts';
+import { Location } from '../src/game/party.ts';
+import { MapId } from '../src/data/resources.ts';
+
+const cheat = (key: string) => CHEATS.find((c) => c.key === key)!;
+
+describe('cheats', () => {
+  it('restores everyone, adds gold and torches', () => {
+    const world = newWorld();
+    const io = new FakeIO(world.resources);
+    world.member(0).status = 'D';
+    world.member(1).status = 'P';
+    world.member(1).hitPoints = 3;
+    cheat('R').apply(world, io);
+    expect(world.member(0).status).toBe('G');
+    expect(world.member(1).status).toBe('G');
+    expect(world.member(1).hitPoints).toBe(world.member(1).maxHitPoints);
+    const gold = world.party.gold;
+    cheat('G').apply(world, io);
+    expect(world.party.gold).toBe(gold + 100);
+    cheat('T').apply(world, io);
+    expect(world.member(0).torches).toBe(5);
+  });
+
+  it('goes home from a town, and asks a dungeon to end', () => {
+    const world = newWorld();
+    const io = new FakeIO(world.resources);
+    world.returnX = 10;
+    world.returnY = 11;
+    world.enterMap(MapId.FirstTown);
+    world.party.location = Location.Town;
+    cheat('H').apply(world, io);
+    expect(world.party.location).toBe(Location.Sosaria);
+    expect([world.x, world.y]).toEqual([42, 20]);
+
+    world.enterDungeon(MapId.FirstDungeon);
+    world.party.location = Location.Dungeon;
+    world.dungeon.exit = false;
+    expect(cheat('X').available(world)).toBe(true);
+    cheat('X').apply(world, io);
+    expect(world.dungeon.exit).toBe(true);
+    world.party.location = Location.Sosaria;
+    expect(cheat('X').available(world)).toBe(false);
+  });
+});

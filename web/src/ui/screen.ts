@@ -33,6 +33,7 @@ import { PlayerRecord } from '../game/player.ts';
 import { suggestedCommands, prioritise } from '../game/context.ts';
 import { memberShape } from '../game/combat.ts';
 import { TILE_SETS, KEYBOARD_HELP, CONTROLLER_HELP } from './help.ts';
+import { CHEATS } from '../game/cheats.ts';
 import { Location } from '../game/party.ts';
 import { buildViewport, VIEW_SIZE, type Viewport } from '../game/viewport.ts';
 import { buildDungeonView, secretMessage } from '../game/dungeon.ts';
@@ -513,23 +514,43 @@ export class Screen implements GameIO {
     }
   }
 
-  /** Full-screen help pages for the current input mode. Any key turns the page; Escape or B closes. */
+  /**
+   * Full-screen help pages for the current input mode. Any key turns the
+   * page, Escape or B closes, and Y (V on the keyboard in controller mode)
+   * opens the cheat menu.
+   */
   private async showHelp(): Promise<void> {
     const pages = this.inputMode === 'controller' ? CONTROLLER_HELP : KEYBOARD_HELP;
     const wasCovered = this.viewCovered;
     this.viewCovered = true; // stop the viewport repainting under the page
+    let note = '';
     try {
-      for (const page of pages) {
+      for (let index = 0; index < pages.length; ) {
         this.black(0, 0, COLUMNS, ROWS);
-        page.forEach((line, i) => this.drawText(line, 1, 1 + i));
-        this.drawText(this.inputMode === 'controller' ? 'A: next   B: close' : 'Any key: next   Escape: close', 1, ROWS - 1);
+        pages[index].forEach((line, i) => this.drawText(line, 1, 1 + i));
+        if (note) this.drawText(note, 1, ROWS - 2);
+        this.drawText(this.inputMode === 'controller' ? 'A: next   B: close   Y: cheats' : 'Any key: next  Esc: close  Y: cheats', 1, ROWS - 1);
         const key = await this.readKey();
         if (key === Key.Escape || key === Key.B) break;
+        if (key === Key.Y || key === 'y' || key === 'Y') {
+          note = await this.cheatMenu();
+          continue;
+        }
+        index++;
       }
     } finally {
       this.viewCovered = wasCovered;
       this.redrawAll();
     }
+  }
+
+  /** The cheat menu over the help page. Returns a confirmation line, or '' when nothing was done. */
+  private async cheatMenu(): Promise<string> {
+    const cheats = CHEATS.filter((c) => c.available(this.world));
+    const options: MenuOption[] = [...cheats.map((c) => ({ key: c.key, label: c.label })), { key: 'B', label: 'Back' }];
+    const picked = await this.runMenu('Cheats', options, 1, { row: 8, title: 'Cheats' });
+    if (picked < 0 || picked >= cheats.length) return '';
+    return cheats[picked].apply(this.world, this);
   }
 
   async chooseFromList(options: MenuOption[], place?: MenuPlacement): Promise<string> {

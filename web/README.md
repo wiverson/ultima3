@@ -103,6 +103,14 @@ controller mode. The command menu lists the commands the surroundings call
 for first (Enter on a town, Board on a horse, Get on a chest, Attack
 beside a monster). Numbers use a spinner and names an on-screen keyboard.
 
+### Cheats
+
+On the Help screen, Y (V on the keyboard in controller mode) opens a
+cheat menu: full restore (everyone healed and alive), go home (back to
+Lord British's gate, leaving any town, castle or dungeon), exit dungeon,
+100 gold, and five torches for the leader. None of it existed in the
+original; it is there for testing and for anyone who wants it.
+
 ## Differences from the original
 
 Quality-of-life changes this port makes on top of the Apple II game. The
