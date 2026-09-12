@@ -40,23 +40,6 @@ describe('player records', () => {
     expect(p.alive).toBe(false);
   });
 
-  it('borrows between the base-100 food digits and reports starvation', () => {
-    const p = new PlayerRecord(new Uint8Array(64));
-    p.bytes[32] = 1; // 100
-    p.bytes[33] = 0; // + 0
-    p.bytes[34] = 5; // fraction
-    expect(p.eatFood(10)).toBe(false);
-    // The Mac port borrows by adding 99 rather than 100 (it subtracts 157
-    // from a byte that wrapped by 256), so each borrow loses one extra unit.
-    // 100.05 - 0.10 therefore gives 98.94, not 99.95. Kept for fidelity.
-    expect(p.food).toBe(98);
-    expect(p.bytes[34]).toBe(94);
-    // Eat everything.
-    let starved = false;
-    for (let i = 0; i < 2000 && !starved; i++) starved = p.eatFood(10);
-    expect(starved).toBe(true);
-    expect(p.food).toBe(0);
-  });
 });
 
 describe('party record', () => {

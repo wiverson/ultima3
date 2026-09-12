@@ -13,6 +13,7 @@ import { World } from './world.ts';
 import { type GameIO, Sound, inputNumber, yesNo, letterOptions, type MenuOption } from './io.ts';
 import { PlayerRecord } from './player.ts';
 import { addGold } from './actions.ts';
+import { FOOD_MAX } from './party.ts';
 
 const Msg = {
   WelcomePub: 185,
@@ -83,9 +84,9 @@ export async function shop(world: World, io: GameIO, shopNumber: number, member:
   const p = world.member(member);
   switch (shopNumber) {
     case 0:
-      return pub(world, io, p);
+      return pub(world, io);
     case 1:
-      return grocer(world, io, p);
+      return grocer(world, io);
     case 2:
       return healer(world, io, p);
     case 3:
@@ -95,14 +96,14 @@ export async function shop(world: World, io: GameIO, shopNumber: number, member:
     case 5:
       return guild(world, io, p);
     case 6:
-      return oracle(world, io, p);
+      return oracle(world, io);
     default:
-      return horses(world, io, p);
+      return horses(world, io);
   }
 }
 
 /** The pub: pay at least 7 gold for a drink and a rumour. More gold, better rumours. */
-async function pub(world: World, io: GameIO, p: PlayerRecord): Promise<void> {
+async function pub(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.WelcomePub);
   for (;;) {
     io.printMessage(Msg.HaveADrink);
@@ -112,11 +113,11 @@ async function pub(world: World, io: GameIO, p: PlayerRecord): Promise<void> {
       io.printMessage(Msg.LeaveMyShop);
       return error(io);
     }
-    if (p.gold < paid) {
+    if (world.party.gold < paid) {
       io.printMessage(Msg.CantPay);
       return error(io);
     }
-    p.gold -= paid;
+    world.party.gold -= paid;
     io.print(world.resources.strings.Pub[Math.min(9, Math.floor(paid / 10))]);
     io.printMessage(Msg.AnotherDrink);
     if (!(await yesNo(io))) {
@@ -128,27 +129,25 @@ async function pub(world: World, io: GameIO, p: PlayerRecord): Promise<void> {
   }
 }
 
-/** The grocer: rations at one gold each. */
-async function grocer(world: World, io: GameIO, p: PlayerRecord): Promise<void> {
+/** The grocer: rations at one gold each, into the party's food. Nobody needs to be named. */
+export async function grocer(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Grocer);
   for (;;) {
     io.printMessage(Msg.Rations);
-    const amount = await inputNumber(io, 4);
+    const amount = await inputNumber(io, 5);
     if (amount === 0) return io.print('\n\n');
-    if (amount > 9999 - p.food) {
+    if (amount > FOOD_MAX - world.party.food) {
       io.printMessage(Msg.NotEnoughRoom);
       io.print('\n\n');
       error(io);
       continue;
     }
-    if (p.gold < amount) {
+    if (world.party.gold < amount) {
       io.printMessage(Msg.CantPayGrocer);
       return error(io);
     }
-    p.gold -= amount;
-    const food = p.food + amount;
-    p.bytes[32] = Math.floor(food / 100);
-    p.bytes[33] = food % 100;
+    world.party.gold -= amount;
+    world.addFood(amount);
     io.updateStats();
     io.printMessage(Msg.AnythingElse);
     if (!(await yesNo(io))) {
@@ -158,7 +157,6 @@ async function grocer(world: World, io: GameIO, p: PlayerRecord): Promise<void> 
     }
     io.print('Y\n\n');
   }
-  void world;
 }
 
 /** Mirrors `Clerical()`: confirm and pay. Returns true if paid. */
@@ -168,15 +166,15 @@ async function clericalPay(world: World, io: GameIO, p: PlayerRecord, cost: numb
     io.printMessage(Msg.NoOfferings);
     return false;
   }
-  if (cost > p.gold) {
+  if (cost > world.party.gold) {
     io.print('Y\n\n');
     io.printMessage(Msg.NotGoldEnough);
     error(io);
     return false;
   }
-  p.gold -= cost;
+  world.party.gold -= cost;
   io.print('Y\n');
-  void world;
+  void p;
   return true;
 }
 
@@ -273,7 +271,7 @@ async function equipmentShop(world: World, io: GameIO, p: PlayerRecord, isWeapon
       if (!k || k < 'B' || index >= last) break;
       io.print(k);
       const price = priceOf(world, priceBase + index);
-      if (price > p.gold) {
+      if (price > world.party.gold) {
         io.printMessage(Msg.NoGold);
         return;
       }
@@ -283,7 +281,7 @@ async function equipmentShop(world: World, io: GameIO, p: PlayerRecord, isWeapon
         error(io);
         continue;
       }
-      p.gold -= price;
+      world.party.gold -= price;
       p.bytes[countBase + index]++;
       io.printMessage(Msg.HereYouAre);
     } else {
@@ -296,7 +294,7 @@ async function equipmentShop(world: World, io: GameIO, p: PlayerRecord, isWeapon
         io.printMessage(Msg.DontOwn);
         return;
       }
-      if (!addGold(p, priceOf(world, priceBase + index), false)) {
+      if (!addGold(world, priceOf(world, priceBase + index), false)) {
         io.printMessage(Msg.TooMuchGold);
         return error(io);
       }
@@ -346,11 +344,11 @@ async function guild(world: World, io: GameIO, p: PlayerRecord): Promise<void> {
       error(io);
       continue;
     }
-    if (p.gold < cost) {
+    if (world.party.gold < cost) {
       io.printMessage(Msg.NoFunds);
       return;
     }
-    p.gold -= cost;
+    world.party.gold -= cost;
     p.bytes[offset] = Math.min(99, p.bytes[offset] + quantity);
     io.printMessage(Msg.GuildAnythingElse);
     if (!(await yesNo(io))) {
@@ -363,7 +361,7 @@ async function guild(world: World, io: GameIO, p: PlayerRecord): Promise<void> {
 }
 
 /** Radrion the prophet: offerings of hundreds of gold buy verses of his rhyme. */
-async function oracle(world: World, io: GameIO, p: PlayerRecord): Promise<void> {
+async function oracle(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Radrion);
   for (;;) {
     io.printMessage(Msg.Offering);
@@ -371,11 +369,11 @@ async function oracle(world: World, io: GameIO, p: PlayerRecord): Promise<void> 
     const digit = key ? key.charCodeAt(0) - '0'.charCodeAt(0) : 0;
     io.print(`${digit}\n\n`);
     const cost = digit * 100;
-    if (cost > p.gold) {
+    if (cost > world.party.gold) {
       io.printMessage(Msg.CantPay);
       return error(io);
     }
-    p.gold -= cost;
+    world.party.gold -= cost;
     io.print(world.resources.strings.Radrion[digit]);
     io.printMessage(Msg.MoreOffering);
     if (!(await yesNo(io))) {
@@ -388,7 +386,7 @@ async function oracle(world: World, io: GameIO, p: PlayerRecord): Promise<void> 
 }
 
 /** The equine emporium: a horse for 200 gold per member. */
-async function horses(world: World, io: GameIO, p: PlayerRecord): Promise<void> {
+async function horses(world: World, io: GameIO): Promise<void> {
   const cost = world.party.size * 200;
   io.printMessage(Msg.Emporium);
   io.print(String(world.party.size));
@@ -400,12 +398,12 @@ async function horses(world: World, io: GameIO, p: PlayerRecord): Promise<void> 
     io.printMessage(Msg.TooBad);
     return;
   }
-  if (p.gold < cost) {
+  if (world.party.gold < cost) {
     io.print('Y\n\n');
     io.printMessage(Msg.NoGoldHorse);
     return error(io);
   }
-  p.gold -= cost;
+  world.party.gold -= cost;
   io.print('Y\n\n');
   io.printMessage(Msg.RideFast);
   world.party.shape = 0x14;

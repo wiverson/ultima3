@@ -25,7 +25,6 @@ import {
   getChest,
   handEquipment,
   igniteTorch,
-  joinGold,
   modifyOrder,
   negateTime,
   readyWeapon,
@@ -232,8 +231,6 @@ async function dispatch(world: World, io: GameIO, key: string): Promise<void> {
       return handEquipment(world, io);
     case 'I':
       return igniteTorch(world, io);
-    case 'J':
-      return joinGold(world, io);
     case 'K':
       return klimb(world, io);
     case 'M':
@@ -351,10 +348,8 @@ async function encounter(world: World, io: GameIO, cell: number): Promise<void> 
 
     case DungeonCell.Gremlins: {
       world.putXYDng(0, world.x, world.y);
-      const m = world.rng.range(0, world.party.size - 1);
-      if (!world.memberAlive(m)) return;
-      const p = world.member(m);
-      if (p.bytes[32] > 0) p.bytes[32]--; // gremlins steal 100 food
+      // Gremlins steal 100 food (from the party's pool in this port).
+      world.party.foodHundredths = Math.max(0, world.party.foodHundredths - 10000);
       io.sound(Sound.Ouch);
       io.printMessage(Msg.Gremlins);
       io.updateStats();

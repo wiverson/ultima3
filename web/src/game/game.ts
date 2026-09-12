@@ -139,11 +139,8 @@ export class Game {
         case 'monster':
           io.print('Attack\n');
           return interact.attackToward(world, io, bump.dx, bump.dy);
-        case 'counter': {
-          const member = await interact.whoTransacts(world, io);
-          if (member >= 0) await interact.transactToward(world, io, member, bump.dx, bump.dy);
-          return;
-        }
+        case 'counter':
+          return interact.transactToward(world, io, bump.dx, bump.dy);
         case 'door':
           io.print('Unlock\n');
           return interact.unlockToward(world, io, bump.dx, bump.dy);
@@ -172,8 +169,6 @@ export class Game {
         return act.handEquipment(world, io);
       case 'I':
         return act.igniteTorch(world, io);
-      case 'J':
-        return act.joinGold(world, io);
       case 'K':
         io.printMessage(Msg.Klimb);
         return cmd.what2(io);

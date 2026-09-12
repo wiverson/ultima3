@@ -88,14 +88,18 @@ export function speech(talk: Uint8Array, person: number): string {
   return out;
 }
 
-/** Talk to whoever or whatever is in a chosen direction: NPCs, Lord British, or a shop counter. (`Transact`) */
+/**
+ * Talk to whoever or whatever is in a chosen direction: NPCs, Lord British,
+ * or a shop counter. (`Transact`) The direction comes first here, so that
+ * "who" is only asked when it matters: Lord British and the shops that hand
+ * something to a member. Townspeople and the grocer (food is pooled) need
+ * no name.
+ */
 export async function transact(world: World, io: GameIO): Promise<void> {
-  const member = await whoTransacts(world, io);
-  if (member < 0) return;
   io.printMessage(Msg.Direction);
   const dir = await getDirection(world, io);
   if (!dir) return;
-  await transactToward(world, io, member, dir.dx, dir.dy);
+  await transactToward(world, io, dir.dx, dir.dy);
 }
 
 /** The "Who will Transact-" prompt: a living member's index, or -1. */
@@ -111,26 +115,40 @@ export async function whoTransacts(world: World, io: GameIO): Promise<number> {
   return member;
 }
 
-/** Transact with whatever is one step (dx, dy) from the party. */
-export async function transactToward(world: World, io: GameIO, member: number, dx: number, dy: number): Promise<void> {
+/** Transact with whatever is one step (dx, dy) from the party, asking who only when it matters. */
+export async function transactToward(world: World, io: GameIO, dx: number, dy: number): Promise<void> {
   const xs = world.constrain(world.x + dx);
   const ys = world.constrain(world.y + dy);
   const mon = world.monsters.at(xs, ys);
+  const firstLiving = [0, 1, 2, 3].find((m) => world.memberAlive(m)) ?? 0;
 
   if (mon < 0) {
     // No one there: perhaps a counter with a merchant behind it.
     if (!counterWithMerchant(world, xs, ys, dx, dy)) return notHere(io);
+    const shopNumber = world.y & 0x07;
+    let member = firstLiving;
+    if (shopNumber !== 1) {
+      // Not the grocer: the goods or the cure go to a named member.
+      member = await whoTransacts(world, io);
+      if (member < 0) return;
+    }
     const previousMusic = world.music;
     world.music = Music.Shop;
     io.music(Music.Shop);
-    io.highlightMember(member, true);
-    await shop(world, io, world.y & 0x07, member);
+    if (shopNumber !== 1) io.highlightMember(member, true);
+    await shop(world, io, shopNumber, member);
     io.highlightMember(member, false);
     world.music = previousMusic;
     io.music(previousMusic);
     return;
   }
 
+  // Lord British judges one member; townspeople talk to whoever is in front.
+  let member = firstLiving;
+  if (world.monsters.type(mon) === MapValue.LordBritish) {
+    member = await whoTransacts(world, io);
+    if (member < 0) return;
+  }
   await talkTo(world, io, mon, member);
 }
 
@@ -379,12 +397,12 @@ export async function otherCommand(world: World, io: GameIO, fromYell = false): 
       if (!dir) return;
       const mon = world.monsters.at(world.constrain(dir.xs), world.constrain(dir.ys));
       if (mon < 0) return notHere(io);
-      if (p.gold < 100) {
+      if (world.party.gold < 100) {
         io.printMessage(Msg.NotEnoughGold);
         io.sound(Sound.Error1);
         return;
       }
-      p.gold -= 100;
+      world.party.gold -= 100;
       const m = world.monsters;
       if (m.type(mon) !== MapValue.Guard) return io.printMessage(Msg.NoEffect);
       world.putXYVal(m.tileUnder(mon), m.x(mon), m.y(mon));
@@ -531,12 +549,12 @@ export async function enterShrine(world: World, io: GameIO): Promise<void> {
     io.printMessage(Msg.ThenBeOff);
     return leave();
   }
-  if (p.gold < amount * 100) {
+  if (world.party.gold < amount * 100) {
     io.printMessage(Msg.CantCheat);
     io.sound(Sound.Error1);
     return leave();
   }
-  p.gold -= amount * 100;
+  world.party.gold -= amount * 100;
   io.printMessage(Msg.Shazam);
   await io.flashMember(member);
   await io.flashTiles();

@@ -20,6 +20,11 @@
  *    6-9    Party[7..10] roster slot (1-based, 0 = empty) of members 1-4
  *   10-13   Party[11..14] move counter, four base-100 digits, least significant first
  *   15      Party[16]  1 once Exodus has been destroyed
+ *   20-22   (port)     the party's gold, 0..99999, low byte first
+ *   24-26   (port)     the party's food in hundredths, 0..9,999,999, low byte first
+ *
+ * The last two are this port's addition: gold and food belong to the party
+ * as a whole rather than to each member (see World.poolPurses).
  */
 
 export const PARTY_RECORD_SIZE = 64;
@@ -34,6 +39,10 @@ export const Location = {
   Ambrosia: 0xff,
 } as const;
 export type LocationType = (typeof Location)[keyof typeof Location];
+
+/** Caps on the party's pooled gold and food (five digits on the status bar). */
+export const GOLD_MAX = 99999;
+export const FOOD_MAX = 99999;
 
 export class Party {
   constructor(public readonly bytes: Uint8Array) {
@@ -124,6 +133,36 @@ export class Party {
         }
       }
     }
+  }
+
+  /** The party's gold, 0..99999 (this port pools it; the Apple II kept 0..9999 per member). */
+  get gold(): number {
+    return this.bytes[20] + this.bytes[21] * 256 + this.bytes[22] * 65536;
+  }
+  set gold(v: number) {
+    v = Math.max(0, Math.min(GOLD_MAX, Math.floor(v)));
+    this.bytes[20] = v & 0xff;
+    this.bytes[21] = (v >> 8) & 0xff;
+    this.bytes[22] = (v >> 16) & 0xff;
+  }
+
+  /** The party's food in hundredths of a ration (members eat a tenth of a ration per turn). */
+  get foodHundredths(): number {
+    return this.bytes[24] + this.bytes[25] * 256 + this.bytes[26] * 65536;
+  }
+  set foodHundredths(v: number) {
+    v = Math.max(0, Math.min(FOOD_MAX * 100 + 99, Math.floor(v)));
+    this.bytes[24] = v & 0xff;
+    this.bytes[25] = (v >> 8) & 0xff;
+    this.bytes[26] = (v >> 16) & 0xff;
+  }
+
+  /** Whole rations of food, 0..99999. */
+  get food(): number {
+    return Math.floor(this.foodHundredths / 100);
+  }
+  set food(v: number) {
+    this.foodHundredths = Math.max(0, Math.min(FOOD_MAX, Math.floor(v))) * 100;
   }
 
   /** `Party[16]`: set once Exodus is destroyed. */

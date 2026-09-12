@@ -362,6 +362,68 @@ export class World {
     return this.roster.get(Math.max(0, this.party.memberSlot(m)));
   }
 
+  /**
+   * Gold and food are pooled for the whole party in this port. Members'
+   * own purses (the Apple II fields) are emptied into the pool when a party
+   * is formed, and shared out again when it is dispersed, so roster
+   * characters outside the party keep what they had.
+   */
+  poolPurses(): void {
+    for (let m = 0; m < 4; m++) {
+      if (this.party.memberSlot(m) < 0) continue;
+      const p = this.member(m);
+      this.party.gold += p.gold;
+      this.party.foodHundredths += p.bytes[32] * 10000 + p.bytes[33] * 100 + p.bytes[34];
+      p.gold = 0;
+      p.bytes[32] = p.bytes[33] = p.bytes[34] = 0;
+    }
+  }
+
+  /** The reverse of `poolPurses()`: split the pool evenly among the members (each holds at most 9999). */
+  splitPool(): void {
+    const members = [0, 1, 2, 3].filter((m) => this.party.memberSlot(m) >= 0);
+    if (members.length === 0) return;
+    const goldEach = Math.min(9999, Math.floor(this.party.gold / members.length));
+    const foodEach = Math.min(9999, Math.floor(this.party.food / members.length));
+    for (const m of members) {
+      const p = this.member(m);
+      p.gold = goldEach;
+      p.bytes[32] = Math.floor(foodEach / 100);
+      p.bytes[33] = foodEach % 100;
+      p.bytes[34] = 0;
+    }
+    this.party.gold = 0;
+    this.party.foodHundredths = 0;
+  }
+
+  /** Add gold to the pool. Returns false if any was lost to the cap. */
+  addGold(amount: number): boolean {
+    const before = this.party.gold;
+    this.party.gold = before + amount;
+    return this.party.gold === before + amount;
+  }
+
+  /** Add whole rations to the pool. Returns false if any were lost to the cap. */
+  addFood(rations: number): boolean {
+    const before = this.party.foodHundredths;
+    this.party.foodHundredths = before + rations * 100;
+    return this.party.foodHundredths === before + rations * 100;
+  }
+
+  /**
+   * One member's meal: a tenth of a ration from the pool. Returns true when
+   * the pool is empty and the member goes hungry. (`eatFood` on the Apple II
+   * did this per member.)
+   */
+  eatFromPool(): boolean {
+    if (this.party.foodHundredths < 10) {
+      this.party.foodHundredths = 0;
+      return true;
+    }
+    this.party.foodHundredths -= 10;
+    return false;
+  }
+
   /** Mirrors `CheckAlive(member)`. */
   memberAlive(m: number): boolean {
     return this.party.memberSlot(m) >= 0 && this.member(m).alive;
@@ -375,6 +437,7 @@ export class World {
     this.party.bytes.set(this.resources.defaultParty);
     this.roster.bytes.set(this.resources.defaultRoster);
     for (let m = 0; m < this.party.size; m++) this.member(m).inParty = true;
+    this.poolPurses();
     this.party.location = Location.Sosaria;
     this.party.shape = 0x7e;
     this.x = this.party.surfaceX;

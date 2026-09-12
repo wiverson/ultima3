@@ -14,7 +14,8 @@ import { World, blockExodusApproach } from './world.ts';
 import { Location } from './party.ts';
 import { MapId } from '../data/resources.ts';
 
-export const SAVE_VERSION = 1;
+/** Version 2 pools gold and food in the party record; version 1 saves are migrated on load. */
+export const SAVE_VERSION = 2;
 export const SAVE_KEY = 'ultima3.save';
 
 export interface SaveData {
@@ -64,7 +65,7 @@ export function serialize(world: World): SaveData {
 
 /** Restore a world from `data`. Returns false (leaving the world untouched) if the data is unusable. */
 export function restore(world: World, data: SaveData): boolean {
-  if (data.version !== SAVE_VERSION) return false;
+  if (data.version !== 1 && data.version !== SAVE_VERSION) return false;
   try {
     const party = fromBase64(data.party);
     const roster = fromBase64(data.roster);
@@ -88,6 +89,7 @@ export function restore(world: World, data: SaveData): boolean {
     world.moonPhase = [data.moonPhase[0], data.moonPhase[1]];
     world.moonTimer = [data.moonTimer[0], data.moonTimer[1]];
     world.windDirection = data.windDirection;
+    if (data.version === 1) world.poolPurses(); // members' purses become the party's
     return true;
   } catch {
     return false;

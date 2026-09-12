@@ -38,7 +38,7 @@ form, disperse, terminate). In play the keys are the Apple II ones: arrow
 keys or the numeric keypad move, and every letter is a command:
 
     A attack     B board      C cast       D descend    E enter
-    F fire       G get chest  H hand       I ignite     J join gold
+    F fire       G get chest  H hand       I ignite
     K klimb      L look       M modify     N negate     O other
     P peer gem   Q quit/save  R ready      S steal      T transact
     U unlock     V volume     W wear       X exit       Y yell
@@ -69,7 +69,7 @@ Everything the Apple II game had:
 - The shrines of Ambrosia, the cards and marks, the exotics, EVOCARE, the
   four cards in Exodus and the ending.
 - Party management: creation, forming, marching order, handing equipment,
-  joining gold, ztats, death and resurrection, save and resume. The title
+  ztats, death and resurrection, save and resume. The title
   and party screens are menu driven in both input modes (the Apple II typed
   entry numbers and attribute values): the roster is a pick list, the party
   a multi-select list in marching order, attributes a screen where left and
@@ -177,6 +177,17 @@ explained in `tiles.ts`, and the music event format in `ui/music.ts`.
 - `monsters.ts` `heading()` uses true 8-bit wrap-around, as the Apple II
   did. The C port tested for negative values first, which sent monsters the
   long way round when the party was far to their west.
+- Gold and food are pooled for the whole party (the Apple II kept them per
+  member, 0..9999 each). The pool lives in spare bytes of the party record
+  and shows on the top border either side of the moons; the character
+  boxes are two rows each (name, status or a green "L!" when Lord British
+  would raise the member, hit points over max, mana), which gives the
+  message area four more rows. Join gold is gone, Hand no longer moves
+  food or gold, the grocer asks nobody's name, and Transact asks who only
+  for Lord British and the shops that give something to a member. Members
+  eat a tenth of a ration a turn from the pool and go hungry together when
+  it is empty; the Apple II's food-borrow quirk went with the per-member
+  counters. A dispersed party shares the pool out among its members again.
 - Resurrection after a party wipe is automatic; the original showed a dialog.
 - The Mac's "no diagonals" preference is the "Classic moves" checkbox,
   on by default. With it off, the lava either side of Exodus' castle

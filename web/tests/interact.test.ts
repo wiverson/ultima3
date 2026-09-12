@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { newWorld, FakeIO } from './helpers.ts';
-import { speech, transact, unlock, steal, otherCommand, fire, unlockToward, whoTransacts, transactToward } from '../src/game/interact.ts';
+import { speech, transact, unlock, steal, otherCommand, fire, unlockToward, transactToward } from '../src/game/interact.ts';
 import { shop } from '../src/game/shops.ts';
 import { cast } from '../src/game/spells.ts';
 import { getChest, readyWeapon, wearArmour, stats, handEquipment } from '../src/game/actions.ts';
@@ -42,7 +42,7 @@ describe('talking', () => {
     m.setPosition(0, 21, 20);
     m.setHp(0, 0x02); // stationary, says line 2
     world.putXYVal(MapValue.Jester, 21, 20);
-    io.keys = ['1', Key.Right];
+    io.keys = [Key.Right];
     await transact(world, io);
     expect(io.output).toContain(speech(world.current.talk, 2).slice(0, 8));
 
@@ -50,14 +50,14 @@ describe('talking', () => {
     world.y = 17; // 17 & 7 = 1: grocer
     world.putXYVal(MapValue.LetterA, 21, 17);
     world.putXYVal(MapValue.Merchant, 22, 17);
-    io.keys = ['1', Key.Right, 'N'];
+    io.keys = [Key.Right, 'N'];
     io.inputs = ['20'];
-    const gold = world.member(0).gold;
-    const food = world.member(0).food;
+    const gold = world.party.gold;
+    const food = world.party.food;
     await transact(world, io);
     expect(io.output).toContain('GROCER');
-    expect(world.member(0).gold).toBe(gold - 20);
-    expect(world.member(0).food).toBe(food + 20);
+    expect(world.party.gold).toBe(gold - 20);
+    expect(world.party.food).toBe(food + 20);
   });
 });
 
@@ -65,7 +65,7 @@ describe('shops', () => {
   it('sells a weapon the class may use and buys it back', async () => {
     const { world, io } = townWorld();
     const p = world.member(1); // Roderic, a ranger
-    p.gold = 500;
+    world.party.gold = 500;
     world.party.surfaceX = 0; // a basic shop
     // No list; buy a mace; Escape leaves the shop (buying stays in buy mode, as in the original).
     io.keys = ['N', 'B', 'C', Key.Escape];
@@ -73,24 +73,23 @@ describe('shops', () => {
     expect(io.output).toContain('WEAPONS SHOP');
     expect(io.output).toContain('Here you are');
     expect(p.bytes[48 + 2]).toBe(1);
-    expect(p.gold).toBe(470);
+    expect(world.party.gold).toBe(470);
     // Sell it back.
     io.keys = ['N', 'S', 'C', Key.Escape];
     await shop(world, io, 3, 1);
     expect(io.output).toContain('Thank you');
     expect(p.bytes[48 + 2]).toBe(0);
-    expect(p.gold).toBe(500);
+    expect(world.party.gold).toBe(500);
   });
 
   it('the healer cures poison for 100 gold', async () => {
     const { world, io } = townWorld();
-    const p = world.member(0);
-    p.gold = 300;
+    world.party.gold = 300;
     world.member(2).status = 'P';
     io.keys = ['1', 'Y', '3'];
     await shop(world, io, 2, 0);
     expect(world.member(2).status).toBe('G');
-    expect(p.gold).toBe(200);
+    expect(world.party.gold).toBe(200);
   });
 });
 
@@ -110,14 +109,15 @@ describe('doors, chests and stealing', () => {
     world.y = 17; // 17 & 7 = 1: grocer
     world.putXYVal(MapValue.LetterA, 21, 17);
     world.putXYVal(MapValue.Merchant, 22, 17);
-    io.keys = ['1', 'N'];
+    // The grocer asks nobody's name: food is the party's.
+    io.keys = ['N'];
     io.inputs = ['10'];
-    const food = world.member(0).food;
-    const member = await whoTransacts(world, io);
-    expect(member).toBe(0);
-    await transactToward(world, io, member, 1, 0);
+    const food = world.party.food;
+    const gold = world.party.gold;
+    await transactToward(world, io, 1, 0);
     expect(io.output).toContain('GROCER');
-    expect(world.member(0).food).toBe(food + 10);
+    expect(world.party.food).toBe(food + 10);
+    expect(world.party.gold).toBe(gold - 10);
   });
 
   it('unlocks a door with a key', async () => {
@@ -135,11 +135,11 @@ describe('doors, chests and stealing', () => {
     const { world, io } = townWorld();
     world.putXYVal(MapValue.Chest, world.x, world.y);
     world.member(0).bytes[19] = 99; // a dexterous thief always disarms the trap
-    const gold = world.member(0).gold;
+    const gold = world.party.gold;
     io.keys = ['1'];
     await getChest(world, io, 0, 'command');
     expect(world.getXYVal(world.x, world.y)).toBe(MapValue.Floor);
-    expect(world.member(0).gold).toBeGreaterThan(gold);
+    expect(world.party.gold).toBeGreaterThan(gold);
     expect(io.output).toContain('GOLD+');
   });
 
@@ -171,15 +171,13 @@ describe('equipment and stats', () => {
     expect(io.output).toContain('Not owned');
   });
 
-  it('hands gold between members', async () => {
+  it('hands a weapon between members', async () => {
     const { world, io } = townWorld();
-    io.keys = ['1', '2', 'G'];
-    io.inputs = ['100'];
-    const a = world.member(0).gold;
-    const b = world.member(1).gold;
+    world.member(0).bytes[48 + 2] = 1; // a mace
+    io.keys = ['1', '2', 'W', 'C'];
     await handEquipment(world, io);
-    expect(world.member(0).gold).toBe(a - 100);
-    expect(world.member(1).gold).toBe(b + 100);
+    expect(world.member(0).bytes[48 + 2]).toBe(0);
+    expect(world.member(1).bytes[48 + 2]).toBe(1);
   });
 
   it('prints the stats screen and stops on escape', async () => {
@@ -219,10 +217,10 @@ describe('other commands', () => {
     world.putXYVal(MapValue.Guard, 21, 20);
     io.keys = ['1', Key.Right];
     io.inputs = ['BRIBE'];
-    world.member(0).gold = 150;
+    world.party.gold = 150;
     await otherCommand(world, io);
     expect(m.type(0)).toBe(0);
-    expect(world.member(0).gold).toBe(50);
+    expect(world.party.gold).toBe(50);
   });
 
   it('cannons sink a pirate ship', async () => {

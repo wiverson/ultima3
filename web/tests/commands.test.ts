@@ -158,11 +158,11 @@ describe('enter and leave a town', () => {
 describe('turn processing', () => {
   it('counts moves by party size and ages food', async () => {
     const { world, io } = flatWorld();
-    const food = world.member(0).food;
+    const food = world.party.food;
     for (let i = 0; i < 10; i++) await endTurn(world, io, noHooks);
     expect(world.party.moves).toBe(40);
-    // 10 turns x 0.10 food = 1.00, plus the port's extra unit per borrow (see records.test.ts).
-    expect(world.member(0).food).toBe(food - 2);
+    // Four members each eat a tenth of a ration per turn from the party's pool.
+    expect(world.party.food).toBe(food - 4);
   });
 
   it('keeps exactly one moongate open, at the Trammel phase position', () => {

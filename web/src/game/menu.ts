@@ -381,6 +381,7 @@ export async function formParty(world: World, io: GameIO): Promise<void> {
     world.party.setMemberRosterNumber(i, slot + 1);
     world.roster.get(slot).inParty = true;
   });
+  world.poolPurses();
   world.party.location = Location.Sosaria;
   world.party.shape = 0x7e;
   world.party.bytes[5] = 0xff;
@@ -394,10 +395,11 @@ export async function formParty(world: World, io: GameIO): Promise<void> {
   await notice(io, mm(world, MM.Formed));
 }
 
-/** Free every roster entry and clear the party record. */
+/** Give the members their share of the pool, free every roster entry and clear the party record. */
 function disperse(world: World): void {
+  world.splitPool();
   for (let i = 0; i < ROSTER_SIZE; i++) world.roster.get(i).inParty = false;
-  world.party.bytes.fill(0, 0, 17);
+  world.party.bytes.fill(0);
 }
 
 /** Mirrors `DisperseParty()`. */

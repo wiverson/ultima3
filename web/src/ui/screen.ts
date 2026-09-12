@@ -8,11 +8,14 @@
  *
  *   columns 0..23,  rows 0..23   border and the 11x11 map viewport (each
  *                                map tile is 2x2 cells, starting at cell 1,1)
- *   columns 24..38, rows 1..15   four character boxes, three rows each,
- *                                separated by border lines at rows 4, 8, 12, 16
- *   columns 24..39, rows 17..23  the scrolling message area; the prompt is
+ *   columns 24..38, rows 1..11   four character boxes, two rows each,
+ *                                separated by border lines at rows 3, 6, 9, 12
+ *                                (the Apple II used three rows and 4, 8, 12, 16;
+ *                                this port pools gold and food, so the boxes
+ *                                shrank and the message area grew)
+ *   columns 24..39, rows 13..23  the scrolling message area; the prompt is
  *                                on row 23
- *   row 0                        moon phases;   row 23  wind
+ *   row 0                        party gold, moon phases, party food;   row 23  wind
  *
  * Rendering is split in two: the border, text and stats are drawn straight
  * onto the canvas when they change, while the viewport is redrawn twelve
@@ -26,6 +29,7 @@ import { SoundPlayer } from './sound.ts';
 import { MusicPlayer } from './music.ts';
 import { DungeonRenderer } from './dungeonView.ts';
 import { World } from '../game/world.ts';
+import { PlayerRecord } from '../game/player.ts';
 import { suggestedCommands, prioritise } from '../game/context.ts';
 import { Location } from '../game/party.ts';
 import { buildViewport, VIEW_SIZE, type Viewport } from '../game/viewport.ts';
@@ -67,9 +71,14 @@ const Piece = {
 } as const;
 
 /** The message area. */
+/** Character boxes: two rows each, three rows apart, separators below each. */
+const BOX_ROWS = 2;
+const BOX_PITCH = 3;
+const BOX_SEPARATORS = [3, 6, 9, 12];
+const BOXES_BOTTOM = 12;
 const TEXT_LEFT = 24;
 const TEXT_RIGHT = 40; // exclusive
-const TEXT_TOP = 17;
+const TEXT_TOP = 13;
 const TEXT_BOTTOM = 24; // exclusive
 
 const ANIMATION_INTERVAL_MS = 1000 / 12;
@@ -86,6 +95,8 @@ export class Screen implements GameIO {
   private viewDirty = true;
   /** While a picture or map covers the viewport the animation loop leaves it alone. */
   private viewCovered = false;
+  /** True while the in-game border is shown (false on the title screens). */
+  private frameShown = false;
   private lastFrame = 0;
   private readonly dungeonRenderer: DungeonRenderer | null;
 
@@ -153,29 +164,30 @@ export class Screen implements GameIO {
   /** Draw the in-game border. (`DrawFrame(1)`) */
   showGameFrame(): void {
     this.viewCovered = false;
+    this.frameShown = true;
     this.black(0, 0, COLUMNS, ROWS);
     const piece = (n: number, x: number, y: number) => this.piece(n, x, y);
     for (let x = 1; x < 39; x++) piece(Piece.Horizontal, x, 0);
     for (let x = 1; x < 23; x++) piece(Piece.Horizontal, x, 23);
-    for (let x = 24; x < 39; x++) for (const y of [4, 8, 12, 16]) piece(Piece.Horizontal, x, y);
+    for (let x = 24; x < 39; x++) for (const y of BOX_SEPARATORS) piece(Piece.Horizontal, x, y);
     for (let y = 1; y < 23; y++) {
       piece(Piece.Vertical, 0, y);
       piece(Piece.Vertical, 23, y);
     }
-    for (let y = 1; y < 16; y++) piece(Piece.Vertical, 39, y);
+    for (let y = 1; y < BOXES_BOTTOM; y++) piece(Piece.Vertical, 39, y);
     piece(Piece.TopLeft, 0, 0);
     piece(Piece.TopRight, 39, 0);
     piece(Piece.BottomLeft, 0, 23);
     piece(Piece.TopTee, 23, 0);
-    piece(Piece.BottomRight, 39, 16);
+    piece(Piece.BottomRight, 39, BOXES_BOTTOM);
     piece(Piece.BottomRight, 23, 23);
-    for (const y of [4, 8, 12, 16]) piece(Piece.LeftTee, 23, y);
-    for (const y of [4, 8, 12]) piece(Piece.RightTee, 39, y);
+    for (const y of BOX_SEPARATORS) piece(Piece.LeftTee, 23, y);
+    for (const y of BOX_SEPARATORS.slice(0, 3)) piece(Piece.RightTee, 39, y);
     // Member numbers 1-4 sit in the separators above each box.
     for (let i = 0; i < 4; i++) {
-      piece(Piece.CapLeft, 30, i * 4);
-      piece(Piece.CapRight, 32, i * 4);
-      this.drawText(String(i + 1), 31, i * 4);
+      piece(Piece.CapLeft, 30, i * BOX_PITCH);
+      piece(Piece.CapRight, 32, i * BOX_PITCH);
+      this.drawText(String(i + 1), 31, i * BOX_PITCH);
     }
     this.textRows.forEach((row) => row.fill(' '));
     this.redrawTextArea();
@@ -189,6 +201,7 @@ export class Screen implements GameIO {
   /** The plain border with the Exodus picture. (`DrawFrame(3)`, `DrawExodusPict`) */
   showTitle(): void {
     this.viewCovered = true;
+    this.frameShown = false;
     this.view = null;
     this.black(0, 0, COLUMNS, ROWS);
     for (let x = 1; x < 39; x++) {
@@ -219,12 +232,20 @@ export class Screen implements GameIO {
   // -------------------------------------------------------------------------
 
   /** Draw a string with the bitmap font at cell (x, y), no wrapping. */
-  drawText(text: string, x: number, y: number): void {
+  drawText(text: string, x: number, y: number, colour?: string): void {
     const { ctx, cell } = this;
     for (let i = 0; i < text.length; i++) {
       ctx.fillStyle = '#000';
       ctx.fillRect((x + i) * cell, y * cell, cell, cell);
       this.gfx.drawGlyph(ctx, text[i], (x + i) * cell, y * cell, cell);
+    }
+    if (colour) {
+      // Tint the white glyphs: multiplying leaves the black background black.
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = colour;
+      ctx.fillRect(x * cell, y * cell, text.length * cell, cell);
+      ctx.restore();
     }
   }
 
@@ -880,48 +901,48 @@ export class Screen implements GameIO {
    *   FET   M:00  L:01        <- sex/race/class, mana, level
    *   H:0100  F:0150          <- hit points, food
    */
+  /**
+   * The four character boxes, two rows each:
+   *
+   *   Tatiana       L!      name; status letter, or a green "L!" when Lord
+   *   H:0100/0150 M25       British would raise the member's level
+   *
+   * Gold and food are pooled and shown on the top border (`showMoons`).
+   */
   updateStats(force = false): void {
     for (let m = 0; m < 4; m++) {
       const slot = this.world.party.memberSlot(m);
       const p = slot >= 0 ? this.world.roster.get(slot) : null;
-      const lines = p
-        ? [
-            p.name,
-            `${p.sex}${p.race}${p.classLetter} M:${pad(p.mana, 2)} L:${pad(p.level, 2)} ${p.status}`,
-            `H:${pad(p.hitPoints, 4)} F:${pad(p.food, 4)}`,
-          ]
-        : ['', '', ''];
-      const key = lines.join('|');
+      const due = p ? levelUpDue(p) : false;
+      const key = p ? `${p.name}|${p.status}|${due}|${p.hitPoints}|${p.maxHitPoints}|${p.mana}` : '';
       if (!force && key === this.statsCache[m]) continue;
       this.statsCache[m] = key;
 
-      const top = m * 4 + 1;
-      this.black(24, top, 15, 3);
+      const top = m * BOX_PITCH + 1;
+      this.black(24, top, 15, BOX_ROWS);
       if (p) {
-        this.drawText(p.name, 24 + 7 - Math.floor(p.name.length / 2), top);
-        this.drawText(p.status, 38, top);
-        this.drawText(`${p.sex}${p.race}${p.classLetter}`, 25, top + 1);
-        this.drawText(`M:${pad(p.mana, 2)}`, 29, top + 1);
-        this.drawText(`L:${pad(p.level, 2)}`, 34, top + 1);
-        this.drawText(`H:${pad(p.hitPoints, 4)}`, 25, top + 2);
-        this.drawText(`F:${pad(p.food, 4)}`, 32, top + 2);
+        this.drawText(p.name, 24, top);
+        if (due && p.status === 'G') this.drawText('L!', 37, top, '#40ff40');
+        else this.drawText(p.status, 38, top);
+        this.drawText(`H:${pad(p.hitPoints, 4)}/${pad(p.maxHitPoints, 4)} M${pad(p.mana, 2)}`, 24, top + 1);
       }
-      if (this.highlighted.has(m)) this.invert(24, top, 15, 3);
+      if (this.highlighted.has(m)) this.invert(24, top, 15, BOX_ROWS);
     }
+    this.showMoons();
   }
 
   async flashMember(member: number): Promise<void> {
-    const top = member * 4 + 1;
-    this.invert(24, top, 15, 3);
+    const top = member * BOX_PITCH + 1;
+    this.invert(24, top, 15, BOX_ROWS);
     await this.pause(100);
-    this.invert(24, top, 15, 3);
+    this.invert(24, top, 15, BOX_ROWS);
   }
 
   highlightMember(member: number, on: boolean): void {
     if (this.highlighted.has(member) === on) return;
     if (on) this.highlighted.add(member);
     else this.highlighted.delete(member);
-    this.invert(24, member * 4 + 1, 15, 3);
+    this.invert(24, member * BOX_PITCH + 1, 15, BOX_ROWS);
   }
 
   /** Wind indicator on the bottom border, or the heading in a dungeon. (`ShowWind`, `DngInfo`) */
@@ -946,18 +967,33 @@ export class Screen implements GameIO {
     this.drawText((mm[42 + w.windDirection] ?? '').padEnd(10), 7, 23);
   }
 
-  /** Moon phases on the top border, or the dungeon level. (`DrawMoonGateStuff`, `DngInfo`) */
+  /**
+   * The status bar on the top border over the map: the party's gold on the
+   * left, the moon phases (or the dungeon level) in the middle where the
+   * Apple II showed them, and the party's food on the right.
+   * (`DrawMoonGateStuff`, `DngInfo`)
+   */
   showMoons(): void {
     const w = this.world;
-    this.piece(Piece.CapLeft, 8, 0);
-    if (w.party.location === Location.Dungeon) {
-      // MoreMessages 48 is "Lvl:0"; the digit is replaced.
-      this.drawText(`Lvl:${w.dungeon.level + 1}`.padEnd(6), 9, 0);
-    } else {
-      this.drawText(`(${w.moonPhase[0]})(${w.moonPhase[1]})`, 9, 0);
-    }
-    this.piece(Piece.CapRight, 15, 0);
+    if (!this.frameShown) return; // title screens have no status bar
+    const middle = w.party.location === Location.Dungeon ? ` Lvl:${w.dungeon.level + 1}` : `(${w.moonPhase[0]})(${w.moonPhase[1]})`;
+    this.drawText(`G:${pad(w.party.gold, 5)} ${middle} F:${pad(w.party.food, 5)}`.padEnd(22), 1, 0);
   }
+}
+
+/**
+ * Lord British's own test for raising a member: level above max hit points
+ * / 100, not yet 2500 max, and past level 5 only with the Mark of Kings.
+ */
+function levelUpDue(p: PlayerRecord): boolean {
+  const level = p.level - 1;
+  let hpmax = p.maxHitPoints;
+  if (hpmax % 100 === 50) hpmax -= 50;
+  hpmax = Math.floor(hpmax / 100);
+  if (level < hpmax) return false;
+  if (hpmax >= 25) return false;
+  if (hpmax > 4 && !(p.marks & 0x80)) return false;
+  return true;
 }
 
 function pad(n: number, width: number): string {

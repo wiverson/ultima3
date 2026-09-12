@@ -33,13 +33,14 @@ export async function checkAllDead(world: World, io: GameIO): Promise<void> {
   io.sound(Sound.BigDeath);
   await io.pause(1500);
 
+  // The party starts over with 150 gold and at least 100 food per member (pooled).
+  world.party.gold = 150 * world.party.size;
+  world.party.food = Math.max(world.party.food, 100 * world.party.size);
   for (let m = 0; m < 4; m++) {
     if (world.party.memberSlot(m) < 0) continue;
     const p = world.member(m);
-    p.bytes.fill(0, 35, 64); // gold, gems, keys, powders, armour, weapons
+    p.bytes.fill(0, 35, 64); // gold (unused now), gems, keys, powders, armour, weapons
     p.torches = 0;
-    if (p.bytes[32] < 1) p.bytes[32] = 1; // at least 100 food
-    p.gold = 150;
     p.bytes[41] = 1; // cloth armour
     p.bytes[40] = 1; //   in use
     p.bytes[49] = 1; // dagger

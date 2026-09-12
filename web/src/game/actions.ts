@@ -9,7 +9,7 @@
  */
 
 import { World } from './world.ts';
-import { Location } from './party.ts';
+import { Location, GOLD_MAX } from './party.ts';
 import { MapValue } from './tiles.ts';
 import { type GameIO, Key, Sound, inputNumber, deathSound, type MenuOption } from './io.ts';
 import { PlayerRecord } from './player.ts';
@@ -92,18 +92,13 @@ export function addExperience(world: World, io: GameIO, member: number, amount: 
 }
 
 /**
- * Mirrors `AddGold()`. Gold is capped at 9999. With `overflow` the excess is
- * lost and false is returned; without it nothing is added and false is returned.
+ * Mirrors `AddGold()`, on the party's pool. Returns false if the cap cut
+ * the amount short; with `overflow` the surplus is simply lost, without it
+ * nothing is added at all.
  */
-export function addGold(p: PlayerRecord, gold: number, overflow: boolean): boolean {
-  const total = p.gold + gold;
-  if (total > 9999) {
-    if (!overflow) return false;
-    p.gold = 9999;
-    return false;
-  }
-  p.gold = total;
-  return true;
+export function addGold(world: World, gold: number, overflow: boolean): boolean {
+  if (!overflow && world.party.gold + gold > GOLD_MAX) return false;
+  return world.addGold(gold);
 }
 
 /** Mirrors `AddItem()`: item counts are capped at 99. */
@@ -231,7 +226,7 @@ export async function getChest(world: World, io: GameIO, member: number, how: 'c
   if (gold < 30) gold += 30;
   io.printMessage(Msg.Gold);
   io.print(`${gold}\n`);
-  if (!addGold(p, gold, true)) {
+  if (!addGold(world, gold, true)) {
     io.printMessage(Msg.Overflowing);
     io.sound(Sound.Error1);
   }
@@ -283,8 +278,6 @@ export async function handEquipment(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.HandWhat);
   const item = await io.chooseOption(
     [
-      { key: 'F', label: 'Food' },
-      { key: 'G', label: 'Gold' },
       { key: 'E', label: 'Equipment (gems, keys, powders, torches)' },
       { key: 'W', label: 'Weapon' },
       { key: 'A', label: 'Armour' },
@@ -292,28 +285,6 @@ export async function handEquipment(world: World, io: GameIO): Promise<void> {
     'line',
   );
   switch (item) {
-    case 'F': {
-      io.printMessage(Msg.Amount);
-      const amount = await inputNumber(io, 4);
-      io.print('\n');
-      if (amount > a.food) return error(Msg.NotEnough);
-      if (b.food + amount > 9999) return error(Msg.TooMuch);
-      setFood(a, a.food - amount);
-      setFood(b, b.food + amount);
-      io.printMessage(Msg.Done);
-      break;
-    }
-    case 'G': {
-      io.printMessage(Msg.Amount);
-      const amount = await inputNumber(io, 4);
-      io.print('\n');
-      if (amount > a.gold) return error(Msg.NotEnough);
-      if (b.gold + amount > 9999) return error(Msg.TooMuch);
-      a.gold -= amount;
-      b.gold += amount;
-      io.printMessage(Msg.Done);
-      break;
-    }
     case 'E': {
       io.printMessage(Msg.HandEquipmentWhat);
       const what = await io.chooseOption(
@@ -359,13 +330,9 @@ export async function handEquipment(world: World, io: GameIO): Promise<void> {
   io.updateStats();
 }
 
-function setFood(p: PlayerRecord, food: number): void {
-  p.bytes[32] = Math.floor(food / 100);
-  p.bytes[33] = food % 100;
-}
 
 // ---------------------------------------------------------------------------
-// I: Ignite torch, J: Join gold, M: Modify order, N: Negate time, P: Peer
+// I: Ignite torch, M: Modify order, N: Negate time, P: Peer (Join gold is gone: gold is pooled)
 // ---------------------------------------------------------------------------
 
 /** Mirrors `Ignite()`. */
@@ -380,29 +347,6 @@ export async function igniteTorch(world: World, io: GameIO): Promise<void> {
   p.torches--;
   io.sound(Sound.TorchIgnite);
   world.dungeon.torch = 255;
-}
-
-/** Mirrors `JoinGold()`: pool everyone's gold onto one member, up to 9999. */
-export async function joinGold(world: World, io: GameIO): Promise<void> {
-  io.printMessage(Msg.JoinGoldTo);
-  const n = await io.chooseMember();
-  if (n < 1 || n > 4) {
-    io.printMessage(Msg.NoSuchPlayer);
-    io.sound(Sound.Error1);
-    return;
-  }
-  const main = world.member(n - 1);
-  let total = main.gold;
-  for (let m = 0; m < 4; m++) {
-    if (m === n - 1 || world.party.memberSlot(m) < 0) continue;
-    const p = world.member(m);
-    const transfer = Math.min(p.gold, 9999 - total);
-    if (transfer > 0) {
-      total += transfer;
-      p.gold -= transfer;
-    }
-  }
-  main.gold = total;
 }
 
 /** Mirrors `ModifyOrder()`: swap two members' positions. */
@@ -566,7 +510,6 @@ export async function stats(world: World, io: GameIO, member?: number): Promise<
   const lines = [
     `\nH.P...${pad(p.hitPoints, 4)}`,
     `\nH.M...${pad(p.maxHitPoints, 4)}`,
-    `\nGOLD: ${pad(p.gold, 4)}`,
     `\nEXP...${pad(p.bytes[30] * 100 + p.bytes[31], 4)}`,
     `\nGEMS..${pad(p.gems, 2)}`,
     `\nKEYS..${pad(p.keys, 2)}`,

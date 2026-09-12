@@ -146,7 +146,7 @@ export async function ageChars(world: World, io: GameIO): Promise<void> {
 
     if (!p.alive) continue;
 
-    if (p.eatFood(10)) {
+    if (world.eatFromPool()) {
       io.printMessage(Msg.Starving);
       await io.flashMember(m);
       io.sound(Sound.Hit);

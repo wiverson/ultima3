@@ -224,28 +224,6 @@ export class PlayerRecord {
     return false;
   }
 
-  /**
-   * Mirrors `EatFood()`. Food is kept as three base-100 digits, so a borrow
-   * propagates from the fraction byte up to the hundreds byte. Returns true
-   * when the character has run out and is starving (caller deals damage).
-   */
-  eatFood(amount: number): boolean {
-    const b = this.bytes;
-    b[PlayerOffset.FoodFraction] -= amount; // Uint8Array wraps, exactly like the original's unsigned char
-    if (b[PlayerOffset.FoodFraction] > 127) {
-      b[PlayerOffset.FoodFraction] -= 157; // 256 - 157 = 99: wrap back into 0..99
-      b[PlayerOffset.FoodUnits] -= 1;
-      if (b[PlayerOffset.FoodUnits] > 127) {
-        b[PlayerOffset.FoodUnits] -= 157;
-        b[PlayerOffset.FoodHundreds] -= 1;
-        if (b[PlayerOffset.FoodHundreds] > 127) {
-          b[PlayerOffset.FoodHundreds] = b[PlayerOffset.FoodUnits] = b[PlayerOffset.FoodFraction] = 0;
-          return true;
-        }
-      }
-    }
-    return false;
-  }
 }
 
 /** The whole roster: 20 records in one buffer, so saving is a single copy. */
