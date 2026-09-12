@@ -24,6 +24,8 @@ export interface ViewCell {
   overlay?: number;
   /** Draw the overlay horizontally flipped (horse facing east). */
   flip?: boolean;
+  /** Draw the overlay from its alternate animation frame (the "HIT" balls). */
+  altFrame?: boolean;
 }
 
 export interface Viewport {
@@ -175,11 +177,51 @@ function applyOverlays(world: World, shapes: Uint8Array, originX: number, origin
   return cells;
 }
 
-/** Build the viewport centred on the party. */
+/**
+ * The combat arena: the 11x11 arena shapes with monsters and members drawn
+ * over the terrain they stand on. Mirrors the combat branch of
+ * `HideMonsters()` / `ShowMonsters()`.
+ */
+function buildCombatViewport(world: World): Viewport {
+  const c = world.combat!;
+  const cells: ViewCell[] = Array.from(c.tiles, (s) => ({ base: s }));
+  for (const m of c.monsters) {
+    if (m.hp <= 0) continue;
+    cells[m.y * VIEW_SIZE + m.x] = { base: m.tileUnder, overlay: m.shape };
+  }
+  c.members.forEach((p, i) => {
+    if (p.x > 10 || p.y > 10 || i === c.hiddenMember) return;
+    cells[p.y * VIEW_SIZE + p.x] = { base: p.tileUnder, overlay: p.shape };
+  });
+  return { cells, originX: 0, originY: 0 };
+}
+
+/** Build the viewport centred on the party (or the arena during combat). */
 export function buildViewport(world: World, x = world.x, y = world.y): Viewport {
-  const shapes = fillShapes(world, x, y);
-  applyLineOfSight(shapes);
-  const originX = x - VIEW_CENTRE;
-  const originY = y - VIEW_CENTRE;
-  return { cells: applyOverlays(world, shapes, originX, originY), originX, originY };
+  let view: Viewport;
+  if (world.combat) {
+    view = buildCombatViewport(world);
+  } else {
+    const shapes = fillShapes(world, x, y);
+    applyLineOfSight(shapes);
+    const originX = x - VIEW_CENTRE;
+    const originY = y - VIEW_CENTRE;
+    view = { cells: applyOverlays(world, shapes, originX, originY), originX, originY };
+  }
+
+  // A spell ball or cannon shot in flight is drawn over whatever is there.
+  const ball = world.ball;
+  if (ball) {
+    let vx = ball.x - view.originX;
+    let vy = ball.y - view.originY;
+    if (!world.combat && world.onSurface) {
+      vx = world.constrain(vx);
+      vy = world.constrain(vy);
+    }
+    if (vx >= 0 && vx < VIEW_SIZE && vy >= 0 && vy < VIEW_SIZE) {
+      const cell = view.cells[vy * VIEW_SIZE + vx];
+      view.cells[vy * VIEW_SIZE + vx] = { base: cell.base, overlay: ball.shape, altFrame: ball.hitFrame };
+    }
+  }
+  return view;
 }

@@ -238,6 +238,11 @@ export function exitToSurface(world: World, io: GameIO): void {
   world.party.surfaceX = world.x;
   world.party.surfaceY = world.y;
   world.returnToSurface();
+  // After Exodus' defeat the land creatures merely wander. (`PullSosaria`)
+  if (world.party.exodusDestroyed) {
+    const m = world.monsters;
+    for (let i = 0; i < 32; i++) if (m.type(i) >= 0x40) m.setHp(i, 0x40);
+  }
   io.printMessage(Msg.ExitToSosaria);
   io.showWind();
 }

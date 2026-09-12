@@ -33,13 +33,37 @@ export interface SourceRect {
   h: number;
 }
 
-function loadImage(url: string): Promise<HTMLImageElement> {
+export function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error(`Failed to load image ${url}`));
     img.src = url;
   });
+}
+
+/** The pictures in public/images, by file name without extension. */
+export type ImageMap = Map<string, HTMLImageElement>;
+
+/** Load the pictures used in play (title, dungeon walls, shrines, fountains ...). */
+export async function loadImages(baseUrl = 'images/'): Promise<ImageMap> {
+  const files = [
+    'DungeonShapes.jpg',
+    'DungeonMasks.png',
+    'Exodus.png',
+    'Fountain.jpg',
+    'Rod.jpg',
+    'Shrine.jpg',
+    'TimeLord.jpg',
+    'SosariaMap.jpg',
+  ];
+  const images: ImageMap = new Map();
+  await Promise.all(
+    files.map(async (file) => {
+      images.set(file.replace(/\.[a-z]+$/, ''), await loadImage(baseUrl + file));
+    }),
+  );
+  return images;
 }
 
 /**
@@ -149,11 +173,13 @@ export class GraphicsSet {
     dx: number,
     dy: number,
     size: number,
-    opts: { masked?: boolean; flip?: boolean } = {},
+    opts: { masked?: boolean; flip?: boolean; altFrame?: boolean } = {},
   ): void {
     const src: CanvasImageSource = opts.masked ? this.maskedTiles : this.tiles;
-    // Doors are the alternate frame of the letter "I".
-    const rect = shape === Shape.Door ? this.tileRect(Shape.Door >> 1, true) : this.tileRect(shape >> 1);
+    // Doors are the alternate frame of the letter "I"; `altFrame` forces the
+    // second frame (used for the "HIT" balls).
+    const rect =
+      shape === Shape.Door ? this.tileRect(Shape.Door >> 1, true) : this.tileRect(shape >> 1, opts.altFrame ? true : undefined);
     const scrollPx = this.scroll.get(shape) ?? 0;
 
     if (opts.flip) {

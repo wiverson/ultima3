@@ -40,6 +40,71 @@ export interface Whirlpool {
   dy: number;
 }
 
+/**
+ * One creature in a combat arena. Up to eight monsters and four party
+ * members. Positions are arena cells 0..10; a member who is not present
+ * (dead, or an empty party slot) has x = y = 255.
+ */
+export interface Combatant {
+  x: number;
+  y: number;
+  /** The arena shape under the creature, restored when it moves or dies. */
+  tileUnder: number;
+  /** Shape drawn for the creature. */
+  shape: number;
+  /** Monsters only: hit points, 0 = slot unused. */
+  hp: number;
+}
+
+/** The state of a fight. See combat.ts. */
+export interface CombatState {
+  /** 11x11 arena shapes (same numbering as the viewport). */
+  tiles: Uint8Array;
+  monsters: Combatant[];
+  members: Combatant[];
+  /** Shape of the monster type being fought (map value / 2). */
+  monsterShape: number;
+  /** Variant 0..2 of that type. */
+  monsterVariant: number;
+  /** Where the party was before combat (`Party[3]`), restored on victory. */
+  previousLocation: number;
+  /** Member whose turn it is, 0..3. */
+  activeMember: number;
+  /** Member hidden for the blink effect, or -1. (`cHide`) */
+  hiddenMember: number;
+}
+
+/** State while inside a dungeon. */
+export interface DungeonState {
+  /** 8 levels x 16 x 16 cells. */
+  tiles: Uint8Array;
+  /** 0..7 */
+  level: number;
+  /** 0 north, 1 east, 2 south, 3 west. */
+  heading: number;
+  /** Turns of light remaining; 0 means darkness. (`gTorch`) */
+  torch: number;
+  /** Set when the party is leaving the dungeon. (`gExitDungeon`) */
+  exit: boolean;
+}
+
+/** Dungeon cell values. The high bits mark walls; low bits are features. */
+export const DungeonCell = {
+  Open: 0x00,
+  TimeLord: 0x01,
+  Fountain: 0x02,
+  Wind: 0x03,
+  Trap: 0x04,
+  Mark: 0x05,
+  Gremlins: 0x06,
+  Writing: 0x08,
+  LadderUp: 0x10,
+  LadderDown: 0x20,
+  Chest: 0x40,
+  Wall: 0x80,
+  Door: 0xc0,
+} as const;
+
 export class World {
   readonly rng: Random;
   readonly party: Party;
@@ -92,6 +157,39 @@ export class World {
 
   /** Set when the game should stop (quit to menu). `gDone` in the C source. */
   done = false;
+
+  /** Set while the party is being resurrected, so nested loops unwind. (`gResurrect`) */
+  resurrecting = false;
+
+  /**
+   * Combat in progress, or null. Set by combat.ts; the viewport draws the
+   * arena instead of the map while it is set.
+   */
+  combat: CombatState | null = null;
+
+  /** Dungeon state while `party.location === Location.Dungeon`. */
+  dungeon: DungeonState = {
+    tiles: new Uint8Array(2048),
+    level: 0,
+    heading: 0,
+    torch: 0,
+    exit: false,
+  };
+
+  /**
+   * A spell ball or cannon shot being drawn over the map or arena, or null.
+   * The original wrote the ball shape into the tile buffer and remembered
+   * the terrain under it; keeping it separate is simpler. Coordinates are
+   * map coordinates outside combat and arena cells during combat.
+   */
+  ball: { x: number; y: number; shape: number; hitFrame?: boolean } | null = null;
+
+  /** Which card slot Exodus expects next (0x1E..0x21). (`lastCard`) */
+  lastCard = 0x1e;
+  /** Set once EVOCARE has been yelled this visit, so it cannot be repeated. (`YellStat`) */
+  yellUsed = false;
+  /** Set by Appar Unem / Steal so chests do not trigger traps. (`m5BDC`, inverted) */
+  chestTrapsArmed = true;
 
   constructor(
     public readonly resources: GameResources,
@@ -182,9 +280,35 @@ export class World {
     return { id, size, tiles, monsters, talk: talk.slice() };
   }
 
-  /** Enter a town, castle or dungeon: the current map becomes a fresh copy of it. */
+  /** Enter a town or castle: the current map becomes a fresh copy of it. */
   enterMap(id: number): void {
     this.current = this.loadMapState(id);
+  }
+
+  /**
+   * Enter a dungeon. A dungeon MAPS resource is 2048 bytes: eight 16x16
+   * levels. Dungeons also have a TLKS resource holding the "misty writing"
+   * for each level, which is exposed through `current.talk`.
+   */
+  enterDungeon(id: number): void {
+    const raw = this.resources.maps.get(id);
+    if (!raw || raw.length < 2048) throw new Error(`no dungeon resource ${id}`);
+    this.dungeon.tiles.set(raw.subarray(0, 2048));
+    this.dungeon.level = 0;
+    this.dungeon.heading = 1;
+    this.dungeon.torch = 0;
+    this.dungeon.exit = false;
+    const talk = this.resources.talk.get(id) ?? new Uint8Array(256);
+    this.current = { id, size: 16, tiles: this.dungeon.tiles, monsters: new MonsterTable(new Uint8Array(256)), talk: talk.slice() };
+  }
+
+  /** Dungeon cell at (x, y) on the current level, wrapping at 16. (`GetXYDng`) */
+  getXYDng(x: number, y: number): number {
+    return this.dungeon.tiles[this.dungeon.level * 256 + ((y + 16) & 0x0f) * 16 + ((x + 16) & 0x0f)];
+  }
+
+  putXYDng(value: number, x: number, y: number): void {
+    this.dungeon.tiles[this.dungeon.level * 256 + (y & 0x0f) * 16 + (x & 0x0f)] = value;
   }
 
   /** Return to the overworld. */
@@ -255,10 +379,24 @@ export class World {
     return this.mountToggle < 128;
   }
 
-  /** Mirrors `ExodusCastle()`: true while the party is inside Exodus' castle and Exodus still lives. */
+  /**
+   * Mirrors `ExodusCastle()`: true while the party is inside Exodus' castle
+   * and Exodus still lives. During combat the location before the fight counts.
+   */
   inExodusCastle(): boolean {
     if (this.party.exodusDestroyed) return false;
-    if (this.party.location !== Location.Castle) return false;
+    let location = this.party.location;
+    if (location === Location.Combat && this.combat) location = this.combat.previousLocation;
+    if (location !== Location.Castle) return false;
     return this.party.surfaceX === this.resources.misc.locationX[1];
   }
+
+  /** The music track that should be playing (`gSongNext`). The UI may ignore it. */
+  music = 0;
+
+  /** Sound effects on or off (the V command). The UI reads this. */
+  soundEnabled = true;
+
+  /** Once-per-fight flags for the Repond and Pontori spells. (`g5521`, `g56E7`) */
+  spellFlags = { repond: false, pontori: false };
 }

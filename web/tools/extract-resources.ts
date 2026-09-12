@@ -175,6 +175,22 @@ function main(): void {
     }
   }
 
+  // Pictures used in play: the dungeon wall sheet and its mask, the title
+  // picture, and the full-screen images for shrines, fountains and so on.
+  const images = [
+    'DungeonShapes.jpg',
+    'DungeonMasks.png',
+    'Exodus.png',
+    'UltimaLogo.png',
+    'Fountain.jpg',
+    'Rod.jpg',
+    'Shrine.jpg',
+    'TimeLord.jpg',
+    'SosariaMap.jpg',
+  ];
+  mkdirSync(join(OUT, 'images'), { recursive: true });
+  for (const file of images) copyFileSync(join(REPO_ROOT, 'Images', file), join(OUT, 'images', file));
+
   const counts = Object.entries(wanted)
     .map(([k]) => `${k}=${Object.keys(bundle[k] as object).length}`)
     .join(' ');

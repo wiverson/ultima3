@@ -11,19 +11,33 @@
 
 import { World } from './world.ts';
 import { Location } from './party.ts';
-import { MapValue } from './tiles.ts';
-import { type GameIO, Key, Sound } from './io.ts';
-import { endTurn, whirlpoolTick, type TurnHooks } from './turn.ts';
-import { VIEW_CENTRE } from './viewport.ts';
+import { MapValue, Shape } from './tiles.ts';
+import { type GameIO, Key, Sound, Music } from './io.ts';
+import { endTurn, whirlpoolTick, exitToSurface, type TurnHooks } from './turn.ts';
 import * as cmd from './commands.ts';
+import * as act from './actions.ts';
+import * as interact from './interact.ts';
+import { attackMonster, showBall } from './combat.ts';
+import { cast } from './spells.ts';
+import { runDungeon } from './dungeon.ts';
+import { checkAllDead } from './death.ts';
+import { MapId } from '../data/resources.ts';
 
 /** How long the game waits for a key before passing the turn automatically (the original: ~5 seconds). */
 export const IDLE_PASS_MS = 5000;
 /** The original polled the whirlpool roughly every twelfth of a second. */
 const WHIRLPOOL_TICK_MS = 83;
 
+const Msg = {
+  Descend: 32,
+  Klimb: 68,
+  QuitAndSave: 76,
+  OnlySurface: 77,
+  Moves: 78,
+} as const;
+
 export interface GameOptions {
-  /** Called when the player presses Q. Return true if the game was saved. (`QuitSave`) */
+  /** Called when the player presses Q on the surface. Return true if the game was saved. (`QuitSave`) */
   save?: (world: World) => boolean;
 }
 
@@ -36,34 +50,59 @@ export class Game {
     private readonly options: GameOptions = {},
   ) {
     this.hooks = {
-      attack: (i) => this.attack(i),
-      bombTrap: () => this.bombTrap(),
-      showBall: (vx, vy, background) => this.showBall(vx, vy, background),
+      attack: (i) => attackMonster(world, io, i),
+      bombTrap: () => act.bombTrap(world, io),
+      showBall: (vx, vy) => showBall(world, io, world.constrain(world.x - 5 + vx), world.constrain(world.y - 5 + vy), Shape.FireBall),
       goWhirlpool: () => this.goWhirlpool(),
-      dungeonTurn: async () => {
-        /* dungeons are a later phase */
-      },
+      dungeonTurn: async () => {},
     };
+  }
+
+  /** Music for the party's current location. */
+  private locationMusic(): number {
+    switch (this.world.party.location) {
+      case Location.Town:
+        return Music.Town;
+      case Location.Castle:
+        return this.world.inExodusCastle() ? Music.ExodusCastle : Music.Castle;
+      case Location.Ambrosia:
+        return Music.Ambrosia;
+      default:
+        return Music.Sosaria;
+    }
+  }
+
+  private setMusic(track: number): void {
+    this.world.music = track;
+    this.io.music(track);
   }
 
   /** Run until `world.done` is set (Quit). Mirrors the `while (!gDone)` loop in `Game()`. */
   async run(): Promise<void> {
     const { world, io } = this;
+    world.done = false;
+    world.timeNegate = 0;
+    io.showGameFrame();
     io.updateStats(true);
     io.showWind();
     io.showMoons();
+    this.setMusic(this.locationMusic());
 
     while (!world.done) {
       io.redrawMap();
       io.updateStats();
-      await this.checkAllDead();
+      world.resurrecting = false;
+      await checkAllDead(world, io);
       if (world.done) return;
       io.prompt();
 
       const key = await this.waitForCommand();
       if (world.done) return;
       await this.dispatch(key);
+      if (world.done) return;
       await endTurn(world, io, this.hooks);
+      const wanted = this.locationMusic();
+      if (world.music !== wanted && world.party.location !== Location.Combat) this.setMusic(wanted);
     }
   }
 
@@ -92,141 +131,113 @@ export class Game {
     }
     switch (key.toUpperCase()) {
       case ' ':
-        cmd.pass(io);
-        break;
+        return cmd.pass(io);
       case 'A':
-        cmd.notYetPorted(io, 'Attack');
-        break;
+        return interact.attack(world, io);
       case 'B':
-        cmd.board(world, io);
-        break;
+        return cmd.board(world, io);
       case 'C':
-        cmd.notYetPorted(io, 'Cast');
-        break;
+        await cast(world, io);
+        return;
       case 'D':
-        cmd.notYetPorted(io, 'Descend');
-        break;
+        io.printMessage(Msg.Descend);
+        return cmd.what2(io);
       case 'E':
-        cmd.enter(world, io);
-        break;
+        return this.enter();
       case 'F':
-        cmd.notYetPorted(io, 'Fire');
-        break;
+        return interact.fire(world, io);
       case 'G':
-        cmd.notYetPorted(io, 'Get chest');
-        break;
+        return act.getChest(world, io, 0, 'command');
       case 'H':
-        cmd.notYetPorted(io, 'Hand equipment');
-        break;
+        return act.handEquipment(world, io);
       case 'I':
-        io.printMessage(64); // "Ignite torch"
-        cmd.notHere(io);
-        break;
+        return act.igniteTorch(world, io);
       case 'J':
-        cmd.notYetPorted(io, 'Join gold');
-        break;
+        return act.joinGold(world, io);
       case 'K':
-        io.printMessage(cmd.Msg.Klimb);
-        cmd.what2(io);
-        break;
+        io.printMessage(Msg.Klimb);
+        return cmd.what2(io);
       case 'L':
-        await cmd.look(world, io);
-        break;
+        return cmd.look(world, io);
       case 'M':
-        cmd.notYetPorted(io, 'Modify order');
-        break;
+        return act.modifyOrder(world, io);
       case 'N':
-        cmd.notYetPorted(io, 'Negate time');
-        break;
+        return act.negateTime(world, io);
       case 'O':
-        cmd.notYetPorted(io, 'Other command');
-        break;
+        return interact.otherCommand(world, io);
       case 'P':
-        cmd.notYetPorted(io, 'Peer at gem');
-        break;
-      case 'Q': {
-        // The original's `QuitSave()` wrote the party, roster and Sosaria back to disk.
-        const saved = this.options.save?.(world) ?? false;
-        io.print(saved ? 'Quit & save\n' : 'Quit\n(not saved)\n');
-        world.done = true;
-        break;
-      }
+        return act.peerGem(world, io);
+      case 'Q':
+        return this.quit();
       case 'R':
-        cmd.notYetPorted(io, 'Ready weapon');
-        break;
+        return act.readyWeapon(world, io);
       case 'S':
-        cmd.notYetPorted(io, 'Steal');
-        break;
+        return interact.steal(world, io);
       case 'T':
-        cmd.notYetPorted(io, 'Transact');
-        break;
+        return interact.transact(world, io);
       case 'U':
-        cmd.notYetPorted(io, 'Unlock');
-        break;
+        return interact.unlock(world, io);
       case 'V':
-        cmd.notYetPorted(io, 'Volume');
-        break;
+        return act.volume(world, io);
       case 'W':
-        cmd.notYetPorted(io, 'Wear armour');
-        break;
+        return act.wearArmour(world, io);
       case 'X':
-        cmd.exit(world, io);
-        break;
+        return cmd.exit(world, io);
       case 'Y':
-        cmd.notYetPorted(io, 'Yell');
-        break;
+        return interact.yell(world, io);
       case 'Z':
-        cmd.notYetPorted(io, 'Ztats');
-        break;
+        return act.stats(world, io);
       default:
         // Unknown keys are ignored but still cost a turn, as in the original.
-        break;
+        return;
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Hooks called from the turn and monster code
-  // -------------------------------------------------------------------------
-
-  /**
-   * A monster reached the party. Combat is a later phase; until then the
-   * monster is dispersed so the game stays playable. (`AttackCode`)
-   */
-  private async attack(monsterIndex: number): Promise<void> {
+  /** E: enter a place. Dungeons and shrines have their own loops. */
+  private async enter(): Promise<void> {
     const { world, io } = this;
-    const m = world.monsters;
-    const name = world.resources.strings.TilesPlural[m.type(monsterIndex) >> 2] ?? 'Monsters';
-    io.print(`\n${name} attack!\n(combat not yet ported)\n`);
-    io.sound(Sound.Attack);
-    world.putXYVal(m.tileUnder(monsterIndex), m.x(monsterIndex), m.y(monsterIndex));
-    m.clear(monsterIndex);
-    io.redrawMap();
-  }
-
-  /** A fireball or trap hit the party. (`BombTrap`, simplified: every member takes damage.) */
-  private async bombTrap(): Promise<void> {
-    const { world, io } = this;
-    io.sound(Sound.Hit);
-    for (let m = 0; m < 4; m++) {
-      if (!world.memberAlive(m)) continue;
-      const p = world.member(m);
-      if (p.subtractHitPoints(world.rng.range(1, 20))) io.sound(p.sex === 'F' ? Sound.DeathFemale : Sound.DeathMale);
-      await io.flashMember(m);
+    const entered = cmd.enter(world, io);
+    switch (entered) {
+      case 'shrine':
+        await interact.enterShrine(world, io);
+        return;
+      case 'dungeon':
+        await runDungeon(world, io);
+        if (world.resurrecting || world.done) return;
+        exitToSurface(world, io);
+        io.showGameFrame();
+        io.updateStats(true);
+        io.showMoons();
+        return;
+      case 'castle':
+        // Once Exodus is destroyed his castle stands empty and harmless.
+        if (world.current.id === MapId.ExodusCastle && world.party.exodusDestroyed) interact.safeExodus(world);
+        this.setMusic(this.locationMusic());
+        return;
+      case 'town':
+        this.setMusic(this.locationMusic());
+        return;
+      default:
+        return;
     }
-    io.updateStats();
   }
 
-  /** Draw a fireball at viewport cell (vx, vy) for one frame. */
-  private async showBall(vx: number, vy: number, _background: number): Promise<void> {
+  /** Q: save (only on the surface) and return to the main menu. (`QuitSave`) */
+  private quit(): void {
     const { world, io } = this;
-    const x = world.constrain(world.x - VIEW_CENTRE + vx);
-    const y = world.constrain(world.y - VIEW_CENTRE + vy);
-    const saved = world.getXYVal(x, y);
-    world.putXYVal(MapValue.FireBall, x, y);
-    io.redrawMap();
-    await io.pause(80);
-    world.putXYVal(saved, x, y);
-    io.redrawMap();
+    io.printMessage(Msg.QuitAndSave);
+    if (!world.onSurface) {
+      io.printMessage(Msg.OnlySurface);
+      io.sound(Sound.Error1);
+      return;
+    }
+    world.party.surfaceX = world.x;
+    world.party.surfaceY = world.y;
+    const saved = this.options.save?.(world) ?? false;
+    io.print(`${world.party.moves}`);
+    io.printMessage(Msg.Moves);
+    if (!saved) io.print('(not saved)\n');
+    world.done = true;
   }
 
   /**
@@ -238,6 +249,7 @@ export class Game {
     world.party.shape = cmd.PartyShape.Whirlpool;
     io.redrawMap();
     io.printMessage(256);
+    this.setMusic(Music.None);
     io.sound(Sound.Sink);
     await io.pause(3000);
 
@@ -257,6 +269,7 @@ export class Game {
       world.y = 54;
       world.party.location = Location.Ambrosia;
       io.printMessage(258);
+      this.setMusic(Music.Ambrosia);
     } else if (world.party.location === Location.Ambrosia) {
       world.returnToSurface();
       io.printMessage(114);
@@ -266,6 +279,7 @@ export class Game {
       world.y = world.party.surfaceY;
       world.party.location = Location.Sosaria;
       world.party.shape = cmd.PartyShape.Frigate;
+      this.setMusic(Music.Sosaria);
     } else {
       // In a town or castle: dropped on a random water square.
       let value = 0xff;
@@ -274,49 +288,9 @@ export class Game {
         world.y = world.rng.range(0, world.mapSize - 1);
         value = world.getXYVal(world.x, world.y);
       }
+      this.setMusic(this.locationMusic());
     }
     io.redrawMap();
     io.prompt();
-  }
-
-  /**
-   * Mirrors `CheckAllDead()`: if nobody is alive, announce it and resurrect
-   * the party at Lord British's castle with starting equipment. The original
-   * offered a dialog to stay dead; this port always resurrects.
-   */
-  private async checkAllDead(): Promise<void> {
-    const { world, io } = this;
-    if ([0, 1, 2, 3].some((m) => world.memberAlive(m))) return;
-
-    io.printMessage(109); // ALL PLAYERS OUT!
-    io.flushKeys();
-    await io.waitKey();
-    io.printMessage(249); // Resurrecting!
-    io.sound(Sound.BigDeath);
-    await io.pause(1500);
-
-    for (let m = 0; m < 4; m++) {
-      if (world.party.memberSlot(m) < 0) continue;
-      const p = world.member(m);
-      p.bytes.fill(0, 35, 64);
-      p.torches = 0;
-      if (p.bytes[32] < 1) p.bytes[32] = 1; // some food
-      p.gold = 150;
-      p.bytes[41] = 1; // cloth armour
-      p.bytes[40] = 1; //   in use
-      p.bytes[49] = 1; // dagger
-      p.bytes[48] = 1; //   in use
-      p.status = 'G';
-      p.hitPoints = 100;
-    }
-    world.party.location = Location.Sosaria;
-    world.party.shape = cmd.PartyShape.OnFoot;
-    world.x = world.returnX = world.party.surfaceX = 42;
-    world.y = world.returnY = world.party.surfaceY = 20;
-    world.resetSosaria();
-    world.timeNegate = 0;
-    io.updateStats(true);
-    io.print('\n\n\n\n\n\n\n\n');
-    io.sound(Sound.BigDeath);
   }
 }

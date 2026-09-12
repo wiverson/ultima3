@@ -4,11 +4,8 @@
  * The player's keyboard commands. Each function is a port of the matching
  * routine in UltimaMain.c (`North()`, `Board()`, `Enter()` ...). They print
  * their own feedback and mutate the world; the game loop runs the end-of-turn
- * processing afterwards.
- *
- * Commands that belong to later phases of the port (combat, spells, shops,
- * dungeons, stats screens) are represented by `notYetPorted()` so the key
- * still produces sensible feedback.
+ * processing afterwards. Commands that deal with other creatures live in
+ * interact.ts, those that deal with the party's own records in actions.ts.
  */
 
 import { World } from './world.ts';
@@ -61,7 +58,7 @@ export const PartyShape = {
 /** "WHAT?" - the command made no sense. (`What`) */
 export function what(io: GameIO): void {
   io.printMessage(Msg.What);
-  io.sound('Error2');
+  io.sound(Sound.Error2);
 }
 
 /** "<-WHAT?" - the command made no sense here. (`What2`) */
@@ -81,12 +78,6 @@ export function noGo(io: GameIO): void {
   io.printMessage(Msg.InvalidMove);
   io.sound(Sound.Bump);
   io.flushKeys();
-}
-
-/** Placeholder for commands that later phases of the port will supply. */
-export function notYetPorted(io: GameIO, name: string): void {
-  io.print(`${name}\nNot yet ported\n`);
-  io.sound(Sound.Error1);
 }
 
 // ---------------------------------------------------------------------------
@@ -179,6 +170,12 @@ const MOVES: Record<string, MoveSpec> = {
 
 export type MoveName = keyof typeof MOVES;
 
+/** The step and message for a movement name (used by combat, which moves on the arena instead of the map). */
+export function moveDelta(name: MoveName): { dx: number; dy: number; message: number } {
+  const spec = MOVES[name];
+  return { dx: spec.dx, dy: spec.dy, message: spec.message };
+}
+
 /** Mirrors `North()`, `South()` ... `NorthWest()`. */
 export async function move(world: World, io: GameIO, name: MoveName): Promise<void> {
   const spec = MOVES[name];
@@ -226,12 +223,23 @@ export function moveForKey(key: string, allowDiagonal = true): MoveName | undefi
 
 /**
  * Mirrors `GetDirection()`: after a command such as Look, wait for the
- * player to press a direction. Returns the adjacent square chosen.
+ * player to press a direction. Returns the adjacent square chosen. In
+ * combat `allowSpace` lets the space bar mean "no direction" (dx = dy = 0).
  */
-export async function getDirection(world: World, io: GameIO): Promise<{ xs: number; ys: number; dx: number; dy: number }> {
+export async function getDirection(
+  world: World,
+  io: GameIO,
+  allowSpace = false,
+  allowDiagonal = true,
+): Promise<{ xs: number; ys: number; dx: number; dy: number }> {
   for (;;) {
     const key = await io.waitKey();
-    const name = moveForKey(key);
+    if (world.done) return { xs: world.x, ys: world.y, dx: 0, dy: 0 };
+    if (allowSpace && key === Key.Space) {
+      io.printMessage(173); // "None"
+      return { xs: world.x, ys: world.y, dx: 0, dy: 0 };
+    }
+    const name = moveForKey(key, allowDiagonal);
     if (!name) continue;
     const spec = MOVES[name];
     io.printMessage(spec.message);
@@ -314,25 +322,27 @@ export async function look(world: World, io: GameIO): Promise<void> {
   io.print('\n');
 }
 
+export type Entered = 'none' | 'town' | 'castle' | 'dungeon' | 'shrine';
+
 /**
  * E: enter the town, castle or dungeon the party is standing on. (`Enter`)
- * Ambrosia's shrines are also entered with E; that part is not yet ported.
+ * Returns what was entered; dungeons and Ambrosia's shrines are started by
+ * the caller, which owns those loops.
  */
-export function enter(world: World, io: GameIO): void {
+export function enter(world: World, io: GameIO): Entered {
   const loc = world.party.location;
   if (loc !== Location.Sosaria && loc !== Location.Ambrosia) {
     io.printMessage(Msg.Enter);
     what(io);
-    return;
+    return 'none';
   }
   if (loc === Location.Ambrosia) {
     if (world.getXYVal(world.x, world.y) !== MV.Shrine) {
       io.printMessage(Msg.Enter);
       what2(io);
-      return;
+      return 'none';
     }
-    notYetPorted(io, 'Enter shrine');
-    return;
+    return 'shrine';
   }
 
   const { locationX, locationY } = world.resources.misc;
@@ -341,7 +351,7 @@ export function enter(world: World, io: GameIO): void {
   if (place < 0) {
     io.printMessage(Msg.Enter);
     what2(io);
-    return;
+    return 'none';
   }
 
   world.party.surfaceX = world.x;
@@ -350,31 +360,35 @@ export function enter(world: World, io: GameIO): void {
   world.returnY = world.y;
 
   const tile = world.getXYVal(world.x, world.y) >> 1;
-  let newLocation: number;
+  const id = World.mapIdForLocation(place);
   if (tile === Shape.Dungeon) {
     io.printMessage(Msg.Enter);
     io.printMessage(Msg.EnterDungeon);
-    notYetPorted(io, 'Dungeons');
-    return;
-  } else if (tile === Shape.Town) {
+    world.enterDungeon(id);
+    world.party.location = Location.Dungeon;
+    world.x = 1;
+    world.y = 1;
+    world.dungeon.heading = 1;
+    return 'dungeon';
+  }
+  if (tile === Shape.Town) {
     io.printMessage(Msg.Enter);
     io.printMessage(Msg.EnterTown);
-    newLocation = Location.Town;
+    world.enterMap(id);
+    world.party.location = Location.Town;
     world.x = 1;
     world.y = 32;
-  } else if (tile === Shape.Castle) {
+    return 'town';
+  }
+  if (tile === Shape.Castle) {
     io.printMessage(Msg.Enter);
     io.printMessage(Msg.EnterCastle);
-    newLocation = Location.Castle;
+    world.enterMap(id);
+    world.party.location = Location.Castle;
     world.x = 32;
     world.y = 62;
-  } else {
-    what2(io);
-    return;
+    return 'castle';
   }
-
-  world.enterMap(World.mapIdForLocation(place));
-  world.party.location = newLocation;
-  // Note: the original also ran `SafeExodus()` when entering Exodus' castle
-  // after his defeat (it removes the traps). That belongs to the endgame phase.
+  what2(io);
+  return 'none';
 }
