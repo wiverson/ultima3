@@ -49,6 +49,8 @@ export interface MenuOption {
   hidden?: boolean;
   /** One line shown under the menu while this item is highlighted. */
   hint?: string;
+  /** Shown greyed and not selectable (possible in principle, but e.g. nothing to use it with). */
+  disabled?: boolean;
 }
 
 /** Where a top-level command is being read; decides which command menu a controller sees. */

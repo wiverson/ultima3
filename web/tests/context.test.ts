@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { newWorld } from './helpers.ts';
-import { suggestedCommands, prioritise } from '../src/game/context.ts';
+import { suggestedCommands, prioritise, commandMenu } from '../src/game/context.ts';
 import { MapValue } from '../src/game/tiles.ts';
 import { Location } from '../src/game/party.ts';
 import { MapId } from '../src/data/resources.ts';
@@ -95,5 +95,46 @@ describe('contextual commands', () => {
     expect(menu.map((o) => o.key).slice(0, 2)).toEqual(['B', 'E']);
     expect(menu).toHaveLength(COMMAND_MENUS.field.length);
     expect(new Set(menu.map((o) => o.key)).size).toBe(COMMAND_MENUS.field.length);
+  });
+});
+
+describe('command menu availability', () => {
+  it('hides impossible commands and greys ones with nothing on hand', () => {
+    const world = newWorld();
+    world.current.tiles.fill(MapValue.Grass);
+    world.monsters.bytes.fill(0);
+    const keys = (scope: 'field' | 'combat' | 'dungeon') => commandMenu(world, scope, COMMAND_MENUS[scope]);
+    const field = keys('field');
+    const key = (k: string) => field.find((o) => o.key === k);
+    // Plain grass, nothing around, nobody carries gems or powders.
+    for (const k of ['A', 'T', 'E', 'B', 'X', 'F', 'G', 'U', 'S']) expect(key(k)).toBeUndefined();
+    expect(key('Q')).toBeDefined();
+    expect(key('P')?.disabled).toBe(true);
+    expect(key('N')?.disabled).toBe(true);
+    expect(key('C')?.disabled).toBe(true); // nobody has any mana yet
+    world.member(2).mana = 10; // Norric the cleric
+    expect(keys('field').find((o) => o.key === 'C')?.disabled).toBe(false);
+    // A gem makes Peer usable; a horse underfoot makes Board appear.
+    world.member(0).bytes[37] = 1;
+    world.putXYVal(MapValue.Horse, world.x, world.y);
+    const again = keys('field');
+    expect(again.find((o) => o.key === 'P')?.disabled).toBe(false);
+    expect(again.find((o) => o.key === 'B')).toBeDefined();
+    expect(again[0].key).toBe('B'); // and first, as the surroundings call for it
+  });
+
+  it('shows ladders only when standing on one, and greys the torch when none is carried', () => {
+    const world = newWorld();
+    world.dungeon.tiles.fill(DungeonCell.Open);
+    world.x = 3;
+    world.y = 3;
+    world.dungeon.level = 0;
+    const menu = () => commandMenu(world, 'dungeon', COMMAND_MENUS.dungeon);
+    expect(menu().find((o) => o.key === 'K')).toBeUndefined();
+    expect(menu().find((o) => o.key === 'I')?.disabled).toBe(true);
+    world.putXYDng(DungeonCell.LadderUp, 3, 3);
+    world.member(0).torches = 1;
+    expect(menu().find((o) => o.key === 'K')).toBeDefined();
+    expect(menu().find((o) => o.key === 'I')?.disabled).toBe(false);
   });
 });

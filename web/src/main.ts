@@ -106,6 +106,16 @@ async function start(): Promise<void> {
     });
   };
   screen.onSettingsChange = remember;
+  // The game pauses its idle timers while the window is not focused; say so.
+  const idle = 'Escape opens Settings. Idle turns and combat timers pause while the window is not focused.';
+  status.textContent = '';
+  window.addEventListener('blur', () => {
+    status.textContent = 'Paused: the window is not focused.';
+  });
+  window.addEventListener('focus', () => {
+    status.textContent = idle;
+  });
+  screen.onPauseChange = null;
   screen.onModeChange = remember;
   world.onAutoCombatChange = remember;
 

@@ -30,14 +30,14 @@ import { MusicPlayer } from './music.ts';
 import { DungeonRenderer } from './dungeonView.ts';
 import { World } from '../game/world.ts';
 import { PlayerRecord } from '../game/player.ts';
-import { suggestedCommands, prioritise } from '../game/context.ts';
+import { commandMenu, hasMagic } from '../game/context.ts';
 import { memberShape } from '../game/combat.ts';
 import { TILE_SETS, KEYBOARD_HELP, CONTROLLER_HELP } from './help.ts';
 import { CHEATS } from '../game/cheats.ts';
 import { Location } from '../game/party.ts';
 import { buildViewport, VIEW_SIZE, type Viewport } from '../game/viewport.ts';
 import { buildDungeonView, secretMessage } from '../game/dungeon.ts';
-import { Key, type GameIO, type MenuOption, type CommandScope, type MenuPlacement } from '../game/io.ts';
+import { Key, Sound, type GameIO, type MenuOption, type CommandScope, type MenuPlacement } from '../game/io.ts';
 import {
   controllerKeyFor,
   COMMAND_MENUS,
@@ -122,6 +122,8 @@ export class Screen implements GameIO {
   inputMode: 'keyboard' | 'controller' = 'keyboard';
   /** Called when a gamepad press switches the mode to 'controller'. */
   onModeChange: (() => void) | null = null;
+  /** Called when the game pauses (window unfocused) or resumes, for the page's status line. */
+  onPauseChange: ((paused: boolean) => void) | null = null;
   /** Called when anything in the Settings menu changes, so the page can remember it. */
   onSettingsChange: (() => void) | null = null;
   /** Name of the tile set in use (see help.ts TILE_SETS). */
@@ -148,6 +150,11 @@ export class Screen implements GameIO {
     const shapes = images.get('DungeonShapes');
     const masks = images.get('DungeonMasks');
     this.dungeonRenderer = shapes && masks ? new DungeonRenderer(shapes, masks) : null;
+    // A pause (window not focused) should not eat into a combat turn's timer.
+    keyboard.onResume = (pausedMs) => {
+      if (this.world.combat) this.world.combat.markedAt += pausedMs;
+      this.onPauseChange?.(false);
+    };
     this.gamepads = new GamepadReader(keyboard, () => {
       if (this.inputMode !== 'controller') {
         this.inputMode = 'controller';
@@ -395,6 +402,7 @@ export class Screen implements GameIO {
     const visible = options.filter((o) => !o.hidden);
     const menu = layoutMenu(title, visible.map((o) => o.label), columns);
     if (visible.some((o) => o.hint)) menu.hints = visible.map((o) => o.hint);
+    if (visible.some((o) => o.disabled)) menu.disabled = visible.map((o) => !!o.disabled);
     if (place) this.placeMenu(menu, place);
     else if (cursor > 0 && cursor < menu.items.length) {
       menu.cursor = cursor;
@@ -410,10 +418,23 @@ export class Screen implements GameIO {
           continue;
         }
         // Enter and Escape serve keyboard users where a menu is shown in both modes.
-        if (key === Key.A || key === Key.Enter) return visible.length ? options.indexOf(visible[menu.cursor]) : -1;
+        if (key === Key.A || key === Key.Enter) {
+          if (!visible.length) return -1;
+          if (visible[menu.cursor].disabled) {
+            this.sound(Sound.Error1);
+            continue;
+          }
+          return options.indexOf(visible[menu.cursor]);
+        }
         if (key === Key.B || key === Key.Escape) return -1;
         const byKey = options.findIndex((o) => o.key === key.toUpperCase());
-        if (byKey >= 0) return byKey;
+        if (byKey >= 0) {
+          if (options[byKey].disabled) {
+            this.sound(Sound.Error1);
+            continue;
+          }
+          return byKey;
+        }
       }
     } finally {
       this.closeMenu();
@@ -644,7 +665,7 @@ export class Screen implements GameIO {
     if (key === Key.Y) return shortcuts.Y;
     if (key === Key.A) {
       // The commands the surroundings call for come first.
-      const options = [...prioritise(COMMAND_MENUS[scope], suggestedCommands(this.world, scope)), { key: Key.Escape, label: 'Settings' }];
+      const options = [...commandMenu(this.world, scope, COMMAND_MENUS[scope]), { key: Key.Escape, label: 'Settings' }];
       const picked = await this.runMenu('Command', options);
       return picked < 0 ? null : options[picked].key;
     }
@@ -1278,11 +1299,6 @@ export class Screen implements GameIO {
   }
 }
 
-/** Fighters, thieves and barbarians have no magic, so their boxes show no mana. */
-function hasMagic(world: World, p: PlayerRecord): boolean {
-  const careers = String.fromCharCode(...world.resources.misc.careerTable);
-  return ![0, 3, 5].includes(careers.indexOf(p.classLetter));
-}
 
 /**
  * Lord British's own test for raising a member: level above max hit points

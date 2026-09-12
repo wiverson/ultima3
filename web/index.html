@@ -49,7 +49,7 @@
       const status = document.getElementById('status');
       const observer = new MutationObserver(() => {
         if (status.textContent === '') {
-          status.innerHTML = 'Escape opens Settings (input mode, tiles, classic moves, auto combat, sound, music, help). <a href="https://github.com/wiverson/ultima3/blob/main/web/README.md">About this port</a>';
+          status.innerHTML = 'Escape opens Settings. The game pauses while the window is not focused. <a href="https://github.com/wiverson/ultima3/blob/main/web/README.md">About this port</a>';
           observer.disconnect();
         }
       });

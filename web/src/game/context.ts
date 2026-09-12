@@ -12,9 +12,126 @@
 import { World, DungeonCell } from './world.ts';
 import { Location } from './party.ts';
 import { MapValue } from './tiles.ts';
-import type { CommandScope } from './io.ts';
+import type { CommandScope, MenuOption } from './io.ts';
 import { PartyShape, counterWithMerchant } from './commands.ts';
 import { monsterAt } from './combat.ts';
+import type { PlayerRecord } from './player.ts';
+
+/** Fighters, thieves and barbarians have no magic. */
+export function hasMagic(world: World, p: PlayerRecord): boolean {
+  const careers = String.fromCharCode(...world.resources.misc.careerTable);
+  return ![0, 3, 5].includes(careers.indexOf(p.classLetter));
+}
+
+/** Living members, in marching order. */
+function living(world: World): PlayerRecord[] {
+  return [0, 1, 2, 3].filter((m) => world.party.memberSlot(m) >= 0 && world.memberAlive(m)).map((m) => world.member(m));
+}
+
+/** Can anyone (or the given member) cast the cheapest spell, 5 mana? */
+function canCast(world: World, member?: number): boolean {
+  const members = member === undefined ? living(world) : [world.member(member)];
+  return members.some((p) => hasMagic(world, p) && p.mana >= 5);
+}
+
+/**
+ * How each command stands right now: 'hidden' when it makes no sense here
+ * (no chest to get, no craft to board), 'disabled' when it is possible in
+ * principle but nothing is on hand for it (no gem to peer through, no
+ * torch to light), or 'ok'. Commands not listed are always 'ok'.
+ */
+export type Availability = 'ok' | 'disabled' | 'hidden';
+
+export function commandAvailability(world: World, scope: CommandScope): Map<string, Availability> {
+  const out = new Map<string, Availability>();
+  const set = (key: string, ok: boolean, disabledNotHidden = false) => {
+    if (!ok) out.set(key, disabledNotHidden ? 'disabled' : 'hidden');
+  };
+  const anyone = living(world);
+  const has = (f: (p: PlayerRecord) => number) => anyone.some((p) => f(p) > 0);
+
+  if (scope === 'combat') {
+    const c = world.combat;
+    const me = c ? c.activeMember : 0;
+    set('C', canCast(world, me), true);
+    set('N', world.member(me).powders > 0, true);
+    return out;
+  }
+
+  if (scope === 'dungeon') {
+    const cell = world.getXYDng(world.x, world.y);
+    const open = cell < DungeonCell.Wall;
+    set('K', open && (cell & DungeonCell.LadderUp) !== 0);
+    set('D', open && (cell & DungeonCell.LadderDown) !== 0);
+    set('G', open && (cell & DungeonCell.Chest) !== 0);
+    set('I', has((p) => p.torches), true);
+    set('P', has((p) => p.gems), true);
+    set('N', has((p) => p.powders), true);
+    set('C', canCast(world), true);
+    set('M', world.party.size > 1);
+    return out;
+  }
+
+  // The field: surface, Ambrosia, towns and castles.
+  const here = world.getXYVal(world.x, world.y);
+  const shape = world.party.shape;
+  const loc = world.party.location;
+  const inTown = world.inTownOrCastle;
+
+  let creature = false;
+  let door = false;
+  let counter = false;
+  const steps: [number, number][] = world.diagonalMoves
+    ? [[0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]]
+    : [[0, -1], [0, 1], [-1, 0], [1, 0]];
+  for (const [dx, dy] of steps) {
+    const xs = world.constrain(world.x + dx);
+    const ys = world.constrain(world.y + dy);
+    if (world.monsters.at(xs, ys) >= 0) creature = true;
+    if (inTown && dx !== 0 && dy === 0 && world.getXYVal(xs, ys) === MapValue.LetterI) door = true;
+    if (inTown) {
+      const tile = world.getXYVal(xs, ys);
+      const isCounter = tile >= MapValue.Wall2 && tile < MapValue.SnakeBottom;
+      if (isCounter && world.getXYVal(xs + dx, ys + dy) === MapValue.Chest) counter = true;
+    }
+  }
+
+  let entrance = false;
+  if (loc === Location.Sosaria) {
+    const { locationX, locationY } = world.resources.misc;
+    for (let i = 0; i < 32; i++) if (locationX[i] === world.x && locationY[i] === world.y) entrance = true;
+  } else if (loc === Location.Ambrosia) {
+    entrance = here === MapValue.Shrine;
+  }
+
+  set('A', creature);
+  set('T', inTown);
+  set('E', entrance);
+  set('B', shape === PartyShape.OnFoot && (here === MapValue.Horse || here === MapValue.Frigate));
+  set('X', shape === PartyShape.Horse || shape === PartyShape.Frigate);
+  set('F', shape === PartyShape.Frigate);
+  set('G', here >= MapValue.Chest && here <= MapValue.Chest + 3);
+  set('U', door);
+  if (door) set('U', has((p) => p.keys), true);
+  set('S', counter);
+  set('Q', loc === Location.Sosaria);
+  set('M', world.party.size > 1);
+  set('C', canCast(world), true);
+  set('N', has((p) => p.powders), true);
+  set('P', has((p) => p.gems), true);
+  return out;
+}
+
+/**
+ * The controller command menu for a scope: the commands the surroundings
+ * call for first, impossible ones left out, and ones with nothing on hand
+ * greyed. `template` is the full list with its labels.
+ */
+export function commandMenu(world: World, scope: CommandScope, template: MenuOption[]): MenuOption[] {
+  const availability = commandAvailability(world, scope);
+  const shown = template.filter((o) => availability.get(o.key) !== 'hidden').map((o) => ({ ...o, disabled: availability.get(o.key) === 'disabled' }));
+  return prioritise(shown, suggestedCommands(world, scope));
+}
 
 /** The four orthogonal steps. */
 const STEPS: [number, number][] = [

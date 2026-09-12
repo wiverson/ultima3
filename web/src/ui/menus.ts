@@ -131,6 +131,8 @@ export interface MenuWindow {
   columns: number;
   /** Optional one-line hint per item, drawn centred under the window. */
   hints?: (string | undefined)[];
+  /** Items drawn grey and refused when chosen. */
+  disabled?: boolean[];
 }
 
 const MAX_ROWS = 12;
@@ -197,6 +199,14 @@ export function drawMenu(ctx: CanvasRenderingContext2D, gfx: GraphicsSet, cell: 
       const py = y + 1 + row;
       const label = menu.items[index].slice(0, menu.columns > 1 ? colWidth - 1 : width - 4);
       text(label, px, py);
+      if (menu.disabled?.[index]) {
+        // Grey it out: multiplying leaves the black background black.
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = '#707070';
+        ctx.fillRect(px * cell, py * cell, label.length * cell, cell);
+        ctx.restore();
+      }
       if (index === menu.cursor) {
         // The cursor is an inverted cell to the left of the item.
         ctx.save();

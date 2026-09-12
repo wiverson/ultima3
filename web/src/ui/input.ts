@@ -16,9 +16,44 @@ const MAX_QUEUED = 8;
 export class Keyboard {
   private queue: string[] = [];
   private waiter: ((key: string) => void) | null = null;
+  /** True while the window has lost focus: idle timers stop, so turns do not pass unattended. */
+  paused = false;
+  /** The pending timed wait, so it can be stopped and restarted around a pause. */
+  private timed: { remaining: number; started: number; timer: ReturnType<typeof setTimeout> | null; fire: () => void } | null = null;
+  /** Called when the window regains focus, with how long it was away (ms). */
+  onResume: ((pausedMs: number) => void) | null = null;
+  private pausedAt = 0;
 
   constructor(target: EventTarget = window) {
     target.addEventListener('keydown', (e) => this.onKeyDown(e as KeyboardEvent));
+    if (typeof window !== 'undefined') {
+      window.addEventListener('blur', () => this.pause());
+      window.addEventListener('focus', () => this.resume());
+      document.addEventListener('visibilitychange', () => (document.hidden ? this.pause() : this.resume()));
+    }
+  }
+
+  private pause(): void {
+    if (this.paused) return;
+    this.paused = true;
+    this.pausedAt = performance.now();
+    const t = this.timed;
+    if (t && t.timer !== null) {
+      clearTimeout(t.timer);
+      t.timer = null;
+      t.remaining -= performance.now() - t.started;
+    }
+  }
+
+  private resume(): void {
+    if (!this.paused) return;
+    this.paused = false;
+    const t = this.timed;
+    if (t && t.timer === null) {
+      t.started = performance.now();
+      t.timer = setTimeout(t.fire, Math.max(0, t.remaining));
+    }
+    this.onResume?.(performance.now() - this.pausedAt);
   }
 
   private onKeyDown(e: KeyboardEvent): void {
@@ -50,12 +85,18 @@ export class Keyboard {
     const queued = this.queue.shift();
     if (queued !== undefined) return Promise.resolve(queued);
     return new Promise((resolve) => {
-      const timer = setTimeout(() => {
+      const fire = () => {
         if (this.waiter === waiter) this.waiter = null;
+        this.timed = null;
         resolve(null);
-      }, ms);
+      };
+      const timed = { remaining: ms, started: performance.now(), timer: null as ReturnType<typeof setTimeout> | null, fire };
+      // While paused the timer waits for focus to come back.
+      if (!this.paused) timed.timer = setTimeout(fire, ms);
+      this.timed = timed;
       const waiter = (key: string) => {
-        clearTimeout(timer);
+        if (timed.timer !== null) clearTimeout(timed.timer);
+        this.timed = null;
         resolve(key);
       };
       this.waiter = waiter;

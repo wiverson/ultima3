@@ -101,7 +101,13 @@ Keyboard stand-ins: WASD or arrows for the d-pad, Enter or Z for A, Escape
 or X for B, C for X, V for Y. Pressing a gamepad button switches to
 controller mode. The command menu lists the commands the surroundings call
 for first (Enter on a town, Board on a horse, Get on a chest, Attack
-beside a monster). Numbers use a spinner and names an on-screen keyboard.
+beside a monster), leaves out commands that make no sense where you stand
+(no craft to board, no chest to get), and greys out ones with nothing on
+hand (no gem to peer through, no torch to light, no mana to cast).
+Numbers use a spinner and names an on-screen keyboard.
+
+The game pauses its idle timers, including the combat turn timer, while
+the browser window is not focused.
 
 ### Cheats
 
