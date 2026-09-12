@@ -77,6 +77,8 @@ the game. Every setting is remembered by the browser.
 
     Combat:   arrows move (into a monster attacks), A attack in a
               direction, C N R Z, Escape turns auto combat off
+    V toggles sound effects, as Settings does; the controller menus
+    leave it to Settings
     Dungeons: up/down advance or retreat, left/right turn, I K D
               ignite, klimb, descend
 

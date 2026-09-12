@@ -73,7 +73,6 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
     { key: 'P', label: 'Peer at gem' },
     { key: 'O', label: 'Other command' },
     { key: 'Y', label: 'Yell' },
-    { key: 'V', label: 'Volume' },
     { key: 'Q', label: 'Quit and save' },
     { key: ' ', label: 'Pass' },
   ],
@@ -83,7 +82,6 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
     { key: 'N', label: 'Negate time' },
     { key: 'R', label: 'Ready weapon' },
     { key: 'Z', label: 'Ztats' },
-    { key: 'V', label: 'Volume' },
     { key: ' ', label: 'Pass' },
   ],
   dungeon: [
@@ -101,7 +99,6 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
     { key: 'N', label: 'Negate time' },
     { key: 'O', label: 'Other command' },
     { key: 'Y', label: 'Yell' },
-    { key: 'V', label: 'Volume' },
     { key: ' ', label: 'Pass' },
   ],
 };
