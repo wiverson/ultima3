@@ -97,8 +97,8 @@ export class Screen implements GameIO {
   private viewCovered = false;
   /** True while the in-game border is shown (false on the title screens). */
   private frameShown = false;
-  /** Animation ticks so far (12 a second); drives the marker colour in combat. */
-  private ticks = 0;
+  /** Text drawn on the current title screen, replayed when the graphics set changes. */
+  private titleText: { x: number; y: number; text: string }[] = [];
   private lastFrame = 0;
   private readonly dungeonRenderer: DungeonRenderer | null;
 
@@ -127,7 +127,7 @@ export class Screen implements GameIO {
 
   constructor(
     canvas: HTMLCanvasElement,
-    private readonly gfx: GraphicsSet,
+    private gfx: GraphicsSet,
     private readonly images: ImageMap,
     private readonly keyboard: Keyboard,
     private readonly sounds: SoundPlayer,
@@ -204,6 +204,7 @@ export class Screen implements GameIO {
   showTitle(): void {
     this.viewCovered = true;
     this.frameShown = false;
+    this.titleText = [];
     this.view = null;
     this.black(0, 0, COLUMNS, ROWS);
     for (let x = 1; x < 39; x++) {
@@ -227,6 +228,32 @@ export class Screen implements GameIO {
 
   clearBottom(): void {
     this.black(1, 10, 38, 13);
+    this.titleText = this.titleText.filter((t) => t.y < 10);
+  }
+
+  /**
+   * Switch to another tile set (font and border pieces included) and redraw
+   * everything on screen from what the Screen already knows.
+   */
+  setGraphics(gfx: GraphicsSet): void {
+    this.gfx = gfx;
+    if (this.frameShown) {
+      const rows = this.textRows.map((r) => [...r]);
+      const cx = this.cursorX;
+      const cy = this.cursorY;
+      this.showGameFrame();
+      this.textRows = rows;
+      this.cursorX = cx;
+      this.cursorY = cy;
+      this.redrawTextArea();
+      this.highlighted.forEach((m) => this.invert(24, m * BOX_PITCH + 1, 15, BOX_ROWS));
+    } else {
+      const texts = this.titleText;
+      this.showTitle();
+      for (const t of texts) this.drawText(t.text, t.x, t.y);
+      this.titleText = texts;
+    }
+    this.showMenuNow();
   }
 
   // -------------------------------------------------------------------------
@@ -253,10 +280,11 @@ export class Screen implements GameIO {
 
   textAt(x: number, y: number, text: string): void {
     this.drawText(text, x, y);
+    if (!this.frameShown) this.titleText.push({ x, y, text });
   }
 
   centreText(y: number, text: string): void {
-    this.drawText(text, 20 - Math.floor(text.length / 2), y);
+    this.textAt(20 - Math.floor(text.length / 2), y, text);
   }
 
   private redrawTextArea(): void {
@@ -723,8 +751,10 @@ export class Screen implements GameIO {
   /** Paint the cached viewport, or the dungeon view. Called from the animation loop. */
   /**
    * In combat, a rounded outline around the member whose turn it is, two
-   * game pixels wide just outside their tile, cycling green, blue and white
-   * in step with the tile animation. (The Apple II blinked the figure.)
+   * game pixels wide just outside their tile. It starts white and fades to
+   * mid grey over the time the member has before the turn passes by
+   * itself, so the outline doubles as the timer. (The Apple II blinked the
+   * figure.)
    */
   private markActiveMember(): void {
     const c = this.world.combat;
@@ -737,13 +767,14 @@ export class Screen implements GameIO {
     const width = 2 * gamePixel;
     const x = (1 + 2 * me.x) * cell - width / 2;
     const y = (1 + 2 * me.y) * cell - width / 2;
-    const colours = ['#40ff40', '#4080ff', '#ffffff'];
+    const elapsed = c.markedFor > 0 ? (performance.now() - c.markedAt) / c.markedFor : 1;
+    const level = Math.round(255 - 127 * Math.max(0, Math.min(1, elapsed)));
     ctx.save();
     ctx.beginPath();
     ctx.rect(cell, cell, 22 * cell, 22 * cell); // never paint over the border
     ctx.clip();
     ctx.lineWidth = width;
-    ctx.strokeStyle = colours[Math.floor(this.ticks / 4) % colours.length];
+    ctx.strokeStyle = `rgb(${level},${level},${level})`;
     ctx.beginPath();
     if (typeof ctx.roundRect === 'function') ctx.roundRect(x, y, tile + width, tile + width, 3 * gamePixel);
     else ctx.rect(x, y, tile + width, tile + width);
@@ -798,7 +829,6 @@ export class Screen implements GameIO {
     this.gamepads.poll();
     if (time - this.lastFrame >= ANIMATION_INTERVAL_MS) {
       this.lastFrame = time;
-      this.ticks++;
       this.gfx.tick();
       if (!this.viewCovered) this.viewDirty = true;
     }
@@ -961,7 +991,7 @@ export class Screen implements GameIO {
         if (due && p.status === 'G') this.drawText('L!', 37, top, '#40ff40');
         else if (p.status !== 'G') this.drawText(p.status, 38, top);
         this.drawText(`${pad(p.hitPoints, 4)}/${pad(p.maxHitPoints, 4)}`, 24, top + 1);
-        this.drawText(`M:${pad(p.mana, 2)}`, 35, top + 1);
+        if (hasMagic(this.world, p)) this.drawText(`M:${pad(p.mana, 2)}`, 35, top + 1);
       }
       if (this.highlighted.has(m)) this.invert(24, top, 15, BOX_ROWS);
     }
@@ -1025,6 +1055,12 @@ export class Screen implements GameIO {
     const food = `F:${w.party.food}`;
     this.drawText(food, 23 - food.length, 0);
   }
+}
+
+/** Fighters, thieves and barbarians have no magic, so their boxes show no mana. */
+function hasMagic(world: World, p: PlayerRecord): boolean {
+  const careers = String.fromCharCode(...world.resources.misc.careerTable);
+  return ![0, 3, 5].includes(careers.indexOf(p.classLetter));
 }
 
 /**

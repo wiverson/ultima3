@@ -125,6 +125,8 @@ export function loadArena(world: World, id: number): CombatState {
     previousLocation: world.party.location,
     activeMember: 0,
     markedMember: -1,
+    markedAt: 0,
+    markedFor: 0,
   };
 }
 
@@ -420,6 +422,8 @@ async function victory(world: World, io: GameIO, previousMusic: number): Promise
 async function waitForCombatKey(world: World, io: GameIO, member: number): Promise<string> {
   const c = world.combat!;
   c.markedMember = member;
+  c.markedAt = performance.now();
+  c.markedFor = TURN_TIMEOUT_MS;
   io.redrawMap();
   try {
     const key = await io.waitCommand('combat', TURN_TIMEOUT_MS);

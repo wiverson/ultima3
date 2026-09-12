@@ -45,7 +45,7 @@ keys or the numeric keypad move, and every letter is a command:
     Z ztats      space passes
 
 URL options: `?new` starts a fresh game (the last game is otherwise
-resumed from the browser's storage), `?tiles=PC EGA` (or any set in
+resumed from the browser's storage), the Tiles selector (or any set in
 `public/graphics`) changes the graphics, `?music=0` silences the music.
 
 ## What is ported

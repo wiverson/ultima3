@@ -89,6 +89,9 @@ export interface CombatState {
    * blinked the figure instead (`cHide`).
    */
   markedMember: number;
+  /** When the mark was set (performance.now()) and how long the member has to act, ms. */
+  markedAt: number;
+  markedFor: number;
 }
 
 /** State while inside a dungeon. */

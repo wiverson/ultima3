@@ -21,7 +21,17 @@ async function start(): Promise<void> {
   const canvas = document.getElementById('screen') as HTMLCanvasElement;
 
   const params = new URLSearchParams(location.search);
-  const tileSet = params.get('tiles') ?? 'Standard';
+
+  // The tile set (graphics, font and border) is chosen with a selector and remembered.
+  const tilesSelect = document.getElementById('tiles') as HTMLSelectElement;
+  let tileSet = 'Nintendo';
+  try {
+    const saved = localStorage.getItem('ultima3.tiles');
+    if (saved && [...tilesSelect.options].some((o) => o.value === saved)) tileSet = saved;
+  } catch {
+    /* storage unavailable */
+  }
+  tilesSelect.value = tileSet;
 
   const [resources, gfx, images] = await Promise.all([loadResources(), GraphicsSet.load(tileSet), loadImages()]);
 
@@ -90,6 +100,17 @@ async function start(): Promise<void> {
     canvas.focus();
   });
   screen.onModeChange = rememberMode;
+
+  tilesSelect.addEventListener('change', async () => {
+    const name = tilesSelect.value;
+    try {
+      screen.setGraphics(await GraphicsSet.load(name));
+      localStorage.setItem('ultima3.tiles', name);
+    } catch (err) {
+      status.textContent = `Could not load the ${name} tiles: ${err instanceof Error ? err.message : String(err)}`;
+    }
+    canvas.focus();
+  });
 
   // Auto-combat: the party fights by itself (a LairWare addition). Escape in
   // a fight turns it off, so the checkbox follows the game as well.

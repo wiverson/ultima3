@@ -111,6 +111,22 @@
       <span class="settings">
         <label title="No diagonal moves for the party, as on the Apple II"><input type="checkbox" id="classic" checked /> Classic moves</label>
         <label><input type="checkbox" id="auto" /> Auto combat</label>
+        <label>Tiles:
+          <select id="tiles">
+            <option>Nintendo</option>
+            <option>Standard</option>
+            <option>Apple II Color</option>
+            <option>Apple II Color TV</option>
+            <option>Apple II Mono</option>
+            <option>Commodore 64</option>
+            <option>Macintosh B&amp;W</option>
+            <option>PC CGA</option>
+            <option>PC EGA</option>
+            <option>PC MCGA</option>
+            <option>PC VGA</option>
+            <option>PC Ultima V</option>
+          </select>
+        </label>
         <label>Input:
           <select id="mode">
             <option value="keyboard">Keyboard (Apple II commands)</option>
@@ -208,7 +224,8 @@
         A green <code>L!</code> in a member's box means Lord British will raise them.
         Prompts that ask "whom" take a member number 1-4; a direction is an arrow key.
         Your game is saved in this browser when you press Q on the surface and resumes on the next visit.
-        URL options: <code>?new</code> starts a fresh game, <code>?tiles=PC EGA</code> (or another set: Apple II Color, Commodore 64, Nintendo, PC VGA, ...) changes the graphics, <code>?music=0</code> silences the music.
+        The Tiles selector above switches the graphics, font and border at any time; the choice is remembered.
+        URL options: <code>?new</code> starts a fresh game, <code>?music=0</code> silences the music.
       </p>
     </details>
 
