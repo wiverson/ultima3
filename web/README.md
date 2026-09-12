@@ -188,6 +188,10 @@ explained in `tiles.ts`, and the music event format in `ui/music.ts`.
   eat a tenth of a ration a turn from the pool and go hungry together when
   it is empty; the Apple II's food-borrow quirk went with the per-member
   counters. A dispersed party shares the pool out among its members again.
+- In combat the member whose turn it is gets a rounded outline, two game
+  pixels wide, cycling green, blue and white with the tile animation; the
+  Apple II blinked the figure. A member in good health shows no status
+  letter, so only P, D, A or the "L!" raise flag appears.
 - Resurrection after a party wipe is automatic; the original showed a dialog.
 - The Mac's "no diagonals" preference is the "Classic moves" checkbox,
   on by default. With it off, the lava either side of Exodus' castle

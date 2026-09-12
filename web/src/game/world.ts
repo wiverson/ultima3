@@ -84,8 +84,11 @@ export interface CombatState {
   previousLocation: number;
   /** Member whose turn it is, 0..3. */
   activeMember: number;
-  /** Member hidden for the blink effect, or -1. (`cHide`) */
-  hiddenMember: number;
+  /**
+   * Member waiting for a command, or -1. The UI outlines them; the Apple II
+   * blinked the figure instead (`cHide`).
+   */
+  markedMember: number;
 }
 
 /** State while inside a dungeon. */

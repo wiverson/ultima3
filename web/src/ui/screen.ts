@@ -97,6 +97,8 @@ export class Screen implements GameIO {
   private viewCovered = false;
   /** True while the in-game border is shown (false on the title screens). */
   private frameShown = false;
+  /** Animation ticks so far (12 a second); drives the marker colour in combat. */
+  private ticks = 0;
   private lastFrame = 0;
   private readonly dungeonRenderer: DungeonRenderer | null;
 
@@ -719,6 +721,36 @@ export class Screen implements GameIO {
   }
 
   /** Paint the cached viewport, or the dungeon view. Called from the animation loop. */
+  /**
+   * In combat, a rounded outline around the member whose turn it is, two
+   * game pixels wide just outside their tile, cycling green, blue and white
+   * in step with the tile animation. (The Apple II blinked the figure.)
+   */
+  private markActiveMember(): void {
+    const c = this.world.combat;
+    if (!c || c.markedMember < 0) return;
+    const { ctx, cell } = this;
+    const me = c.members[c.markedMember];
+    if (me.x > 10 || me.y > 10) return;
+    const tile = 2 * cell;
+    const gamePixel = tile / 16; // the Apple II tile was 16 pixels, whatever the sheet's size
+    const width = 2 * gamePixel;
+    const x = (1 + 2 * me.x) * cell - width / 2;
+    const y = (1 + 2 * me.y) * cell - width / 2;
+    const colours = ['#40ff40', '#4080ff', '#ffffff'];
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(cell, cell, 22 * cell, 22 * cell); // never paint over the border
+    ctx.clip();
+    ctx.lineWidth = width;
+    ctx.strokeStyle = colours[Math.floor(this.ticks / 4) % colours.length];
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function') ctx.roundRect(x, y, tile + width, tile + width, 3 * gamePixel);
+    else ctx.rect(x, y, tile + width, tile + width);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   private paintViewport(): void {
     const { ctx, cell, gfx, world } = this;
     if (world.party.location === Location.Dungeon && !world.combat) {
@@ -742,7 +774,9 @@ export class Screen implements GameIO {
       gfx.drawShape(ctx, c.base, dx, dy, tile);
       if (c.overlay !== undefined) gfx.drawShape(ctx, c.overlay, dx, dy, tile, { masked: true, flip: c.flip, altFrame: c.altFrame });
     }
+    this.markActiveMember();
   }
+
 
   private invert(x: number, y: number, w: number, h: number): void {
     const { ctx, cell } = this;
@@ -764,6 +798,7 @@ export class Screen implements GameIO {
     this.gamepads.poll();
     if (time - this.lastFrame >= ANIMATION_INTERVAL_MS) {
       this.lastFrame = time;
+      this.ticks++;
       this.gfx.tick();
       if (!this.viewCovered) this.viewDirty = true;
     }
@@ -904,8 +939,8 @@ export class Screen implements GameIO {
   /**
    * The four character boxes, two rows each:
    *
-   *   Tatiana       L!      name; status letter, or a green "L!" when Lord
-   *   0100/0150   M:25      British would raise the member's level
+   *   Tatiana       L!      name; status letter if not Good, or a green "L!"
+   *   0100/0150   M:25      when Lord British would raise the member's level
    *
    * Gold and food are pooled and shown on the top border (`showMoons`).
    */
@@ -922,8 +957,9 @@ export class Screen implements GameIO {
       this.black(24, top, 15, BOX_ROWS);
       if (p) {
         this.drawText(p.name, 24, top);
+        // Good health shows nothing, so only trouble (P, D, A) or a raise due (L!) catches the eye.
         if (due && p.status === 'G') this.drawText('L!', 37, top, '#40ff40');
-        else this.drawText(p.status, 38, top);
+        else if (p.status !== 'G') this.drawText(p.status, 38, top);
         this.drawText(`${pad(p.hitPoints, 4)}/${pad(p.maxHitPoints, 4)}`, 24, top + 1);
         this.drawText(`M:${pad(p.mana, 2)}`, 35, top + 1);
       }

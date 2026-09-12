@@ -189,8 +189,8 @@ function buildCombatViewport(world: World): Viewport {
     if (m.hp <= 0) continue;
     cells[m.y * VIEW_SIZE + m.x] = { base: m.tileUnder, overlay: m.shape };
   }
-  c.members.forEach((p, i) => {
-    if (p.x > 10 || p.y > 10 || i === c.hiddenMember) return;
+  c.members.forEach((p) => {
+    if (p.x > 10 || p.y > 10) return;
     cells[p.y * VIEW_SIZE + p.x] = { base: p.tileUnder, overlay: p.shape };
   });
   return { cells, originX: 0, originY: 0 };

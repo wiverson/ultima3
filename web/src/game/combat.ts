@@ -56,7 +56,6 @@ const MISSING = 255;
 
 /** How long a member has to act before the turn passes by itself. */
 const TURN_TIMEOUT_MS = 4000;
-const BLINK_MS = 330;
 const BALL_MS = 80;
 /** Pause before each automatic turn, so the player can follow the fight and interrupt it. */
 const AUTO_PAUSE_MS = 250;
@@ -125,7 +124,7 @@ export function loadArena(world: World, id: number): CombatState {
     monsterVariant: 0,
     previousLocation: world.party.location,
     activeMember: 0,
-    hiddenMember: -1,
+    markedMember: -1,
   };
 }
 
@@ -392,7 +391,7 @@ export async function combat(world: World, io: GameIO, monsterShape: number, var
     io.queueKeys([]);
     if (world.combat === c) {
       world.combat = null;
-      c.hiddenMember = -1;
+      c.markedMember = -1;
     }
   }
 }
@@ -415,25 +414,18 @@ async function victory(world: World, io: GameIO, previousMusic: number): Promise
 // ---------------------------------------------------------------------------
 
 /**
- * Wait for the member's command while their figure blinks. After
+ * Wait for the member's command while the UI marks their figure. After
  * TURN_TIMEOUT_MS the turn is passed, as on the Apple II.
  */
 async function waitForCombatKey(world: World, io: GameIO, member: number): Promise<string> {
   const c = world.combat!;
-  const deadline = performance.now() + TURN_TIMEOUT_MS;
-  let hidden = false;
+  c.markedMember = member;
+  io.redrawMap();
   try {
-    for (;;) {
-      hidden = !hidden;
-      c.hiddenMember = hidden ? member : -1;
-      io.redrawMap();
-      const remaining = deadline - performance.now();
-      if (remaining <= 0) return Key.Space;
-      const key = await io.waitCommand('combat', Math.min(BLINK_MS, remaining));
-      if (key !== null) return key;
-    }
+    const key = await io.waitCommand('combat', TURN_TIMEOUT_MS);
+    return key ?? Key.Space;
   } finally {
-    c.hiddenMember = -1;
+    c.markedMember = -1;
     io.redrawMap();
   }
 }
