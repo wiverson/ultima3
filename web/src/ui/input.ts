@@ -66,6 +66,17 @@ export class Keyboard {
   flush(): void {
     this.queue.length = 0;
   }
+
+  /** Inject a key from another source, such as a gamepad button. */
+  push(key: string): void {
+    if (this.waiter) {
+      const w = this.waiter;
+      this.waiter = null;
+      w(key);
+    } else if (this.queue.length < MAX_QUEUED) {
+      this.queue.push(key);
+    }
+  }
 }
 
 /** Convert a DOM key event to a game key, or null if the game does not use it. */

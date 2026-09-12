@@ -46,6 +46,32 @@ async function start(): Promise<void> {
   const screen = new Screen(canvas, gfx, images, keyboard, sounds, music, world);
   canvas.focus();
 
+  // Input mode: keyboard (the Apple II letter commands) or controller (menus).
+  const modeSelect = document.getElementById('mode') as HTMLSelectElement;
+  const savedMode = (() => {
+    try {
+      return localStorage.getItem('ultima3.inputMode');
+    } catch {
+      return null;
+    }
+  })();
+  screen.inputMode = savedMode === 'controller' ? 'controller' : 'keyboard';
+  modeSelect.value = screen.inputMode;
+  const rememberMode = () => {
+    modeSelect.value = screen.inputMode;
+    try {
+      localStorage.setItem('ultima3.inputMode', screen.inputMode);
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  modeSelect.addEventListener('change', () => {
+    screen.inputMode = modeSelect.value === 'controller' ? 'controller' : 'keyboard';
+    rememberMode();
+    canvas.focus();
+  });
+  screen.onModeChange = rememberMode;
+
   status.textContent = '';
 
   const game = new Game(world, screen, { save: (w) => localSave.write(w) });

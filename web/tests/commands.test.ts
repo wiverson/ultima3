@@ -233,3 +233,25 @@ describe('monsters', () => {
     expect(m.x(0)).toBe(61); // east, across the seam, not 58 squares west
   });
 });
+
+describe('walking into townspeople', () => {
+  it('reports the NPC in the way instead of moving', async () => {
+    const world = newWorld();
+    const io = new FakeIO(world.resources);
+    world.enterMap(MapId.FirstTown);
+    world.party.location = Location.Town;
+    world.current.tiles.fill(MapValue.Floor);
+    world.monsters.bytes.fill(0);
+    world.x = 20;
+    world.y = 20;
+    const m = world.monsters;
+    m.setType(3, MapValue.Jester);
+    m.setTileUnder(3, MapValue.Floor);
+    m.setPosition(3, 21, 20);
+    world.putXYVal(MapValue.Jester, 21, 20);
+    expect(await move(world, io, 'east')).toBe(3);
+    expect(world.x).toBe(20);
+    expect(await move(world, io, 'west')).toBe(-1);
+    expect(world.x).toBe(19);
+  });
+});

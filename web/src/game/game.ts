@@ -116,7 +116,7 @@ export class Game {
       await whirlpoolTick(this.world, this.io, this.hooks);
       const remaining = deadline - performance.now();
       if (remaining <= 0) return Key.Space;
-      const key = await this.io.waitKeyOrTimeout(Math.min(WHIRLPOOL_TICK_MS, remaining));
+      const key = await this.io.waitCommand('field', Math.min(WHIRLPOOL_TICK_MS, remaining));
       if (key !== null) return key;
     }
   }
@@ -126,7 +126,12 @@ export class Game {
     const { world, io } = this;
     const moveName = cmd.moveForKey(key);
     if (moveName) {
-      await cmd.move(world, io, moveName);
+      const npc = await cmd.move(world, io, moveName);
+      // Walking into a townsperson talks to them (with the first living member).
+      if (npc >= 0) {
+        const speaker = [0, 1, 2, 3].find((m) => world.memberAlive(m)) ?? 0;
+        await interact.talkTo(world, io, npc, speaker);
+      }
       return;
     }
     switch (key.toUpperCase()) {

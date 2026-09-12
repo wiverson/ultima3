@@ -176,21 +176,30 @@ export function moveDelta(name: MoveName): { dx: number; dy: number; message: nu
   return { dx: spec.dx, dy: spec.dy, message: spec.message };
 }
 
-/** Mirrors `North()`, `South()` ... `NorthWest()`. */
-export async function move(world: World, io: GameIO, name: MoveName): Promise<void> {
+/**
+ * Mirrors `North()`, `South()` ... `NorthWest()`. Returns the index of a
+ * townsperson standing in the way (so the game can talk to them instead of
+ * bumping, a convenience this port adds), or -1.
+ */
+export async function move(world: World, io: GameIO, name: MoveName): Promise<number> {
   const spec = MOVES[name];
   if (spec.dx !== 0) world.horseFacingEast = spec.dx > 0;
   io.printMessage(spec.message);
   if (!spec.compass.every((c) => validTrans(world, c))) {
     noGo(io);
-    return;
+    return -1;
+  }
+  if (world.inTownOrCastle) {
+    const who = world.monsters.at(world.constrain(world.x + spec.dx), world.constrain(world.y + spec.dy));
+    if (who >= 0) return who;
   }
   if (!(await validDir(world, io, world.getXYVal(world.x + spec.dx, world.y + spec.dy)))) {
     noGo(io);
-    return;
+    return -1;
   }
   world.x = world.constrain(world.x + spec.dx);
   world.y = world.constrain(world.y + spec.dy);
+  return -1;
 }
 
 /** Map a key press to a movement, or undefined. Arrow keys and the numeric keypad both work. */
@@ -221,9 +230,18 @@ export function moveForKey(key: string, allowDiagonal = true): MoveName | undefi
   }
 }
 
+/** An adjacent square chosen at a "Direction-" prompt. */
+export interface Direction {
+  xs: number;
+  ys: number;
+  dx: number;
+  dy: number;
+}
+
 /**
- * Mirrors `GetDirection()`: after a command such as Look, wait for the
- * player to press a direction. Returns the adjacent square chosen. In
+ * Mirrors `GetDirection()`: after a command such as Look, ask for a
+ * direction and echo its name. Returns null if the player cancels (only
+ * possible with a controller; the keyboard original could not cancel). In
  * combat `allowSpace` lets the space bar mean "no direction" (dx = dy = 0).
  */
 export async function getDirection(
@@ -231,20 +249,18 @@ export async function getDirection(
   io: GameIO,
   allowSpace = false,
   allowDiagonal = true,
-): Promise<{ xs: number; ys: number; dx: number; dy: number }> {
-  for (;;) {
-    const key = await io.waitKey();
-    if (world.done) return { xs: world.x, ys: world.y, dx: 0, dy: 0 };
-    if (allowSpace && key === Key.Space) {
-      io.printMessage(173); // "None"
-      return { xs: world.x, ys: world.y, dx: 0, dy: 0 };
-    }
-    const name = moveForKey(key, allowDiagonal);
-    if (!name) continue;
-    const spec = MOVES[name];
-    io.printMessage(spec.message);
-    return { xs: world.x + spec.dx, ys: world.y + spec.dy, dx: spec.dx, dy: spec.dy };
+): Promise<Direction | null> {
+  const key = await io.chooseDirection(allowSpace, allowDiagonal);
+  if (key === null || world.done) return null;
+  if (key === Key.Space) {
+    io.printMessage(173); // "None"
+    return { xs: world.x, ys: world.y, dx: 0, dy: 0 };
   }
+  const name = moveForKey(key, allowDiagonal);
+  if (!name) return null;
+  const spec = MOVES[name];
+  io.printMessage(spec.message);
+  return { xs: world.x + spec.dx, ys: world.y + spec.dy, dx: spec.dx, dy: spec.dy };
 }
 
 // ---------------------------------------------------------------------------
@@ -303,7 +319,9 @@ export function exit(world: World, io: GameIO): void {
 /** L: name what is on an adjacent square. (`Look`) */
 export async function look(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Look);
-  const { xs, ys } = await getDirection(world, io);
+  const dir = await getDirection(world, io);
+  if (!dir) return;
+  const { xs, ys } = dir;
   io.print('->');
   const value = world.getXYVal(xs, ys);
   const mon = world.monsters.at(world.constrain(xs), world.constrain(ys));

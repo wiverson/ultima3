@@ -12,7 +12,7 @@
 import { World } from './world.ts';
 import { Location } from './party.ts';
 import { MapValue, Shape } from './tiles.ts';
-import { type GameIO, Sound, Music, getKey, getChar, deathSound } from './io.ts';
+import { type GameIO, Sound, Music, deathSound, letterOptions } from './io.ts';
 import { getDirection, notHere, what2, Msg as CmdMsg, PartyShape } from './commands.ts';
 import { getChest, incapacitated, stealDisarmFails } from './actions.ts';
 import { shop } from './shops.ts';
@@ -91,13 +91,13 @@ export function speech(talk: Uint8Array, person: number): string {
 /** Talk to whoever or whatever is in a chosen direction: NPCs, Lord British, or a shop counter. (`Transact`) */
 export async function transact(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.WhoTransacts);
-  const n = await getChar(io);
+  const n = await io.chooseMember();
   if (n < 1 || n > 4) return;
   const member = n - 1;
   if (!world.memberAlive(member)) return incapacitated(io);
-  const p = world.member(member);
   io.printMessage(Msg.Direction);
   const dir = await getDirection(world, io);
+  if (!dir) return;
   const xs = world.constrain(dir.xs);
   const ys = world.constrain(dir.ys);
   const mon = world.monsters.at(xs, ys);
@@ -119,6 +119,15 @@ export async function transact(world: World, io: GameIO): Promise<void> {
     return;
   }
 
+  await talkTo(world, io, mon, member);
+}
+
+/**
+ * Talk to the creature in monster slot `mon`: a townsperson's line, or
+ * Lord British's audience. Also used when the party walks into someone.
+ */
+export async function talkTo(world: World, io: GameIO, mon: number, member: number): Promise<void> {
+  const p = world.member(member);
   const m = world.monsters;
   if (m.type(mon) !== MapValue.LordBritish) {
     const person = m.talkIndex(mon);
@@ -161,6 +170,7 @@ export async function transact(world: World, io: GameIO): Promise<void> {
 export async function attack(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Attack);
   const dir = await getDirection(world, io);
+  if (!dir) return;
   const mon = world.monsters.at(world.constrain(dir.xs), world.constrain(dir.ys));
   if (mon < 0) return notHere(io);
   await attackMonster(world, io, mon);
@@ -172,6 +182,7 @@ export async function fire(world: World, io: GameIO): Promise<void> {
   if (world.party.shape !== PartyShape.Frigate) return what2(io);
   io.printMessage(Msg.FireDirect);
   const dir = await getDirection(world, io);
+  if (!dir) return;
   io.sound(Sound.Shoot);
   let xs = world.x;
   let ys = world.y;
@@ -206,12 +217,13 @@ export async function fire(world: World, io: GameIO): Promise<void> {
 /** S: steal from a shop's chest across the counter. (`Steal`) */
 export async function steal(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Steal);
-  const n = await getChar(io);
+  const n = await io.chooseMember();
   if (n < 1 || n > 4) return;
   const member = n - 1;
   if (!world.memberAlive(member)) return incapacitated(io);
   io.printMessage(Msg.Direction);
   const dir = await getDirection(world, io);
+  if (!dir) return;
 
   const fail = () => {
     if ((world.rng.range(0, 255) & 0x03) !== 0) return io.printMessage(Msg.Failed);
@@ -237,10 +249,11 @@ export async function steal(world: World, io: GameIO): Promise<void> {
 export async function unlock(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Unlock);
   const dir = await getDirection(world, io, false, false);
+  if (!dir) return;
   if (dir.dx === 0 && dir.dy !== 0) return notHere(io);
   if (world.getXYVal(dir.xs, dir.ys) !== MapValue.LetterI) return notHere(io);
   io.printMessage(Msg.WhoseKey);
-  const n = await getChar(io);
+  const n = await io.chooseMember();
   if (n < 1) return;
   if (n > 4) {
     io.printMessage(Msg.NoSuchPlayer);
@@ -285,6 +298,9 @@ async function evocare(world: World, io: GameIO, member: number): Promise<void> 
 // O: Other command
 // ---------------------------------------------------------------------------
 
+/** Words the Other command understands, offered as a menu to controller users. */
+export const OTHER_WORDS = ['SEARCH', 'BRIBE', 'PRAY', 'EVOCARE', 'INSERT', 'DIG', 'PAXUM', 'SCREAM'];
+
 /**
  * Mirrors `OtherCommand()`: a typed word. PAXUM calms nearby monsters,
  * SCREAM screams, INSERT places a card in Exodus, DIG digs up exotics,
@@ -296,13 +312,13 @@ export async function otherCommand(world: World, io: GameIO, fromYell = false): 
     world.yellUsed = true;
     io.printMessage(Msg.OtherCommand);
   }
-  const n = await getChar(io);
+  const n = await io.chooseMember();
   if (n < 1 || n > 4) return;
   const member = n - 1;
   if (!world.memberAlive(member)) return incapacitated(io);
   const p = world.member(member);
   io.printMessage(Msg.Cmd);
-  const word = (await io.inputText(8, false)).toUpperCase();
+  const word = (await io.inputText(8, false, OTHER_WORDS)).toUpperCase();
   io.print('\n');
 
   switch (word) {
@@ -337,6 +353,7 @@ export async function otherCommand(world: World, io: GameIO, fromYell = false): 
     case 'BRIBE': {
       io.printMessage(Msg.Dir);
       const dir = await getDirection(world, io);
+      if (!dir) return;
       const mon = world.monsters.at(world.constrain(dir.xs), world.constrain(dir.ys));
       if (mon < 0) return notHere(io);
       if (p.gold < 100) {
@@ -378,9 +395,13 @@ async function insertCard(world: World, io: GameIO, member: number): Promise<voi
   const p = world.member(member);
   io.printMessage(Msg.Dir);
   const dir = await getDirection(world, io);
+  if (!dir) return;
   if (world.getXYVal(dir.xs, dir.ys) !== MapValue.Exodus) return notHere(io);
   io.printMessage(Msg.Cards);
-  const key = await getKey(io);
+  const key = await io.chooseOption(
+    letterOptions('DSLM', (l) => ({ D: 'Card of Death', S: 'Card of Sol', L: 'Card of Love', M: 'Card of Moons' })[l]!),
+    'line',
+  );
   const slot = { L: 0x1e, S: 0x1f, M: 0x20, D: 0x21 }[key];
   if (!slot) return what2(io);
   if (!(p.marks & (1 << (slot - 0x1e)))) return io.printMessage(Msg.NoneLeft);
@@ -452,7 +473,7 @@ const SHRINE_MAX = [75, 75, 99, 75, 25, 75, 99, 75, 50, 99, 75, 50, 75, 99, 75, 
 export async function enterShrine(world: World, io: GameIO): Promise<void> {
   io.printMessage(CmdMsg.Enter);
   io.printMessage(Msg.EnterShrine);
-  const n = await getChar(io);
+  const n = await io.chooseMember();
   if (n < 1 || n > 4) return io.sound(Sound.Error1);
   const member = n - 1;
   if (!world.memberAlive(member)) return incapacitated(io);
@@ -473,10 +494,11 @@ export async function enterShrine(world: World, io: GameIO): Promise<void> {
   const offset = [18, 19, 20, 21][which];
 
   io.printMessage(Msg.ShrineOffering);
-  let key = '';
-  while (!(key >= '0' && key <= '9') && !world.done) key = await io.waitKey();
-  io.print(key);
-  const amount = key.charCodeAt(0) - '0'.charCodeAt(0);
+  const key = await io.chooseOption(
+    letterOptions('0123456789', (d) => (d === '0' ? '0 (nothing)' : `${d} = ${d}00 gold`)),
+    'key',
+  );
+  const amount = key ? key.charCodeAt(0) - '0'.charCodeAt(0) : 0;
   const leave = () => {
     io.redrawMap();
     world.music = previousMusic;

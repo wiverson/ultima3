@@ -18,6 +18,21 @@ npm run build     # typecheck + production build into dist/
 `npm run extract` only needs to run again if the original resources change.
 Its output is committed so the game runs straight after `npm install`.
 
+There are two input modes, chosen with the selector under the game (a
+gamepad button press also switches to controller mode):
+
+- **Keyboard**: the Apple II commands below, exactly as the original.
+- **Controller**: d-pad movement and pop-up menus, in the spirit of the NES
+  version. A opens the command menu or confirms, B cancels or passes the
+  turn, X shows Ztats, Y looks (attacks in combat). Prompts for a member,
+  a direction, a spell, an item, a shop choice, a number or a word all
+  become menus. A real gamepad works through the Gamepad API; on a keyboard
+  WASD or the arrows are the d-pad and Enter/Escape/Z/X/C/V are A/B/X/Y.
+
+In either mode, walking into a townsperson talks to them (a convenience this
+port adds; the original needed T, a member and a direction, by which time
+the person had often wandered off).
+
 The title menu offers `J` (journey onward) and `O` (organize a party: create,
 form, disperse, terminate). In play the keys are the Apple II ones: arrow
 keys or the numeric keypad move, and every letter is a command:
@@ -102,10 +117,21 @@ src/ui/     browser only
   screen.ts       Canvas renderer and the GameIO implementation
   dungeonView.ts  the first-person dungeon renderer
   input.ts        keyboard as an awaitable queue
+  menus.ts        controller mode: menu windows, command lists, gamepad reader
   sound.ts        Web Audio effects
   music.ts        QuickTime music decoder and synthesizer
 src/main.ts       bootstrap
 ```
+
+### Semantic prompts
+
+Game logic never reads raw keys for a decision. It asks the `GameIO` for a
+*member*, a *direction*, an *option* from a list, a *number* or a *word*
+(`chooseMember`, `chooseDirection`, `chooseOption`, `inputText`, and
+`waitCommand` for the top-level command). The keyboard implementation
+answers each the way the Apple II did; the controller implementation
+(`ui/menus.ts` and the Screen) answers with a menu window. Tests use a fake
+that answers from a key queue.
 
 ### The blocking-input problem
 

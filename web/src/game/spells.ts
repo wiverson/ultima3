@@ -13,7 +13,7 @@
 import { World } from './world.ts';
 import { Location } from './party.ts';
 import { MapValue, Shape } from './tiles.ts';
-import { type GameIO, Sound, getKey, getChar, inputNumber } from './io.ts';
+import { type GameIO, Sound, inputNumber, letterOptions } from './io.ts';
 import { getDirection } from './commands.ts';
 import { shoot, showBall, damageMonster } from './combat.ts';
 import { getChest, incapacitated } from './actions.ts';
@@ -58,7 +58,7 @@ const NOT_A_MAGE = -1;
 export async function cast(world: World, io: GameIO, member?: number): Promise<boolean> {
   if (member === undefined) {
     io.printMessage(Msg.CastByWhom);
-    const n = await getChar(io);
+    const n = await io.chooseMember();
     if (n < 1 || n > 4) return false;
     member = n - 1;
     if (!world.memberAlive(member)) {
@@ -99,37 +99,48 @@ export async function cast(world: World, io: GameIO, member?: number): Promise<b
   return true;
 }
 
+/** Menu label for a spell: its letter, name and cost. */
+function spellLabel(world: World, spell: number, letter: string): string {
+  const name = spell < 32 ? world.resources.strings.Spells[spell] : ['TERRAFORM', 'ARMAGEDDON', 'FLOTELLUM'][spell - 32];
+  const cost = spell === 32 ? 10 : spell === 33 ? 85 : spell === 34 ? 90 : (spell & 0x0f) * 5;
+  return `${letter} ${name.trim() || '?'} (${cost})`;
+}
+
 async function chooseEither(world: World, io: GameIO): Promise<number> {
-  for (;;) {
-    io.printMessage(Msg.SpellType);
-    const key = await getKey(io);
-    if (key === '\x1b' || world.done) return CANCELLED;
-    if (key === 'W') return chooseWizard(world, io);
-    if (key === 'C') return chooseCleric(world, io);
-  }
+  io.printMessage(Msg.SpellType);
+  const key = await io.chooseOption(
+    [
+      { key: 'W', label: 'Wizard spell' },
+      { key: 'C', label: 'Cleric spell' },
+    ],
+    'line',
+  );
+  if (world.done) return CANCELLED;
+  if (key === 'W') return chooseWizard(world, io);
+  if (key === 'C') return chooseCleric(world, io);
+  return CANCELLED;
 }
 
 async function chooseCleric(world: World, io: GameIO): Promise<number> {
-  for (;;) {
-    io.printMessage(Msg.ClericSpell);
-    const key = await getKey(io);
-    if (key === '\x1b' || world.done) return CANCELLED;
-    if (key >= 'A' && key <= 'P') return key.charCodeAt(0) - 'A'.charCodeAt(0) + 16;
-  }
+  io.printMessage(Msg.ClericSpell);
+  const key = await io.chooseOption(
+    letterOptions('ABCDEFGHIJKLMNOP', (l) => spellLabel(world, l.charCodeAt(0) - 65 + 16, l)),
+    'line',
+  );
+  if (!key || world.done) return CANCELLED;
+  return key.charCodeAt(0) - 'A'.charCodeAt(0) + 16;
 }
 
 async function chooseWizard(world: World, io: GameIO): Promise<number> {
-  for (;;) {
-    io.printMessage(Msg.WizardSpell);
-    const key = await getKey(io);
-    if (key === '\x1b' || world.done) return CANCELLED;
-    if (key < 'A' || key > 'S') continue;
-    if (key > 'P' && !world.party.exodusDestroyed) continue;
-    if (key === 'Q') return 32;
-    if (key === 'R') return 33;
-    if (key === 'S') return 34;
-    return key.charCodeAt(0) - 'A'.charCodeAt(0);
-  }
+  io.printMessage(Msg.WizardSpell);
+  const letters = world.party.exodusDestroyed ? 'ABCDEFGHIJKLMNOPQRS' : 'ABCDEFGHIJKLMNOP';
+  const number = (l: string) => ({ Q: 32, R: 33, S: 34 })[l] ?? l.charCodeAt(0) - 65;
+  const key = await io.chooseOption(
+    letterOptions(letters, (l) => spellLabel(world, number(l), l)),
+    'line',
+  );
+  if (!key || world.done) return CANCELLED;
+  return number(key);
 }
 
 /** Mirrors `ProcessMagic()`: pay for the spell, announce it, cast it. */
@@ -252,7 +263,7 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
     case 23: {
       // Alcort: cure poison
       io.printMessage(Msg.CureWhom);
-      const n = await getChar(io);
+      const n = await io.chooseMember();
       if (n < 1 || n > 4) return failed(io);
       await io.flashMember(n - 1);
       await flashriek(io, spell);
@@ -278,7 +289,7 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       // Surmandum: resurrect
       if (inCombat) return failed(io);
       io.printMessage(Msg.ResurrectWhom);
-      const n = await getChar(io);
+      const n = await io.chooseMember();
       if (n < 1 || n > 4) return failed(io);
       await io.flashMember(n - 1);
       await flashriek(io, spell);
@@ -295,7 +306,7 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       // Anju Sermani: recall from ashes, at the cost of 5 wisdom
       if (inCombat) return failed(io);
       io.printMessage(Msg.RecallWhom);
-      const n = await getChar(io);
+      const n = await io.chooseMember();
       if (n < 1 || n > 4) return failed(io);
       await io.flashMember(n - 1);
       await flashriek(io, spell);
@@ -310,6 +321,7 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
       if (inCombat) return failed(io);
       io.printMessage(Msg.Direction);
       const dir = await getDirection(world, io);
+      if (!dir) return failed(io);
       io.print('TypeNum-');
       const value = await inputNumber(io);
       await flashriek(io, spell);
@@ -377,6 +389,7 @@ async function projectile(world: World, io: GameIO, member: number, spell: numbe
   if (!c) return failed(io);
   io.printMessage(Msg.Direction);
   const dir = await getDirection(world, io);
+  if (!dir) return failed(io);
   await flashriek(io, spell);
   const me = c.members[member];
   const hit = await shoot(world, io, me.x, me.y, dir.dx, dir.dy, Shape.MagicBall);
@@ -418,7 +431,7 @@ async function necorp(world: World, io: GameIO, spell: number): Promise<void> {
 /** Mirrors `Heal()`. */
 async function heal(world: World, io: GameIO, spell: number, amount: number): Promise<void> {
   io.printMessage(Msg.HealWhom);
-  const n = await getChar(io);
+  const n = await io.chooseMember();
   if (n < 1 || n > 4) return failed(io);
   world.member(n - 1).addHitPoints(amount);
   await io.flashMember(n - 1);

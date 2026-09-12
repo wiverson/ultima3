@@ -11,7 +11,7 @@
 import { World } from './world.ts';
 import { Location } from './party.ts';
 import { MapValue } from './tiles.ts';
-import { type GameIO, Key, Sound, getKey, getChar, inputNumber, deathSound } from './io.ts';
+import { type GameIO, Key, Sound, inputNumber, deathSound, type MenuOption } from './io.ts';
 import { PlayerRecord } from './player.ts';
 
 const Msg = {
@@ -152,7 +152,7 @@ export async function getChest(world: World, io: GameIO, member: number, how: 'c
   if (how === 'command') {
     world.chestTrapsArmed = true;
     io.printMessage(Msg.GetChest);
-    const n = await getChar(io);
+    const n = await io.chooseMember();
     if (n < 1 || n > 4) {
       io.printMessage(Msg.NoSuchPlayer);
       io.sound(Sound.Error1);
@@ -271,17 +271,26 @@ export async function handEquipment(world: World, io: GameIO): Promise<void> {
     io.sound(Sound.Error1);
   };
   io.printMessage(Msg.HandFrom);
-  const from = await getChar(io);
+  const from = await io.chooseMember();
   if (from < 1 || from > 4 || !world.member(from - 1).exists) return error(Msg.NoSuchPlayer);
   io.printMessage(Msg.HandTo);
-  const to = await getChar(io);
+  const to = await io.chooseMember();
   if (to < 1 || to > 4 || !world.member(to - 1).exists) return error(Msg.NoSuchPlayer);
   if (from === to) return io.sound(Sound.Error1);
   const a = world.member(from - 1);
   const b = world.member(to - 1);
 
   io.printMessage(Msg.HandWhat);
-  const item = await getKey(io);
+  const item = await io.chooseOption(
+    [
+      { key: 'F', label: 'Food' },
+      { key: 'G', label: 'Gold' },
+      { key: 'E', label: 'Equipment (gems, keys, powders, torches)' },
+      { key: 'W', label: 'Weapon' },
+      { key: 'A', label: 'Armour' },
+    ],
+    'line',
+  );
   switch (item) {
     case 'F': {
       io.printMessage(Msg.Amount);
@@ -307,7 +316,15 @@ export async function handEquipment(world: World, io: GameIO): Promise<void> {
     }
     case 'E': {
       io.printMessage(Msg.HandEquipmentWhat);
-      const what = await getKey(io);
+      const what = await io.chooseOption(
+        [
+          { key: 'G', label: `Gems (${a.gems})` },
+          { key: 'K', label: `Keys (${a.keys})` },
+          { key: 'P', label: `Powders (${a.powders})` },
+          { key: 'T', label: `Torches (${a.torches})` },
+        ],
+        'line',
+      );
       const offset = { G: 37, K: 38, P: 39, T: 15 }[what];
       if (!offset) return error(Msg.None);
       io.printMessage(Msg.HowMany);
@@ -324,9 +341,9 @@ export async function handEquipment(world: World, io: GameIO): Promise<void> {
     case 'A': {
       const isWeapon = item === 'W';
       io.printMessage(isWeapon ? Msg.WhichWeapon : Msg.WhichArmour);
-      const what = await getKey(io);
       const last = isWeapon ? 'P' : 'H';
-      if (what < 'B' || what > last) return error(Msg.None);
+      const what = await io.chooseOption(ownedItems(world, a, isWeapon, last), 'line');
+      if (!what || what < 'B' || what > last) return error(Msg.None);
       const index = what.charCodeAt(0) - 'A'.charCodeAt(0);
       const base = isWeapon ? 48 : 40;
       if (a.bytes[base] === index && a.bytes[base + index] < 2) return error(Msg.InUse);
@@ -356,7 +373,7 @@ export async function igniteTorch(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.IgniteTorch);
   if (world.party.location !== Location.Dungeon) return notHere(io);
   io.printMessage(Msg.WhoseTorch);
-  const n = await getChar(io);
+  const n = await io.chooseMember();
   if (n < 1 || n > 4) return;
   const p = world.member(n - 1);
   if (p.torches < 1) return io.printMessage(Msg.NoneLeft);
@@ -368,7 +385,7 @@ export async function igniteTorch(world: World, io: GameIO): Promise<void> {
 /** Mirrors `JoinGold()`: pool everyone's gold onto one member, up to 9999. */
 export async function joinGold(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.JoinGoldTo);
-  const n = await getChar(io);
+  const n = await io.chooseMember();
   if (n < 1 || n > 4) {
     io.printMessage(Msg.NoSuchPlayer);
     io.sound(Sound.Error1);
@@ -391,10 +408,10 @@ export async function joinGold(world: World, io: GameIO): Promise<void> {
 /** Mirrors `ModifyOrder()`: swap two members' positions. */
 export async function modifyOrder(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.ModifyOrder);
-  const a = await getChar(io);
+  const a = await io.chooseMember();
   if (a < 1 || a > 4) return io.printMessage(Msg.Aborted);
   io.printMessage(Msg.Plr);
-  const b = await getChar(io);
+  const b = await io.chooseMember();
   if (b < 1 || b > 4 || a === b) return io.printMessage(Msg.Aborted);
   const ra = world.party.memberRosterNumber(a - 1);
   world.party.setMemberRosterNumber(a - 1, world.party.memberRosterNumber(b - 1));
@@ -407,7 +424,7 @@ export async function modifyOrder(world: World, io: GameIO): Promise<void> {
 export async function negateTime(world: World, io: GameIO, member?: number): Promise<void> {
   if (member === undefined) {
     io.printMessage(Msg.NegateTime);
-    const n = await getChar(io);
+    const n = await io.chooseMember();
     if (n < 1 || n > 4) return io.print('\n');
     member = n - 1;
   }
@@ -420,7 +437,7 @@ export async function negateTime(world: World, io: GameIO, member?: number): Pro
 /** Mirrors `PeerGem()`. */
 export async function peerGem(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.PeerAtGem);
-  const n = await getChar(io);
+  const n = await io.chooseMember();
   if (n < 1 || n > 4) return io.print('\n');
   const p = world.member(n - 1);
   io.print('\n');
@@ -435,6 +452,27 @@ export async function peerGem(world: World, io: GameIO): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /**
+ * Menu options for a member's weapons (letters A..P) or armour (A..H): the
+ * letter, the name and how many are owned. Hands/skin (A) are always there.
+ * Letters for items not owned are hidden: a keyboard may still type them
+ * (and get "Not owned!", as in the original) but a menu does not list them.
+ */
+export function ownedItems(world: World, p: PlayerRecord, isWeapon: boolean, last: string): MenuOption[] {
+  const names = world.resources.strings.WeaponsArmour;
+  const base = isWeapon ? 48 : 40;
+  const nameBase = isWeapon ? 0 : 16;
+  const letters = isWeapon ? 'ABCDEFGHIJKLMNOP' : 'ABCDEFGH';
+  const options: MenuOption[] = [];
+  for (const letter of letters) {
+    if (letter > last) break;
+    const index = letter.charCodeAt(0) - 65;
+    const count = index === 0 ? 1 : p.bytes[base + index];
+    options.push({ key: letter, label: `${letter} ${names[nameBase + index]}${index ? ` x${count}` : ''}`, hidden: count < 1 });
+  }
+  return options;
+}
+
+/**
  * Mirrors `ReadyWeapon()`. Each class may only use weapons up to a letter
  * in the weapon-use table; exotic weapons (P) are allowed to everyone.
  */
@@ -445,15 +483,14 @@ export async function readyWeapon(world: World, io: GameIO, member?: number): Pr
   };
   if (member === undefined) {
     io.printMessage(Msg.ReadyFor);
-    const n = await getChar(io);
+    const n = await io.chooseMember();
     if (n < 1 || n > 4) return error(Msg.NoSuchPlayer);
     member = n - 1;
   }
-  io.printMessage(Msg.Weapon);
-  const key = (await io.waitKey()).toUpperCase();
-  io.print(key.length === 1 && key >= ' ' ? key : ' ');
-  if (key < 'A' || key > 'P') return error(Msg.NotOwned);
   const p = world.member(member);
+  io.printMessage(Msg.Weapon);
+  const key = await io.chooseOption(ownedItems(world, p, true, 'P'), 'key');
+  if (!key || key < 'A' || key > 'P') return error(Msg.NotOwned);
   const careers = String.fromCharCode(...world.resources.misc.careerTable);
   const classIndex = Math.max(0, careers.indexOf(p.classLetter));
   if (key !== 'P' && key.charCodeAt(0) >= world.resources.misc.weaponUseTable[classIndex]) return error(Msg.NotAllowed);
@@ -472,13 +509,12 @@ export async function wearArmour(world: World, io: GameIO): Promise<void> {
     io.sound(Sound.Error1);
   };
   io.printMessage(Msg.WearFor);
-  const n = await getChar(io);
+  const n = await io.chooseMember();
   if (n < 1 || n > 4) return error(Msg.NoSuchPlayer);
-  io.printMessage(Msg.Armour);
-  const key = (await io.waitKey()).toUpperCase();
-  io.print(key.length === 1 && key >= ' ' ? key : ' ');
-  if (key < 'A' || key > 'H') return error(Msg.NotOwned);
   const p = world.member(n - 1);
+  io.printMessage(Msg.Armour);
+  const key = await io.chooseOption(ownedItems(world, p, false, 'H'), 'key');
+  if (!key || key < 'A' || key > 'H') return error(Msg.NotOwned);
   const careers = String.fromCharCode(...world.resources.misc.careerTable);
   const classIndex = Math.max(0, careers.indexOf(p.classLetter));
   if (key !== 'H' && key.charCodeAt(0) >= world.resources.misc.armourUseTable[classIndex]) return error(Msg.NotAllowed);
@@ -508,7 +544,7 @@ export function volume(world: World, io: GameIO): void {
 export async function stats(world: World, io: GameIO, member?: number): Promise<void> {
   if (member === undefined) {
     io.printMessage(Msg.Ztats);
-    const n = await getChar(io);
+    const n = await io.chooseMember();
     if (n < 1 || n > 4) return io.print('\n');
     member = n - 1;
   }
@@ -516,7 +552,7 @@ export async function stats(world: World, io: GameIO, member?: number): Promise<
   const pad = (v: number, w: number) => String(v).padStart(w, '0');
   const wait = async (): Promise<boolean> => {
     const key = await io.waitKey();
-    if (key === Key.Escape || world.done) {
+    if (key === Key.Escape || key === Key.B || world.done) {
       io.print('\n');
       return true;
     }

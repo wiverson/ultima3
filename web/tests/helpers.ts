@@ -8,7 +8,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resourcesFromBundle, type GameResources } from '../src/data/resources.ts';
 import { World } from '../src/game/world.ts';
-import type { GameIO } from '../src/game/io.ts';
+import { Key, type GameIO, type MenuOption, type CommandScope } from '../src/game/io.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -67,6 +67,34 @@ export class FakeIO implements GameIO {
     return this.keys.shift() ?? this.keyProvider?.() ?? null;
   }
   flushKeys(): void {}
+  /** Keyboard-style answers, read from the key queue exactly as the original read keys. */
+  async waitCommand(_scope: CommandScope): Promise<string | null> {
+    return this.waitKeyOrTimeout();
+  }
+  async chooseMember(): Promise<number> {
+    const key = (await this.waitKey()).toUpperCase();
+    this.output += `${key}\n`;
+    return key.charCodeAt(0) - '0'.charCodeAt(0);
+  }
+  async chooseDirection(allowNone: boolean): Promise<string | null> {
+    for (;;) {
+      const key = await this.waitKey();
+      if (key === Key.Escape) return null;
+      if ([Key.Up, Key.Down, Key.Left, Key.Right, '1', '2', '3', '4', '6', '7', '8', '9'].includes(key)) return key;
+      if (allowNone && key === Key.Space) return key;
+    }
+  }
+  async chooseOption(options: MenuOption[], echo: 'none' | 'key' | 'line'): Promise<string> {
+    for (;;) {
+      const key = (await this.waitKey()).toUpperCase();
+      if (key === Key.Escape) return '';
+      const hit = options.find((o) => o.key === key);
+      if (!hit) continue;
+      if (echo !== 'none') this.output += key;
+      if (echo === 'line') this.output += '\n';
+      return key;
+    }
+  }
   async inputText(): Promise<string> {
     const t = this.inputs.shift();
     if (t === undefined) throw new Error('FakeIO: no more inputs');

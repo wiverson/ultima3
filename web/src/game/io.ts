@@ -20,7 +20,25 @@ export const Key = {
   Backspace: '\b',
   Escape: '\x1b',
   Space: ' ',
+  /** Controller buttons (also produced by Enter/Escape/Z/X/C/V in controller mode). */
+  A: '\x01',
+  B: '\x02',
+  X: '\x03',
+  Y: '\x04',
 } as const;
+
+/** One choice in a menu or a letter prompt. */
+export interface MenuOption {
+  /** The key the keyboard user presses (a letter, digit or Y/N). */
+  key: string;
+  /** What controller users see in the menu. */
+  label: string;
+  /** Accepted from the keyboard but not shown in the menu (e.g. an item the member does not own). */
+  hidden?: boolean;
+}
+
+/** Where a top-level command is being read; decides which command menu a controller sees. */
+export type CommandScope = 'field' | 'combat' | 'dungeon';
 
 /** Music tracks, numbered as `gSongNext` was in the C source. */
 export const Music = {
@@ -51,11 +69,37 @@ export interface GameIO {
   waitKeyOrTimeout(ms: number): Promise<string | null>;
   /** Discard any queued key presses. (`FlushEvents`) */
   flushKeys(): void;
+
+  // --- Semantic prompts ----------------------------------------------------
+  // Game logic says what kind of answer it needs; the UI decides how to get
+  // it. With a keyboard these read a key as the Apple II did. With a
+  // controller they show a menu.
+
+  /**
+   * Read the next top-level command: a movement key, a command letter, or
+   * null when `timeoutMs` passes with no input (the turn then passes).
+   */
+  waitCommand(scope: CommandScope, timeoutMs: number): Promise<string | null>;
+  /** After a "whom?" prompt: 1..4, or 0 when cancelled. Echoes the answer. (`GetChar`) */
+  chooseMember(): Promise<number>;
+  /**
+   * After a "Direction-" prompt: a movement key (arrows or keypad digits), the
+   * space bar when `allowNone`, or null when cancelled.
+   */
+  chooseDirection(allowNone: boolean, allowDiagonal: boolean): Promise<string | null>;
+  /**
+   * Pick one option. Resolves with the option's key, or '' when cancelled.
+   * `echo` says whether to print the chosen key ('none'), the key ('key'),
+   * or the key and a newline ('line'), matching what the original printed.
+   */
+  chooseOption(options: MenuOption[], echo: 'none' | 'key' | 'line'): Promise<string>;
   /**
    * Read a line of text at the cursor with a blinking cursor, echoing each
-   * character. Backspace edits; Enter finishes. (`UInputText`)
+   * character. Backspace edits; Enter finishes. (`UInputText`) With a
+   * controller, numbers use a spinner and words an on-screen keyboard; the
+   * optional `words` list offers ready-made answers.
    */
-  inputText(maxChars: number, numbersOnly: boolean): Promise<string>;
+  inputText(maxChars: number, numbersOnly: boolean, words?: string[]): Promise<string>;
 
   /** Play a sound effect by file name without extension, e.g. "Step". (`PlaySoundFile`) */
   sound(name: string): void;
@@ -107,25 +151,21 @@ export interface GameIO {
   inputTextAt(x: number, y: number, maxChars: number, numbersOnly: boolean): Promise<string>;
 }
 
-/**
- * Wait for a key, upper-case it, echo it and start a new line. (`GetKey`)
- * Returns the key as a one-character string.
- */
-export async function getKey(io: GameIO): Promise<string> {
-  const key = (await io.waitKey()).toUpperCase();
-  io.print(key.length === 1 && key >= ' ' ? key : ' ');
-  io.print('\n');
-  return key;
+/** Options for a letter prompt: one option per letter, labels from `labels`. */
+export function letterOptions(letters: string, labels: (letter: string) => string): MenuOption[] {
+  return Array.from(letters, (key) => ({ key, label: labels(key) }));
 }
 
-/**
- * Read a member number after a "whom?" prompt. (`GetChar`) Returns 1..4 for
- * a valid choice; any other key gives a number outside that range, which
- * callers treat as "cancel", exactly as the original did.
- */
-export async function getChar(io: GameIO): Promise<number> {
-  const key = await getKey(io);
-  return key.charCodeAt(0) - '0'.charCodeAt(0);
+/** The yes/no question. Resolves true for Y. Echoes as the original did (the caller prints the newline). */
+export async function yesNo(io: GameIO): Promise<boolean> {
+  const answer = await io.chooseOption(
+    [
+      { key: 'Y', label: 'Yes' },
+      { key: 'N', label: 'No' },
+    ],
+    'none',
+  );
+  return answer === 'Y';
 }
 
 /** Read a number of up to two digits. (`UInputNum`) */

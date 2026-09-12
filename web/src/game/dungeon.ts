@@ -14,7 +14,7 @@
  */
 
 import { World, DungeonCell } from './world.ts';
-import { type GameIO, Key, Sound, Music, getChar, deathSound } from './io.ts';
+import { type GameIO, Key, Sound, Music, deathSound } from './io.ts';
 import { what2, noGo } from './commands.ts';
 import { combat } from './combat.ts';
 import { cast } from './spells.ts';
@@ -139,7 +139,7 @@ export function klimb(world: World, io: GameIO): void {
 /** Mirrors `dPeer()`: a gem shows the level map. */
 async function peer(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.PeerAtGem);
-  const n = await getChar(io);
+  const n = await io.chooseMember();
   if (n < 1 || n > 4) return;
   const p = world.member(n - 1);
   if (p.gems < 1) return io.printMessage(Msg.NoneLeft);
@@ -176,7 +176,7 @@ export async function runDungeon(world: World, io: GameIO): Promise<void> {
     io.print(' ');
     io.prompt();
 
-    const key = (await io.waitKeyOrTimeout(IDLE_PASS_MS)) ?? Key.Space;
+    const key = (await io.waitCommand('dungeon', IDLE_PASS_MS)) ?? Key.Space;
     if (world.done) return;
     await dispatch(world, io, key);
     if (world.resurrecting || d.exit) return;
@@ -279,7 +279,7 @@ async function encounter(world: World, io: GameIO, cell: number): Promise<void> 
       io.music(Music.Shrine);
       for (;;) {
         io.printMessage(Msg.Fountain);
-        const n = await getChar(io);
+        const n = await io.chooseMember();
         if (n < 1 || n > 4) break;
         if (!world.memberAlive(n - 1)) {
           io.printMessage(Msg.Cant);
@@ -334,7 +334,7 @@ async function encounter(world: World, io: GameIO, cell: number): Promise<void> 
       io.showImage('Rod');
       io.music(Music.Shrine);
       io.printMessage(Msg.RedHotRod);
-      const n = await getChar(io);
+      const n = await io.chooseMember();
       if (n >= 1 && n <= 4) {
         const p = world.member(n - 1);
         p.bytes[14] |= 1 << ((world.x & 3) + 4);

@@ -81,7 +81,13 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
     io.centreText(18, `O) ${mm(world, MM.OrganizeAParty)}`);
     io.centreText(22, mm(world, MM.Copyright));
 
-    const key = (await io.waitKey()).toUpperCase();
+    const key = await io.chooseOption(
+      [
+        { key: 'J', label: mm(world, MM.JourneyOnwardOption) },
+        { key: 'O', label: mm(world, MM.OrganizeAParty) },
+      ],
+      'none',
+    );
     if (key === 'J') {
       if (!world.party.formed) {
         io.centreText(20, mm(world, MM.NotFormed));
@@ -109,8 +115,17 @@ export async function organize(world: World, io: GameIO): Promise<void> {
     io.centreText(18, `T) ${mm(world, MM.TerminateACharacter)}`);
     io.centreText(19, `M) ${mm(world, MM.MainMenu)}`);
 
-    const key = (await io.waitKey()).toUpperCase();
-    switch (key) {
+    const key = await io.chooseOption(
+      [
+        { key: 'C', label: mm(world, MM.CreateACharacter) },
+        { key: 'F', label: mm(world, MM.FormThePartyOption) },
+        { key: 'D', label: mm(world, MM.DisperseThePartyOption) },
+        { key: 'T', label: mm(world, MM.TerminateACharacter) },
+        { key: 'M', label: mm(world, MM.MainMenu) },
+      ],
+      'none',
+    );
+    switch (key || 'M') {
       case 'C':
         await createCharacter(world, io);
         break;
@@ -183,22 +198,25 @@ export async function createCharacter(world: World, io: GameIO): Promise<void> {
     const name = (await io.inputTextAt(19, 13, 13, false)).trim();
     if (name.length === 0) return;
 
-    let sex = '';
-    while (!'MFO'.includes(sex) || sex === '') sex = (await io.waitKey()).toUpperCase();
+    const sex = await io.chooseOption(
+      [
+        { key: 'M', label: 'Male' },
+        { key: 'F', label: 'Female' },
+        { key: 'O', label: 'Other' },
+      ],
+      'none',
+    );
+    if (!sex) return;
     io.textAt(19, 14, { M: 'Male', F: 'Female', O: 'Other' }[sex]!);
 
-    let race = -1;
-    while (race < 0) {
-      const k = (await io.waitKey()).toUpperCase();
-      race = races.findIndex((r) => r[0] === k);
-    }
+    const raceKey = await io.chooseOption(races.map((r) => ({ key: r[0], label: r })), 'none');
+    if (!raceKey) return;
+    const race = races.findIndex((r) => r[0] === raceKey);
     io.textAt(19, 15, races[race]);
 
-    let career = -1;
-    while (career < 0) {
-      const k = (await io.waitKey()).toUpperCase();
-      career = careers.indexOf(k);
-    }
+    const classKey = await io.chooseOption(classes.map((c, i) => ({ key: careers[i], label: c })), 'none');
+    if (!classKey) return;
+    const career = careers.indexOf(classKey);
     io.textAt(19, 16, classes[career]);
 
     // Four attributes, 5..25 each, from a pool of 50 points.
@@ -219,10 +237,9 @@ export async function createCharacter(world: World, io: GameIO): Promise<void> {
     if (!valid) continue;
     io.textAt(27, 11, `${points} `);
 
-    let ok = '';
-    while (ok !== 'Y' && ok !== 'N') ok = (await io.waitKey()).toUpperCase();
-    io.textAt(19, 21, ok);
-    if (ok === 'N') continue;
+    const ok = await io.chooseOption([{ key: 'Y', label: 'Yes' }, { key: 'N', label: 'No, start over' }], 'none');
+    io.textAt(19, 21, ok || 'N');
+    if (ok !== 'Y') continue;
 
     p.bytes.fill(0);
     p.name = name;

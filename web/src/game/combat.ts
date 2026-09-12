@@ -425,7 +425,7 @@ async function waitForCombatKey(world: World, io: GameIO, member: number): Promi
       io.redrawMap();
       const remaining = deadline - performance.now();
       if (remaining <= 0) return Key.Space;
-      const key = await io.waitKeyOrTimeout(Math.min(BLINK_MS, remaining));
+      const key = await io.waitCommand('combat', Math.min(BLINK_MS, remaining));
       if (key !== null) return key;
     }
   } finally {
@@ -515,7 +515,7 @@ async function combatAttack(world: World, io: GameIO, member: number): Promise<v
   io.print(world.resources.strings.WeaponsArmour[weapon]);
   io.printMessage(Msg.AttackDir);
   const dir = await getDirection(world, io, true);
-  if (dir.dx === 0 && dir.dy === 0) return;
+  if (!dir || (dir.dx === 0 && dir.dy === 0)) return;
   io.sound(Sound.Swish[member]);
 
   const missed = () => {

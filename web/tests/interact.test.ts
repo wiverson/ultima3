@@ -67,15 +67,15 @@ describe('shops', () => {
     const p = world.member(1); // Roderic, a ranger
     p.gold = 500;
     world.party.surfaceX = 0; // a basic shop
-    // No list; buy a mace; an invalid letter leaves the shop (buying stays in buy mode, as in the original).
-    io.keys = ['N', 'B', 'C', 'Q'];
+    // No list; buy a mace; Escape leaves the shop (buying stays in buy mode, as in the original).
+    io.keys = ['N', 'B', 'C', Key.Escape];
     await shop(world, io, 3, 1);
     expect(io.output).toContain('WEAPONS SHOP');
     expect(io.output).toContain('Here you are');
     expect(p.bytes[48 + 2]).toBe(1);
     expect(p.gold).toBe(470);
     // Sell it back.
-    io.keys = ['N', 'S', 'C', 'Q'];
+    io.keys = ['N', 'S', 'C', Key.Escape];
     await shop(world, io, 3, 1);
     expect(io.output).toContain('Thank you');
     expect(p.bytes[48 + 2]).toBe(0);

@@ -28,11 +28,26 @@
         outline: none;
         display: block;
       }
-      #status {
+      #bar {
+        width: 100%;
+        max-width: 1280px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin: 6px 0;
         font-size: 13px;
+      }
+      #status {
         color: #f0c060;
         min-height: 1.2em;
-        margin: 6px 0;
+      }
+      #bar select {
+        background: #111;
+        color: #ddd;
+        border: 1px solid #444;
+        padding: 2px 4px;
+        font-size: 13px;
       }
       #help {
         width: 100%;
@@ -85,11 +100,30 @@
   </head>
   <body>
     <canvas id="screen" width="1280" height="768" tabindex="0"></canvas>
-    <div id="status">Loading...</div>
+    <div id="bar">
+      <span id="status">Loading...</span>
+      <label>Input:
+        <select id="mode">
+          <option value="keyboard">Keyboard (Apple II commands)</option>
+          <option value="controller">Controller (d-pad and menus)</option>
+        </select>
+      </label>
+    </div>
 
     <details id="help" open>
       <summary>Controls</summary>
       <div class="groups">
+        <section>
+          <h3>Controller mode</h3>
+          <dl>
+            <dt>D-pad</dt><dd>Move, or move the cursor in a menu (keyboard: WASD or arrows)</dd>
+            <dt>A</dt><dd>Open the command menu, choose (keyboard: Enter or Z)</dd>
+            <dt>B</dt><dd>Cancel, or pass a turn (keyboard: Escape or X)</dd>
+            <dt>X</dt><dd>Ztats (keyboard: C)</dd>
+            <dt>Y</dt><dd>Look, or Attack in combat (keyboard: V)</dd>
+          </dl>
+          <p>Pressing a gamepad button switches to controller mode. Walking into a townsperson talks to them in either mode.</p>
+        </section>
         <section>
           <h3>Title screen</h3>
           <dl>

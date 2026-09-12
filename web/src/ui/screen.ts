@@ -29,7 +29,21 @@ import { World } from '../game/world.ts';
 import { Location } from '../game/party.ts';
 import { buildViewport, VIEW_SIZE, type Viewport } from '../game/viewport.ts';
 import { buildDungeonView, secretMessage } from '../game/dungeon.ts';
-import { Key, type GameIO } from '../game/io.ts';
+import { Key, type GameIO, type MenuOption, type CommandScope } from '../game/io.ts';
+import {
+  controllerKeyFor,
+  COMMAND_MENUS,
+  BUTTON_SHORTCUTS,
+  DIRECTION_KEYS,
+  ON_SCREEN_KEYBOARD,
+  OSK_DELETE,
+  OSK_DONE,
+  layoutMenu,
+  drawMenu,
+  moveCursor,
+  GamepadReader,
+  type MenuWindow,
+} from './menus.ts';
 import { DungeonCell } from '../game/world.ts';
 
 export const COLUMNS = 40;
@@ -84,6 +98,17 @@ export class Screen implements GameIO {
   private statsCache: string[] = ['', '', '', ''];
   private highlighted = new Set<number>();
 
+  /**
+   * 'keyboard': the Apple II letter commands. 'controller': d-pad movement
+   * and pop-up menus, driven by a gamepad or by WASD/Enter/Escape/ZXCV.
+   */
+  inputMode: 'keyboard' | 'controller' = 'keyboard';
+  /** Called when a gamepad press switches the mode to 'controller'. */
+  onModeChange: (() => void) | null = null;
+  private readonly gamepads: GamepadReader;
+  /** The menu window being shown, drawn over the map every frame. */
+  private menu: MenuWindow | null = null;
+
   constructor(
     canvas: HTMLCanvasElement,
     private readonly gfx: GraphicsSet,
@@ -100,6 +125,12 @@ export class Screen implements GameIO {
     const shapes = images.get('DungeonShapes');
     const masks = images.get('DungeonMasks');
     this.dungeonRenderer = shapes && masks ? new DungeonRenderer(shapes, masks) : null;
+    this.gamepads = new GamepadReader(keyboard, () => {
+      if (this.inputMode !== 'controller') {
+        this.inputMode = 'controller';
+        this.onModeChange?.();
+      }
+    });
     requestAnimationFrame((t) => this.frame(t));
   }
 
@@ -252,16 +283,165 @@ export class Screen implements GameIO {
   // Keyboard, text input and sound
   // -------------------------------------------------------------------------
 
-  waitKey(): Promise<string> {
-    return this.keyboard.nextKey();
+  /**
+   * Read a key, translating the controller stand-ins when in controller
+   * mode (WASD to the d-pad, Enter/Z to A, Escape/X to B, C to X, V to Y).
+   */
+  private async readKey(timeoutMs?: number): Promise<string | null> {
+    const key = timeoutMs === undefined ? await this.keyboard.nextKey() : await this.keyboard.nextKeyOrTimeout(timeoutMs);
+    if (key === null) return null;
+    return this.inputMode === 'controller' ? controllerKeyFor(key) : key;
+  }
+
+  async waitKey(): Promise<string> {
+    return (await this.readKey()) as string;
   }
 
   waitKeyOrTimeout(ms: number): Promise<string | null> {
-    return this.keyboard.nextKeyOrTimeout(ms);
+    return this.readKey(ms);
   }
 
   flushKeys(): void {
     this.keyboard.flush();
+  }
+
+  // --- Semantic prompts: keyboard reads a key, controller shows a menu ----
+
+  /**
+   * Show a menu and run it until the player picks an item (its index) or
+   * cancels (-1). Letter keys still pick the matching option, so a keyboard
+   * works in controller mode too.
+   */
+  private async runMenu(title: string, options: MenuOption[], columns = 1): Promise<number> {
+    const visible = options.filter((o) => !o.hidden);
+    const menu = layoutMenu(title, visible.map((o) => o.label), columns);
+    this.openMenu(menu);
+    try {
+      for (;;) {
+        const key = await this.readKey();
+        if (key === null) continue;
+        if (moveCursor(menu, key)) {
+          this.showMenuNow();
+          continue;
+        }
+        if (key === Key.A) return visible.length ? options.indexOf(visible[menu.cursor]) : -1;
+        if (key === Key.B) return -1;
+        const byKey = options.findIndex((o) => o.key === key.toUpperCase());
+        if (byKey >= 0) return byKey;
+      }
+    } finally {
+      this.closeMenu();
+    }
+  }
+
+  /** Pixels under the open menu, restored when it closes over a static screen. */
+  private underMenu: { image: ImageData; x: number; y: number } | null = null;
+
+  /** Open a menu window: remember what is under it, then draw it. */
+  private openMenu(menu: MenuWindow): void {
+    const { cell } = this;
+    const h = menu.visibleRows + 2;
+    this.underMenu = { image: this.ctx.getImageData(menu.x * cell, menu.y * cell, menu.width * cell, h * cell), x: menu.x * cell, y: menu.y * cell };
+    this.menu = menu;
+    this.showMenuNow();
+  }
+
+  /** Close the menu window and restore what it covered. */
+  private closeMenu(): void {
+    this.menu = null;
+    if (this.underMenu) this.ctx.putImageData(this.underMenu.image, this.underMenu.x, this.underMenu.y);
+    this.underMenu = null;
+    if (!this.viewCovered) this.viewDirty = true;
+  }
+
+  /** Redraw the open menu (after the cursor moved or its text changed). */
+  private showMenuNow(): void {
+    if (!this.menu) return;
+    if (this.viewCovered) drawMenu(this.ctx, this.gfx, this.cell, this.menu);
+    else this.viewDirty = true;
+  }
+
+  async waitCommand(scope: CommandScope, timeoutMs: number): Promise<string | null> {
+    const key = await this.readKey(timeoutMs);
+    if (key === null || this.inputMode === 'keyboard') return key;
+    if (DIRECTION_KEYS.includes(key)) return key;
+    const shortcuts = BUTTON_SHORTCUTS[scope];
+    if (key === Key.B) return shortcuts.B;
+    if (key === Key.X) return shortcuts.X;
+    if (key === Key.Y) return shortcuts.Y;
+    if (key === Key.A) {
+      const options = COMMAND_MENUS[scope];
+      const picked = await this.runMenu('Command', options);
+      return picked < 0 ? null : options[picked].key;
+    }
+    return key;
+  }
+
+  async chooseMember(): Promise<number> {
+    let n: number;
+    for (;;) {
+      if (this.inputMode === 'controller') {
+        const options: MenuOption[] = [];
+        for (let m = 0; m < 4; m++) {
+          const slot = this.world.party.memberSlot(m);
+          if (slot < 0) continue;
+          const p = this.world.roster.get(slot);
+          options.push({ key: String(m + 1), label: `${m + 1} ${p.name} (${p.status})` });
+        }
+        const picked = await this.runMenu('Who?', options);
+        n = picked < 0 ? 0 : Number(options[picked].key);
+        this.print(picked < 0 ? ' ' : String(n));
+        break;
+      }
+      const key = (await this.waitKey()).toUpperCase();
+      // A controller button means the mode just switched: show the menu instead.
+      if (key === Key.A || key === Key.B) continue;
+      this.print(key.length === 1 && key >= ' ' ? key : ' ');
+      n = key.charCodeAt(0) - '0'.charCodeAt(0);
+      break;
+    }
+    this.print('\n');
+    return n;
+  }
+
+  async chooseDirection(allowNone: boolean, allowDiagonal: boolean): Promise<string | null> {
+    const accepted = allowDiagonal ? [...DIRECTION_KEYS, '1', '2', '3', '4', '6', '7', '8', '9'] : [...DIRECTION_KEYS, '2', '4', '6', '8'];
+    if (this.inputMode === 'controller') {
+      const hint = layoutMenu('Direction?', [allowNone ? 'd-pad, or A: none' : 'd-pad, B: cancel']);
+      hint.cursor = -1;
+      this.openMenu(hint);
+    }
+    try {
+      for (;;) {
+        const key = await this.waitKey();
+        if (accepted.includes(key)) return key;
+        if (allowNone && (key === Key.Space || key === Key.A)) return Key.Space;
+        if (key === Key.B || key === Key.Escape) return null;
+      }
+    } finally {
+      if (this.menu) this.closeMenu();
+    }
+  }
+
+  async chooseOption(options: MenuOption[], echo: 'none' | 'key' | 'line'): Promise<string> {
+    let key = '';
+    for (;;) {
+      if (this.inputMode === 'controller') {
+        const picked = await this.runMenu('Choose', options);
+        key = picked < 0 ? '' : options[picked].key;
+        break;
+      }
+      const k = (await this.waitKey()).toUpperCase();
+      if (k === Key.Escape) break;
+      if (options.some((o) => o.key === k)) {
+        key = k;
+        break;
+      }
+      // Other keys are ignored; a controller button loops round to show the menu.
+    }
+    if (echo !== 'none') this.print(key || ' ');
+    if (echo === 'line') this.print('\n');
+    return key;
   }
 
   /**
@@ -293,12 +473,12 @@ export class Screen implements GameIO {
     }
   }
 
-  async inputText(maxChars: number, numbersOnly: boolean): Promise<string> {
+  async inputText(maxChars: number, numbersOnly: boolean, words?: string[]): Promise<string> {
     const x = this.cursorX;
     const y = this.cursorY;
-    const result = await this.readLine(x, y, maxChars, numbersOnly, (s) => {
-      this.drawText((s + '   ').slice(0, maxChars + 1), x, y);
-    });
+    let result: string;
+    if (this.inputMode === 'controller') result = await this.controllerInput(maxChars, numbersOnly, words);
+    else result = await this.readLine(x, y, maxChars, numbersOnly, (s) => this.drawText((s + '   ').slice(0, maxChars + 1), x, y));
     // Leave the typed text in the message buffer and move the cursor past it.
     this.cursorX = x;
     this.print(result);
@@ -306,7 +486,95 @@ export class Screen implements GameIO {
   }
 
   async inputTextAt(x: number, y: number, maxChars: number, numbersOnly: boolean): Promise<string> {
+    if (this.inputMode === 'controller') {
+      const result = await this.controllerInput(maxChars, numbersOnly);
+      this.drawText((result + ' ').padEnd(maxChars + 1), x, y);
+      return result;
+    }
     return this.readLine(x, y, maxChars, numbersOnly, (s) => this.drawText((s + ' ').padEnd(maxChars + 1), x, y));
+  }
+
+  /**
+   * Controller text entry: a spinner for numbers (d-pad up/down by one,
+   * left/right by ten), a word list when one is offered, otherwise an
+   * on-screen keyboard.
+   */
+  private async controllerInput(maxChars: number, numbersOnly: boolean, words?: string[]): Promise<string> {
+    if (numbersOnly) {
+      const max = Math.pow(10, maxChars) - 1;
+      let value = 0;
+      const menu = layoutMenu('Amount', [`${String(0).padStart(maxChars, ' ')}  up/down`]);
+      menu.cursor = -1;
+      this.openMenu(menu);
+      const show = () => {
+        menu.items[0] = `${String(value).padStart(maxChars, ' ')}  up/down`;
+        this.showMenuNow();
+      };
+      try {
+        for (;;) {
+          const key = await this.readKey();
+          if (key === Key.Up) value = Math.min(max, value + 1);
+          else if (key === Key.Down) value = Math.max(0, value - 1);
+          else if (key === Key.Right) value = Math.min(max, value + 10);
+          else if (key === Key.Left) value = Math.max(0, value - 10);
+          else if (key === Key.A) return String(value);
+          else if (key === Key.B) return '';
+          else if (key !== null && key >= '0' && key <= '9') value = Math.min(max, value * 10 + Number(key));
+          show();
+        }
+      } finally {
+        this.closeMenu();
+      }
+    }
+    if (words && words.length) {
+      const picked = await this.runMenu('Word', words.map((w) => ({ key: w[0], label: w })));
+      return picked < 0 ? '' : words[picked];
+    }
+    // On-screen keyboard.
+    const keys = [...ON_SCREEN_KEYBOARD.join(''), OSK_DELETE, OSK_DONE];
+    const columns = ON_SCREEN_KEYBOARD[0].length;
+    const options = keys.map((k) => ({ key: k, label: k }));
+    let text = '';
+    for (;;) {
+      const menu = layoutMenu(text || 'Type', options.map((o) => o.label), columns);
+      this.openMenu(menu);
+      let picked = -1;
+      try {
+        for (;;) {
+          const key = await this.readKey();
+          if (key === null) continue;
+          if (moveCursor(menu, key)) {
+            this.showMenuNow();
+            continue;
+          }
+          if (key === Key.A) {
+            picked = menu.cursor;
+            break;
+          }
+          if (key === Key.B) {
+            picked = keys.indexOf(OSK_DELETE);
+            break;
+          }
+          if (key === Key.X || key === Key.Y) {
+            picked = keys.indexOf(OSK_DONE);
+            break;
+          }
+          if (key.length === 1 && key >= ' ') {
+            text = (text + key).slice(0, maxChars);
+            break;
+          }
+        }
+      } finally {
+        this.closeMenu();
+      }
+      if (picked < 0) continue;
+      const k = keys[picked];
+      if (k === OSK_DONE) return text;
+      if (k === OSK_DELETE) {
+        if (!text) return '';
+        text = text.slice(0, -1);
+      } else if (text.length < maxChars) text += k;
+    }
   }
 
   sound(name: string): void {
@@ -380,6 +648,7 @@ export class Screen implements GameIO {
   }
 
   private frame(time: number): void {
+    this.gamepads.poll();
     if (time - this.lastFrame >= ANIMATION_INTERVAL_MS) {
       this.lastFrame = time;
       this.gfx.tick();
@@ -388,6 +657,7 @@ export class Screen implements GameIO {
     if (this.viewDirty && !this.viewCovered) {
       this.paintViewport();
       this.viewDirty = false;
+      if (this.menu) drawMenu(this.ctx, this.gfx, this.cell, this.menu);
     }
     requestAnimationFrame((t) => this.frame(t));
   }
