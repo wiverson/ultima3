@@ -10,6 +10,8 @@
  *   Resources/English.lproj/Strings/*.plist     data/resources.json (strings)
  *   Resources/Graphics/*                        graphics/*
  *   Resources/Sounds/*                          sounds/*
+ *   Resources/Music/*                           music/*   (QuickTime music, see ui/music.ts)
+ *   Images/<a few>                              images/*
  *
  * MainResources.rsrc is a classic Mac OS "resource fork" stored as a plain
  * data file. The format is documented in Inside Macintosh: More Macintosh
@@ -167,6 +169,7 @@ function main(): void {
   for (const [src, dst] of [
     ['Graphics', 'graphics'],
     ['Sounds', 'sounds'],
+    ['Music', 'music'],
   ] as const) {
     mkdirSync(join(OUT, dst), { recursive: true });
     for (const file of readdirSync(join(RESOURCES, src))) {

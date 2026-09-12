@@ -477,7 +477,7 @@ async function memberTurn(world: World, io: GameIO, member: number): Promise<voi
         await stats(world, io, member);
         return;
       default:
-        if (key.length === 1 && key >= 'A' && key <= 'Z') {
+        if (/^[A-Za-z]$/.test(key)) {
           io.printMessage(Msg.NotUsable);
           io.sound(Sound.Error2);
         } else {

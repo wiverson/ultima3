@@ -23,6 +23,7 @@
 import { GraphicsSet, type ImageMap } from './graphics.ts';
 import { Keyboard } from './input.ts';
 import { SoundPlayer } from './sound.ts';
+import { MusicPlayer } from './music.ts';
 import { DungeonRenderer } from './dungeonView.ts';
 import { World } from '../game/world.ts';
 import { Location } from '../game/party.ts';
@@ -89,6 +90,7 @@ export class Screen implements GameIO {
     private readonly images: ImageMap,
     private readonly keyboard: Keyboard,
     private readonly sounds: SoundPlayer,
+    private readonly musicPlayer: MusicPlayer,
     private readonly world: World,
   ) {
     this.ctx = canvas.getContext('2d')!;
@@ -287,7 +289,7 @@ export class Screen implements GameIO {
       }
       if (key.length !== 1 || key < ' ') continue;
       if (numbersOnly && (key < '0' || key > '9')) continue;
-      if (text.length < maxChars) text += key.toUpperCase() === key ? key : key.toUpperCase();
+      if (text.length < maxChars) text += key;
     }
   }
 
@@ -311,8 +313,8 @@ export class Screen implements GameIO {
     if (this.world.soundEnabled) this.sounds.play(name);
   }
 
-  music(_track: number): void {
-    // Music is not available: the original tracks are QuickTime music files.
+  music(track: number): void {
+    this.musicPlayer.play(track);
   }
 
   pause(ms: number): Promise<void> {

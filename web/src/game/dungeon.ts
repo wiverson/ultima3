@@ -255,7 +255,7 @@ async function dispatch(world: World, io: GameIO, key: string): Promise<void> {
     case 'Z':
       return stats(world, io);
     default:
-      if (key.length === 1 && key >= 'A' && key <= 'Z') return notDungeonCommand(io);
+      if (/^[A-Za-z]$/.test(key)) return notDungeonCommand(io);
       return what2(io);
   }
 }

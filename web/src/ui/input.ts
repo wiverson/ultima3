@@ -6,7 +6,7 @@
  * limit) so fast typing is not lost, matching the original's event queue.
  *
  * Keys are normalised to the single-character codes in `Key` (game/io.ts):
- * letters are upper-cased, arrows map to the Mac arrow codes 28..31.
+ * arrows map to the Mac arrow codes 28..31; letters keep their case.
  */
 
 import { Key } from '../game/io.ts';
@@ -88,10 +88,8 @@ export function translate(e: KeyboardEvent): string | null {
     default:
       break;
   }
-  if (e.key.length === 1) {
-    const ch = e.key;
-    if (ch >= 'a' && ch <= 'z') return ch.toUpperCase();
-    return ch;
-  }
+  // Letters keep their case; game code upper-cases commands itself, so
+  // names typed at the character creation screen keep mixed case.
+  if (e.key.length === 1) return e.key;
   return null;
 }

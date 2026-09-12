@@ -13,6 +13,7 @@ import { mainMenu } from './game/menu.ts';
 import { GraphicsSet, loadImages } from './ui/graphics.ts';
 import { Keyboard } from './ui/input.ts';
 import { SoundPlayer } from './ui/sound.ts';
+import { MusicPlayer } from './ui/music.ts';
 import { Screen } from './ui/screen.ts';
 
 async function start(): Promise<void> {
@@ -29,16 +30,25 @@ async function start(): Promise<void> {
   if (params.has('new') || !localSave.read(world)) world.newGame();
 
   const sounds = new SoundPlayer();
+  const music = new MusicPlayer();
+  music.enabled = params.get('music') !== '0';
   const keyboard = new Keyboard();
   // Audio may only start after a user gesture; the first key press is one.
-  window.addEventListener('keydown', () => sounds.unlock(), { once: true });
+  window.addEventListener(
+    'keydown',
+    () => {
+      sounds.unlock();
+      music.unlock();
+    },
+    { once: true },
+  );
 
-  const screen = new Screen(canvas, gfx, images, keyboard, sounds, world);
+  const screen = new Screen(canvas, gfx, images, keyboard, sounds, music, world);
   canvas.focus();
 
   status.textContent =
     'Menu: J journey onward, O organize. In play: arrows move, letters are commands (A attack, C cast, ' +
-    'E enter, T transact, Z stats, Q quit & save). URL options: ?new (fresh game), ?tiles=<set> (e.g. "PC EGA").';
+    'E enter, T transact, Z stats, Q quit & save). URL options: ?new (fresh game), ?tiles=<set> (e.g. "PC EGA"), ?music=0.';
 
   const game = new Game(world, screen, { save: (w) => localSave.write(w) });
   // Debug hook: lets the console (and the browser tests) inspect and poke the game.
