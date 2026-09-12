@@ -22,6 +22,8 @@ describe('cheats', () => {
     expect(world.party.gold).toBe(gold + 100);
     cheat('T').apply(world, io);
     expect(world.member(0).torches).toBe(5);
+    cheat('M').apply(world, io);
+    expect(world.member(0).gems).toBe(10);
   });
 
   it('goes home from a town, and asks a dungeon to end', () => {

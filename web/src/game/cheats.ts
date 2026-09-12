@@ -89,6 +89,17 @@ export const CHEATS: Cheat[] = [
     },
   },
   {
+    key: 'M',
+    label: 'Get 10 gems',
+    available: () => true,
+    apply(world) {
+      const m = [0, 1, 2, 3].find((i) => world.party.memberSlot(i) >= 0 && world.memberAlive(i)) ?? 0;
+      const p = world.member(m);
+      p.bytes[37] = Math.min(99, p.bytes[37] + 10);
+      return `${p.name} has ${p.bytes[37]} gems.`;
+    },
+  },
+  {
     key: 'T',
     label: 'Get 5 torches',
     available: () => true,
