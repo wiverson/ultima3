@@ -108,7 +108,7 @@ beside a monster). Numbers use a spinner and names an on-screen keyboard.
 On the Help screen, Y (V on the keyboard in controller mode) opens a
 cheat menu: full restore (everyone healed and alive), go home (back to
 Lord British's gate, leaving any town, castle or dungeon), exit dungeon,
-100 gold, and ten gems or five torches for the leader. None of it existed in the
+100 gold, and ten gems, five keys or five torches for the leader. None of it existed in the
 original; it is there for testing and for anyone who wants it.
 
 ## Differences from the original

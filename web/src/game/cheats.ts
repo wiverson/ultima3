@@ -100,6 +100,17 @@ export const CHEATS: Cheat[] = [
     },
   },
   {
+    key: 'K',
+    label: 'Get 5 keys',
+    available: () => true,
+    apply(world) {
+      const m = [0, 1, 2, 3].find((i) => world.party.memberSlot(i) >= 0 && world.memberAlive(i)) ?? 0;
+      const p = world.member(m);
+      p.bytes[38] = Math.min(99, p.bytes[38] + 5);
+      return `${p.name} has ${p.bytes[38]} keys.`;
+    },
+  },
+  {
     key: 'T',
     label: 'Get 5 torches',
     available: () => true,
