@@ -136,10 +136,11 @@ save contains except the pooled gold and food.
   ration a turn from the pool and go hungry together when it is empty; the
   Apple II's food-borrow quirk went with the per-member counters. Forming
   a party pools the members' purses; dispersing shares the pool out again.
-- **Character boxes** are two rows: the name with the status letter (P, D,
-  A; nothing when Good) or a green "L!" when Lord British would raise the
-  member, then hit points over max and mana (none for fighters, thieves
-  and barbarians). The message area gained four rows.
+- **Character boxes** are two rows: the name, coloured by state (green
+  poisoned, light grey dead, dark grey ashes, blue when Lord British would
+  raise the member, white otherwise), then hit points over max, yellow
+  under a quarter and red under a tenth, and mana (none for fighters,
+  thieves and barbarians). The message area gained four rows.
 - **The party on foot**, with the Standard tiles, is drawn as its members.
   On the overworld they are at half size in a 2x2 grid in marching order,
   to sell the scale of the map. In towns and castles the leader stands at

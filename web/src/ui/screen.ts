@@ -1201,20 +1201,16 @@ export class Screen implements GameIO {
   // -------------------------------------------------------------------------
 
   /**
-   * Draw the four character boxes in the classic text layout of
-   * `RenderCharStats()`:
+   * The four character boxes, two rows each (the Apple II's had three:
+   * name and status letter; sex, race, class, mana and level; hit points
+   * and food):
    *
-   *      NAME          G      <- name centred, status letter at the right
-   *   FET   M:00  L:01        <- sex/race/class, mana, level
-   *   H:0100  F:0150          <- hit points, food
-   */
-  /**
-   * The four character boxes, two rows each:
+   *   Tatiana               name, coloured by state: green poisoned, light
+   *   100/150     M:25      grey dead, dark grey ashes, blue when Lord
+   *                         British would raise the member, else white
    *
-   *   Tatiana       L!      name; status letter if not Good, or a green "L!"
-   *   0100/0150   M:25      when Lord British would raise the member's level
-   *
-   * Gold and food are pooled and shown on the top border (`showMoons`).
+   * Hit points turn yellow under a quarter of the maximum and red under a
+   * tenth. Gold and food are pooled and shown on the top border (`showMoons`).
    */
   updateStats(force = false): void {
     for (let m = 0; m < 4; m++) {
@@ -1228,12 +1224,17 @@ export class Screen implements GameIO {
       const top = m * BOX_PITCH + 1;
       this.black(24, top, 15, BOX_ROWS);
       if (p) {
-        this.drawText(p.name, 24, top);
-        // Good health shows nothing, so only trouble (P, D, A) or a raise due (L!) catches the eye.
-        if (due && p.status === 'G') this.drawText('L!', 37, top, '#40ff40');
-        else if (p.status !== 'G') this.drawText(p.status, 38, top);
-        this.drawText(`${pad(p.hitPoints, 4)}/${pad(p.maxHitPoints, 4)}`, 24, top + 1);
-        if (hasMagic(this.world, p)) this.drawText(`M:${pad(p.mana, 2)}`, 35, top + 1);
+        const nameColour =
+          p.status === 'P' ? '#40ff40' : p.status === 'D' ? '#b0b0b0' : p.status === 'A' ? '#606060' : due ? '#60a0ff' : undefined;
+        this.drawText(p.name, 24, top, nameColour);
+        const hp = p.hitPoints;
+        const max = Math.max(1, p.maxHitPoints);
+        const hpColour = hp < max / 10 ? '#ff4040' : hp < max / 4 ? '#ffe040' : undefined;
+        this.drawText(`${hp}/${p.maxHitPoints}`, 24, top + 1, hpColour);
+        if (hasMagic(this.world, p)) {
+          const mana = `M:${p.mana}`;
+          this.drawText(mana, 39 - mana.length, top + 1);
+        }
       }
       if (this.highlighted.has(m)) this.invert(24, top, 15, BOX_ROWS);
     }
@@ -1315,6 +1316,3 @@ function levelUpDue(p: PlayerRecord): boolean {
   return true;
 }
 
-function pad(n: number, width: number): string {
-  return String(n).padStart(width, '0');
-}
