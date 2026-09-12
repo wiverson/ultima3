@@ -418,8 +418,10 @@ export class Screen implements GameIO {
   }
 
   /**
-   * A title screen: the window replaces the text at these rows and may be
-   * as wide as the screen rather than the map.
+   * A placed window sits at the given row, centred on the whole screen and
+   * as wide as its labels need. On a title screen it replaces the text at
+   * those rows; over the game frame it simply covers what is there, which
+   * comes back when it closes.
    */
   private placeMenu(menu: MenuWindow, place: MenuPlacement): void {
     const longest = Math.max(menu.title.length, ...menu.items.map((s) => s.length));
@@ -433,7 +435,7 @@ export class Screen implements GameIO {
       menu.cursor = place.cursor;
       if (menu.cursor >= menu.visibleRows) menu.top = menu.cursor - menu.visibleRows + 1;
     }
-    this.black(1, place.row, COLUMNS - 2, menu.visibleRows + 2 + (menu.hints ? 1 : 0));
+    if (!this.frameShown) this.black(1, place.row, COLUMNS - 2, menu.visibleRows + 2 + (menu.hints ? 1 : 0));
   }
 
   /**

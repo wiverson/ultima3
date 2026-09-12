@@ -33,10 +33,13 @@ export async function checkAllDead(world: World, io: GameIO): Promise<void> {
   await io.waitKey();
 
   if (world.loadLastSave) {
-    const choice = await io.chooseFromList([
-      { key: 'T', label: 'Try again from last save' },
-      { key: 'F', label: 'Flee to Lord British (lose all gear)' },
-    ]);
+    const choice = await io.chooseFromList(
+      [
+        { key: 'T', label: 'Try again from last save' },
+        { key: 'F', label: 'Flee to Lord British (lose all gear)' },
+      ],
+      { row: 9, title: 'All players out!' },
+    );
     if (choice !== 'F' && world.loadLastSave()) {
       // Back on the surface where the save was made, everything since undone.
       world.combat = null;
