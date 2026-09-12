@@ -143,7 +143,7 @@ export function layoutMenu(title: string, items: string[], columns = 1): MenuWin
   const longest = Math.max(title.length, ...items.map((s) => s.length));
   const rows = Math.ceil(items.length / columns);
   const visibleRows = Math.min(rows, MAX_ROWS);
-  const width = Math.min(21, Math.max(8, columns > 1 ? columns * (longest + 1) + 3 : longest + 4));
+  const width = Math.min(22, Math.max(8, columns > 1 ? columns * (longest + 1) + 3 : longest + 4));
   const height = visibleRows + 2;
   return {
     title,

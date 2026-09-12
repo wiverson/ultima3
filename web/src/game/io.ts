@@ -113,6 +113,8 @@ export interface GameIO {
    * or the key and a newline ('line'), matching what the original printed.
    */
   chooseOption(options: MenuOption[], echo: 'none' | 'key' | 'line', place?: MenuPlacement): Promise<string>;
+  /** The Settings menu (input mode, tiles, classic moves, auto combat, sound, music, help). Returns when closed. */
+  showSettings(): Promise<void>;
   /**
    * Pick from a list shown as a menu in every input mode (the title and
    * party screens, where there is no Apple II key to press). Resolves with

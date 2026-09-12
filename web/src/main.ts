@@ -3,6 +3,10 @@
  *
  * Browser entry point: load the data and graphics, build the world, wire up
  * the screen and keyboard, then run the title menu, which starts the game.
+ *
+ * Settings live in the game's own Settings menu (Escape, or the last entry
+ * of the controller command menu); this file only remembers them between
+ * visits, in localStorage.
  */
 
 import { loadResources } from './data/resources.ts';
@@ -15,52 +19,63 @@ import { Keyboard } from './ui/input.ts';
 import { SoundPlayer } from './ui/sound.ts';
 import { MusicPlayer } from './ui/music.ts';
 import { Screen } from './ui/screen.ts';
+import { TILE_SETS } from './ui/help.ts';
+
+const PREFS_KEY = 'ultima3.settings';
+
+/** What the Settings menu can change, as remembered between visits. */
+interface Prefs {
+  inputMode: 'keyboard' | 'controller';
+  tiles: string;
+  classicMoves: boolean;
+  autoCombat: boolean;
+  sound: boolean;
+  music: boolean;
+}
+
+const DEFAULT_PREFS: Prefs = { inputMode: 'keyboard', tiles: 'Standard', classicMoves: true, autoCombat: false, sound: true, music: true };
+
+function loadPrefs(): Prefs {
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    const saved = raw ? (JSON.parse(raw) as Partial<Prefs>) : {};
+    const prefs = { ...DEFAULT_PREFS, ...saved };
+    if (!TILE_SETS.includes(prefs.tiles)) prefs.tiles = DEFAULT_PREFS.tiles;
+    if (prefs.inputMode !== 'controller') prefs.inputMode = 'keyboard';
+    return prefs;
+  } catch {
+    return { ...DEFAULT_PREFS };
+  }
+}
+
+function savePrefs(prefs: Prefs): void {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    /* storage unavailable */
+  }
+}
 
 async function start(): Promise<void> {
   const status = document.getElementById('status')!;
   const canvas = document.getElementById('screen') as HTMLCanvasElement;
-
   const params = new URLSearchParams(location.search);
+  const prefs = loadPrefs();
 
-  // The tile set (graphics, font and border) is chosen with a selector and remembered.
-  const tilesSelect = document.getElementById('tiles') as HTMLSelectElement;
-  let tileSet = 'Standard';
-  try {
-    const saved = localStorage.getItem('ultima3.tiles');
-    if (saved && [...tilesSelect.options].some((o) => o.value === saved)) tileSet = saved;
-  } catch {
-    /* storage unavailable */
-  }
-  tilesSelect.value = tileSet;
-
-  const [resources, gfx, images] = await Promise.all([loadResources(), GraphicsSet.load(tileSet), loadImages()]);
-
-  const setting = (key: string, fallback: boolean): boolean => {
-    try {
-      const v = localStorage.getItem(key);
-      return v === null ? fallback : v === '1';
-    } catch {
-      return fallback;
-    }
-  };
-  const remember = (key: string, on: boolean) => {
-    try {
-      localStorage.setItem(key, on ? '1' : '0');
-    } catch {
-      /* storage unavailable */
-    }
-  };
+  const [resources, gfx, images] = await Promise.all([loadResources(), GraphicsSet.load(prefs.tiles), loadImages()]);
 
   // Classic moves (no party diagonals) must be known before the map loads.
   const world = new World(resources);
-  world.setClassicMoves(setting('ultima3.classicMoves', true));
+  world.setClassicMoves(prefs.classicMoves);
+  world.autoCombat = prefs.autoCombat;
+  world.soundEnabled = prefs.sound;
 
   // Resume the saved game unless the URL asks for a new one (?new).
   if (params.has('new') || !localSave.read(world)) world.newGame();
 
   const sounds = new SoundPlayer();
   const music = new MusicPlayer();
-  music.enabled = params.get('music') !== '0';
+  music.enabled = prefs.music;
   const keyboard = new Keyboard();
   // Audio may only start after a user gesture; the first key press is one.
   window.addEventListener(
@@ -73,69 +88,24 @@ async function start(): Promise<void> {
   );
 
   const screen = new Screen(canvas, gfx, images, keyboard, sounds, music, world);
+  screen.inputMode = prefs.inputMode;
+  screen.tileSetName = prefs.tiles;
   canvas.focus();
 
-  // Input mode: keyboard (the Apple II letter commands) or controller (menus).
-  const modeSelect = document.getElementById('mode') as HTMLSelectElement;
-  const savedMode = (() => {
-    try {
-      return localStorage.getItem('ultima3.inputMode');
-    } catch {
-      return null;
-    }
-  })();
-  screen.inputMode = savedMode === 'controller' ? 'controller' : 'keyboard';
-  modeSelect.value = screen.inputMode;
-  const rememberMode = () => {
-    modeSelect.value = screen.inputMode;
-    try {
-      localStorage.setItem('ultima3.inputMode', screen.inputMode);
-    } catch {
-      /* storage unavailable */
-    }
+  // Whatever changes a setting (the menu, a gamepad press, Escape in a fight), remember it.
+  const remember = () => {
+    savePrefs({
+      inputMode: screen.inputMode,
+      tiles: screen.tileSetName,
+      classicMoves: world.classicMoves,
+      autoCombat: world.autoCombat,
+      sound: world.soundEnabled,
+      music: music.enabled,
+    });
   };
-  modeSelect.addEventListener('change', () => {
-    screen.inputMode = modeSelect.value === 'controller' ? 'controller' : 'keyboard';
-    rememberMode();
-    canvas.focus();
-  });
-  screen.onModeChange = rememberMode;
-
-  tilesSelect.addEventListener('change', async () => {
-    const name = tilesSelect.value;
-    try {
-      screen.setGraphics(await GraphicsSet.load(name));
-      localStorage.setItem('ultima3.tiles', name);
-    } catch (err) {
-      status.textContent = `Could not load the ${name} tiles: ${err instanceof Error ? err.message : String(err)}`;
-    }
-    canvas.focus();
-  });
-
-  // Auto-combat: the party fights by itself (a LairWare addition). Escape in
-  // a fight turns it off, so the checkbox follows the game as well.
-  const autoCheck = document.getElementById('auto') as HTMLInputElement;
-  world.autoCombat = setting('ultima3.autoCombat', false);
-  autoCheck.checked = world.autoCombat;
-  const rememberAuto = () => {
-    autoCheck.checked = world.autoCombat;
-    remember('ultima3.autoCombat', world.autoCombat);
-  };
-  autoCheck.addEventListener('change', () => {
-    world.autoCombat = autoCheck.checked;
-    rememberAuto();
-    canvas.focus();
-  });
-  world.onAutoCombatChange = rememberAuto;
-
-  // Classic moves: the party has no diagonals, as on the Apple II.
-  const classicCheck = document.getElementById('classic') as HTMLInputElement;
-  classicCheck.checked = world.classicMoves;
-  classicCheck.addEventListener('change', () => {
-    world.setClassicMoves(classicCheck.checked);
-    remember('ultima3.classicMoves', world.classicMoves);
-    canvas.focus();
-  });
+  screen.onSettingsChange = remember;
+  screen.onModeChange = remember;
+  world.onAutoCombatChange = remember;
 
   status.textContent = '';
 

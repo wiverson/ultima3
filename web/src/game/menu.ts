@@ -85,10 +85,13 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
       [
         { key: 'J', label: mm(world, MM.JourneyOnwardOption) },
         { key: 'O', label: mm(world, MM.OrganizeAParty) },
+        { key: 'S', label: 'Settings' },
       ],
       { row: 15, title: mm(world, MM.Options) },
     );
-    if (key === 'J') {
+    if (key === 'S') {
+      await io.showSettings();
+    } else if (key === 'J') {
       if (!world.party.formed) {
         await notice(io, mm(world, MM.NotFormed));
         continue;

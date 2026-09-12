@@ -461,6 +461,10 @@ async function memberTurn(world: World, io: GameIO, member: number): Promise<voi
 
     if (world.autoCombat) await scriptTurn(world, io, member);
     const key = await waitForCombatKey(world, io, member);
+    if (key === Key.Escape) {
+      await io.showSettings(); // the member's turn is not spent
+      continue;
+    }
     if (world.classicMoves && DIAGONAL_KEYS.includes(key)) return; // refused, and the turn is spent
     const move = moveForKey(key, !world.classicMoves);
     if (move) {

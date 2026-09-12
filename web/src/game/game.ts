@@ -98,6 +98,10 @@ export class Game {
 
       const key = await this.waitForCommand();
       if (world.done) return;
+      if (key === Key.Escape) {
+        await io.showSettings(); // no turn passes
+        continue;
+      }
       await this.dispatch(key);
       if (world.done) return;
       await endTurn(world, io, this.hooks);

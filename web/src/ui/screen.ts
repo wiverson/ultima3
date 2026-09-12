@@ -31,6 +31,7 @@ import { DungeonRenderer } from './dungeonView.ts';
 import { World } from '../game/world.ts';
 import { PlayerRecord } from '../game/player.ts';
 import { suggestedCommands, prioritise } from '../game/context.ts';
+import { TILE_SETS, KEYBOARD_HELP, CONTROLLER_HELP } from './help.ts';
 import { Location } from '../game/party.ts';
 import { buildViewport, VIEW_SIZE, type Viewport } from '../game/viewport.ts';
 import { buildDungeonView, secretMessage } from '../game/dungeon.ts';
@@ -119,6 +120,10 @@ export class Screen implements GameIO {
   inputMode: 'keyboard' | 'controller' = 'keyboard';
   /** Called when a gamepad press switches the mode to 'controller'. */
   onModeChange: (() => void) | null = null;
+  /** Called when anything in the Settings menu changes, so the page can remember it. */
+  onSettingsChange: (() => void) | null = null;
+  /** Name of the tile set in use (see help.ts TILE_SETS). */
+  tileSetName = 'Standard';
   private readonly gamepads: GamepadReader;
   /** The menu window being shown, drawn over the map every frame. */
   private menu: MenuWindow | null = null;
@@ -237,6 +242,11 @@ export class Screen implements GameIO {
    */
   setGraphics(gfx: GraphicsSet): void {
     this.gfx = gfx;
+    this.redrawAll();
+  }
+
+  /** Redraw the whole screen from what the Screen already knows (after a tile change or a full-screen page). */
+  private redrawAll(): void {
     if (this.frameShown) {
       const rows = this.textRows.map((r) => [...r]);
       const cx = this.cursorX;
@@ -378,11 +388,15 @@ export class Screen implements GameIO {
    * cancels (-1). Letter keys still pick the matching option, so a keyboard
    * works in controller mode too.
    */
-  private async runMenu(title: string, options: MenuOption[], columns = 1, place?: MenuPlacement): Promise<number> {
+  private async runMenu(title: string, options: MenuOption[], columns = 1, place?: MenuPlacement, cursor = 0): Promise<number> {
     const visible = options.filter((o) => !o.hidden);
     const menu = layoutMenu(title, visible.map((o) => o.label), columns);
     if (visible.some((o) => o.hint)) menu.hints = visible.map((o) => o.hint);
     if (place) this.placeMenu(menu, place);
+    else if (cursor > 0 && cursor < menu.items.length) {
+      menu.cursor = cursor;
+      if (menu.cursor >= menu.visibleRows) menu.top = menu.cursor - menu.visibleRows + 1;
+    }
     this.openMenu(menu);
     try {
       for (;;) {
@@ -420,6 +434,98 @@ export class Screen implements GameIO {
       if (menu.cursor >= menu.visibleRows) menu.top = menu.cursor - menu.visibleRows + 1;
     }
     this.black(1, place.row, COLUMNS - 2, menu.visibleRows + 2 + (menu.hints ? 1 : 0));
+  }
+
+  /**
+   * The Settings menu, on the title screen or over the map. Each toggle
+   * shows its state and flips in place; Tiles opens the list of sets; Help
+   * shows the pages for the current input mode.
+   */
+  async showSettings(): Promise<void> {
+    const w = this.world;
+    const onOff = (b: boolean) => (b ? 'On' : 'Off');
+    const place: MenuPlacement | undefined = this.frameShown ? undefined : { row: 13, title: 'Settings' };
+    let cursor = 0;
+    for (;;) {
+      const options: MenuOption[] = [
+        { key: 'I', label: `Input: ${this.inputMode === 'controller' ? 'Controller' : 'Keyboard'}` },
+        { key: 'T', label: `Tiles: ${this.tileSetName}` },
+        { key: 'C', label: `Classic moves: ${onOff(w.classicMoves)}` },
+        { key: 'A', label: `Auto combat: ${onOff(w.autoCombat)}` },
+        { key: 'S', label: `Sound effects: ${onOff(w.soundEnabled)}` },
+        { key: 'M', label: `Music: ${onOff(this.musicPlayer.enabled)}` },
+        { key: 'H', label: 'Help' },
+        { key: 'B', label: 'Back' },
+      ];
+      const picked = await this.runMenu('Settings', options, 1, place && { ...place, cursor }, cursor);
+      if (picked < 0) return;
+      cursor = picked;
+      switch (options[picked].key) {
+        case 'I':
+          this.inputMode = this.inputMode === 'controller' ? 'keyboard' : 'controller';
+          this.onModeChange?.();
+          break;
+        case 'T':
+          await this.chooseTiles();
+          break;
+        case 'C':
+          w.setClassicMoves(!w.classicMoves);
+          break;
+        case 'A':
+          w.autoCombat = !w.autoCombat;
+          w.onAutoCombatChange?.();
+          break;
+        case 'S':
+          w.soundEnabled = !w.soundEnabled;
+          break;
+        case 'M':
+          this.musicPlayer.enabled = !this.musicPlayer.enabled;
+          if (this.musicPlayer.enabled) this.musicPlayer.play(w.music);
+          else this.musicPlayer.play(0);
+          break;
+        case 'H':
+          await this.showHelp();
+          break;
+        default:
+          return;
+      }
+      this.onSettingsChange?.();
+    }
+  }
+
+  /** The Tiles sub-menu: pick a set and switch to it. */
+  private async chooseTiles(): Promise<void> {
+    const options = TILE_SETS.map((name) => ({ key: '', label: name }));
+    const current = Math.max(0, TILE_SETS.indexOf(this.tileSetName));
+    const place: MenuPlacement | undefined = this.frameShown ? undefined : { row: 13, title: 'Tiles', cursor: current };
+    const picked = await this.runMenu('Tiles', options, 1, place, current);
+    if (picked < 0) return;
+    try {
+      const gfx = await GraphicsSet.load(TILE_SETS[picked]);
+      this.tileSetName = TILE_SETS[picked];
+      this.setGraphics(gfx);
+    } catch {
+      /* keep the current set */
+    }
+  }
+
+  /** Full-screen help pages for the current input mode. Any key turns the page; Escape or B closes. */
+  private async showHelp(): Promise<void> {
+    const pages = this.inputMode === 'controller' ? CONTROLLER_HELP : KEYBOARD_HELP;
+    const wasCovered = this.viewCovered;
+    this.viewCovered = true; // stop the viewport repainting under the page
+    try {
+      for (const page of pages) {
+        this.black(0, 0, COLUMNS, ROWS);
+        page.forEach((line, i) => this.drawText(line, 1, 1 + i));
+        this.drawText(this.inputMode === 'controller' ? 'A: next   B: close' : 'Any key: next   Escape: close', 1, ROWS - 1);
+        const key = await this.readKey();
+        if (key === Key.Escape || key === Key.B) break;
+      }
+    } finally {
+      this.viewCovered = wasCovered;
+      this.redrawAll();
+    }
   }
 
   async chooseFromList(options: MenuOption[], place: MenuPlacement): Promise<string> {
@@ -513,7 +619,7 @@ export class Screen implements GameIO {
     if (key === Key.Y) return shortcuts.Y;
     if (key === Key.A) {
       // The commands the surroundings call for come first.
-      const options = prioritise(COMMAND_MENUS[scope], suggestedCommands(this.world, scope));
+      const options = [...prioritise(COMMAND_MENUS[scope], suggestedCommands(this.world, scope)), { key: Key.Escape, label: 'Settings' }];
       const picked = await this.runMenu('Command', options);
       return picked < 0 ? null : options[picked].key;
     }

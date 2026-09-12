@@ -177,6 +177,10 @@ export async function runDungeon(world: World, io: GameIO): Promise<void> {
 
     const key = (await io.waitCommand('dungeon', IDLE_PASS_MS)) ?? Key.Space;
     if (world.done) return;
+    if (key === Key.Escape) {
+      await io.showSettings(); // no turn passes
+      continue;
+    }
     await dispatch(world, io, key);
     if (world.resurrecting || d.exit) return;
 

@@ -18,35 +18,11 @@ npm run build     # typecheck + production build into dist/
 `npm run extract` only needs to run again if the original resources change.
 Its output is committed so the game runs straight after `npm install`.
 
-There are two input modes, chosen with the selector under the game (a
-gamepad button press also switches to controller mode):
-
-- **Keyboard**: the Apple II commands below, exactly as the original.
-- **Controller**: d-pad movement and pop-up menus, in the spirit of the NES
-  version. A opens the command menu or confirms, B cancels or passes the
-  turn, X shows Ztats, Y looks (attacks in combat). Prompts for a member,
-  a direction, a spell, an item, a shop choice, a number or a word all
-  become menus. A real gamepad works through the Gamepad API; on a keyboard
-  WASD or the arrows are the d-pad and Enter/Escape/Z/X/C/V are A/B/X/Y.
-
-In either mode, walking into a townsperson talks to them (a convenience this
-port adds; the original needed T, a member and a direction, by which time
-the person had often wandered off).
-
-The title menu offers `J` (journey onward) and `O` (organize a party: create,
-form, disperse, terminate). In play the keys are the Apple II ones: arrow
-keys or the numeric keypad move, and every letter is a command:
-
-    A attack     B board      C cast       D descend    E enter
-    F fire       G get chest  H hand       I ignite
-    K klimb      L look       M modify     N negate     O other
-    P peer gem   Q quit/save  R ready      S steal      T transact
-    U unlock     V volume     W wear       X exit       Y yell
-    Z ztats      space passes
-
-URL options: `?new` starts a fresh game (the last game is otherwise
-resumed from the browser's storage), the Tiles selector (or any set in
-`public/graphics`) changes the graphics, `?music=0` silences the music.
+There are two input modes, keyboard and controller, chosen in the game's
+Settings menu (Escape; a gamepad button press also switches to controller
+mode). The Controls section below lists the keys and buttons; the same
+text is in the game under Settings > Help. `?new` on the URL starts a
+fresh game instead of resuming the last one from the browser's storage.
 
 ## What is ported
 
@@ -69,36 +45,114 @@ Everything the Apple II game had:
 - The shrines of Ambrosia, the cards and marks, the exotics, EVOCARE, the
   four cards in Exodus and the ending.
 - Party management: creation, forming, marching order, handing equipment,
-  ztats, death and resurrection, save and resume. The title
-  and party screens are menu driven in both input modes (the Apple II typed
-  entry numbers and attribute values): the roster is a pick list, the party
-  a multi-select list in marching order, attributes a screen where left and
-  right adjust each value until all 50 points are spent, and a random name
-  is offered from a stock list (`src/game/names.ts`).
+  ztats, death and resurrection, save and resume.
 - Music: the original QuickTime music files are decoded and played on a
   small Web Audio synthesizer (`src/ui/music.ts`).
-- Classic moves (ticked by default): the party cannot move, attack or fire
-  diagonally, as on the Apple II, while monsters always could. Untick it
-  for the Mac version's party diagonals; the land beside Exodus' castle
-  changes to match (see below).
-- Walking into things does what you would have typed next, a convenience
-  this port adds: a townsperson is talked to, a shop counter opens the
-  shop (after "Who will Transact"), a locked door beside you asks whose
-  key to use, and a monster, on the surface or in combat, is attacked.
-- In controller mode the command menu puts the commands the surroundings
-  call for at the top (`src/game/context.ts`): Enter on a town, Board on a
-  horse, Klimb on a ladder, Attack beside a monster, and so on.
-- Auto-combat (a LairWare addition): tick "Auto combat" above the screen
-  and the party fights by itself. As in the Mac version the AI decides a
-  member's turn and "types" it: it queues the keys a player would press
-  (`GameIO.queueKeys`), and the ordinary combat prompts read them. Escape
-  during a fight turns it off, as Cmd-. did.
+- Auto-combat, a LairWare addition: see Settings below.
 
 Left out on purpose, all additions LairWare made for the Mac rather than
 parts of the game: the animated intro and attract mode, auto-heal, the
 "modern" stats dialog, the Diorama map and random map generator,
 text-to-speech, mouse control, and the Mac dialogs (the Apple II text flow
 is used instead).
+
+## Controls
+
+Escape opens the Settings menu anywhere (on the title screen it is the
+third entry under Options; in controller mode it is the last entry of the
+command menu). Settings holds the input mode, the tile set, classic moves,
+auto combat, sound effects, music, and Help, which shows these controls in
+the game. Every setting is remembered by the browser.
+
+### Keyboard mode (the Apple II commands)
+
+    Arrows       walk; move in combat      Space   pass a turn
+    1 3 7 9      walk diagonally (only with classic moves off)
+
+    A attack     B board      C cast      E enter     F fire
+    G get chest  H hand       I ignite    L look      M modify order
+    N negate     O other      P peer gem  Q quit/save R ready weapon
+    S steal      T transact   U unlock    V volume    W wear armour
+    X exit craft Y yell       Z ztats
+
+    Combat:   arrows move (into a monster attacks), A attack in a
+              direction, C N R Z, Escape turns auto combat off
+    Dungeons: up/down advance or retreat, left/right turn, I K D
+              ignite, klimb, descend
+
+Prompts for "whom" take a member number 1-4; a direction is an arrow key.
+Q on the surface saves the game in this browser; it resumes on the next
+visit. `?new` on the URL starts a fresh game.
+
+### Controller mode (in the spirit of the NES version)
+
+    D-pad   move, or move the cursor in a menu
+    A       open the command menu; choose
+    B       cancel, or pass a turn
+    X       ztats
+    Y       look; attack in combat; ignite a torch in dungeons
+
+Keyboard stand-ins: WASD or arrows for the d-pad, Enter or Z for A, Escape
+or X for B, C for X, V for Y. Pressing a gamepad button switches to
+controller mode. The command menu lists the commands the surroundings call
+for first (Enter on a town, Board on a horse, Get on a chest, Attack
+beside a monster). Numbers use a spinner and names an on-screen keyboard.
+
+## Differences from the original
+
+Quality-of-life changes this port makes on top of the Apple II game. The
+records written are still the Apple II's, so nothing here changes what a
+save contains except the pooled gold and food.
+
+- **Bumping into things** does what you would have typed next: a
+  townsperson is talked to, a shop counter opens the shop, a locked door
+  beside you asks whose key to use, and a monster, on the surface or in
+  combat, is attacked.
+- **Transact** asks the direction first and "who" only when it matters:
+  Lord British, and the shops that hand something to a member.
+- **Gold and food are pooled** for the whole party (the Apple II kept them
+  per member, 0..9999 each). The pool lives in spare bytes of the party
+  record and shows on the top border either side of the moons. Join gold
+  is gone and Hand no longer moves food or gold. Members eat a tenth of a
+  ration a turn from the pool and go hungry together when it is empty; the
+  Apple II's food-borrow quirk went with the per-member counters. Forming
+  a party pools the members' purses; dispersing shares the pool out again.
+- **Character boxes** are two rows: the name with the status letter (P, D,
+  A; nothing when Good) or a green "L!" when Lord British would raise the
+  member, then hit points over max and mana (none for fighters, thieves
+  and barbarians). The message area gained four rows.
+- **Combat marker**: the member whose turn it is gets a rounded outline,
+  two game pixels wide, fading from white to grey over the four seconds
+  before the turn passes by itself. The Apple II blinked the figure.
+- **Classic moves** (on by default): the party cannot move, attack or fire
+  diagonally, as on the Apple II, while monsters always could. Off gives
+  the Mac version's party diagonals; the lava either side of Exodus'
+  castle then becomes mountains as the Mac's `BlockExodus()` did, so the
+  castle is reached by sea only.
+- **Auto combat** (off by default), a LairWare addition: the party fights
+  by itself. As in the Mac version the AI decides a member's turn and
+  "types" it: it queues the keys a player would press (`GameIO.queueKeys`)
+  and the ordinary combat prompts read them. Escape during a fight turns
+  it off, as Cmd-. did. With diagonals on, lining up a ranged attacker
+  steps onto the diagonal square checked; the C code stepped toward the
+  monster instead. A monster's square counts as occupied, which the
+  original did not check.
+- **Menus for the title and party screens** in both input modes (the
+  Apple II typed entry numbers and attribute values): the roster is a
+  pick list, the party a multi-select list in marching order, attributes a
+  screen where left and right adjust each value until all 50 points are
+  spent, and a random name is offered from a stock list (`names.ts`).
+  Terminate asks for confirmation.
+- **Controller mode** with pop-up menus, and a command menu ordered by
+  what the surroundings call for (`context.ts`).
+- **Resurrection** after a party wipe is automatic; the original showed a
+  dialog.
+- **`heading()`** in `monsters.ts` uses true 8-bit wrap-around, as the
+  Apple II did. The C port tested for negative values first, which sent
+  monsters the long way round when the party was far to their west.
+- **Appearance**: the classic bitmap-font layout is used throughout; any of
+  the twelve tile sets (with their fonts and borders) can be chosen in
+  Settings, Standard by default.
 
 ## How the code is organised
 
@@ -171,37 +225,6 @@ combat arenas, map and dungeon resources are documented at the top of
 `player.ts`, `party.ts`, `monsterTable.ts`, `combat.ts`, `world.ts` and
 `resources.ts`. The tile numbering (map value, shape, tile index) is
 explained in `tiles.ts`, and the music event format in `ui/music.ts`.
-
-### Deliberate differences from the C source
-
-- `monsters.ts` `heading()` uses true 8-bit wrap-around, as the Apple II
-  did. The C port tested for negative values first, which sent monsters the
-  long way round when the party was far to their west.
-- Gold and food are pooled for the whole party (the Apple II kept them per
-  member, 0..9999 each). The pool lives in spare bytes of the party record
-  and shows on the top border either side of the moons; the character
-  boxes are two rows each (name, status or a green "L!" when Lord British
-  would raise the member; hit points over max and mana), which gives the
-  message area four more rows. Join gold is gone, Hand no longer moves
-  food or gold, the grocer asks nobody's name, and Transact asks who only
-  for Lord British and the shops that give something to a member. Members
-  eat a tenth of a ration a turn from the pool and go hungry together when
-  it is empty; the Apple II's food-borrow quirk went with the per-member
-  counters. A dispersed party shares the pool out among its members again.
-- In combat the member whose turn it is gets a rounded outline, two game
-  pixels wide, cycling green, blue and white with the tile animation; the
-  Apple II blinked the figure. A member in good health shows no status
-  letter, so only P, D, A or the "L!" raise flag appears.
-- Resurrection after a party wipe is automatic; the original showed a dialog.
-- The Mac's "no diagonals" preference is the "Classic moves" checkbox,
-  on by default. With it off, the lava either side of Exodus' castle
-  becomes mountains as on the Mac (`blockExodusApproach`), so the castle
-  is reached by sea only.
-- When auto-combat lines up a ranged attacker with diagonals on, it steps
-  onto the diagonal square it checked; the C code stepped toward the
-  monster instead.
-- The Mac version's "modern" appearance (portraits, bars, proportional
-  text) is not reproduced; the classic bitmap-font layout is used throughout.
 
 ### Testing
 
