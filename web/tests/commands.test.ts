@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { newWorld, FakeIO } from './helpers.ts';
-import { move, board, exit, look, enter, PartyShape } from '../src/game/commands.ts';
+import { move, board, exit, look, enter, getDirection, PartyShape } from '../src/game/commands.ts';
 import { endTurn, placeMoongates, type TurnHooks } from '../src/game/turn.ts';
 import { spawnMonster, moveMonsters, monsterCanEnter } from '../src/game/monsters.ts';
 import { MapValue } from '../src/game/tiles.ts';
@@ -256,11 +256,26 @@ describe('walking into townspeople', () => {
   });
 });
 
-describe('diagonal moves near Exodus', () => {
-  it('walls off the force fields beside Exodus castle, as the Mac did with diagonals on', () => {
+describe('classic moves', () => {
+  it('keeps the lava beside Exodus castle, and walls it off when diagonals are allowed', () => {
     const world = newWorld();
+    expect(world.classicMoves).toBe(true);
     expect(world.surface.tiles[0x35 * 64 + 0x0a]).toBe(MapValue.Castle);
+    expect(world.surface.tiles[0x35 * 64 + 0x09]).toBe(MapValue.Lava);
+    world.setClassicMoves(false);
     expect(world.surface.tiles[0x35 * 64 + 0x09]).toBe(MapValue.Mountains);
     expect(world.surface.tiles[0x35 * 64 + 0x0b]).toBe(MapValue.Mountains);
+    world.setClassicMoves(true);
+    expect(world.surface.tiles[0x35 * 64 + 0x0b]).toBe(MapValue.Lava);
+  });
+
+  it('refuses a diagonal answer to a direction prompt, unless diagonals are allowed', async () => {
+    const world = newWorld();
+    const io = new FakeIO(world.resources);
+    io.keys = ['9'];
+    expect(await getDirection(world, io)).toBeNull();
+    world.setClassicMoves(false);
+    io.keys = ['9'];
+    expect(await getDirection(world, io)).toMatchObject({ dx: 1, dy: -1 });
   });
 });

@@ -109,6 +109,7 @@
     <div id="bar">
       <span id="status">Loading...</span>
       <span class="settings">
+        <label title="No diagonal moves for the party, as on the Apple II"><input type="checkbox" id="classic" checked /> Classic moves</label>
         <label><input type="checkbox" id="auto" /> Auto combat</label>
         <label>Input:
           <select id="mode">
@@ -144,7 +145,7 @@
           <h3>Moving</h3>
           <dl>
             <dt>Arrows</dt><dd>Walk north, south, east, west</dd>
-            <dt>1 3 7 9</dt><dd>Walk diagonally (keypad)</dd>
+            <dt>1 3 7 9</dt><dd>Walk diagonally (keypad), only with "Classic moves" unticked</dd>
             <dt>Space</dt><dd>Pass a turn (turns also pass on their own)</dd>
           </dl>
         </section>
@@ -189,7 +190,7 @@
             <dt>C N R Z V</dt><dd>Cast, Negate, Ready, Ztats, Volume</dd>
             <dt>Escape</dt><dd>Turn auto combat off for this fight (B on a controller)</dd>
           </dl>
-          <p>With "Auto combat" ticked above, the party fights by itself: it casts Repond or Pontori, heals the weakest, fires when lined up and closes to melee, as in the Macintosh version.</p>
+          <p>"Classic moves" keeps the Apple II rule: monsters may move and attack diagonally, the party may not. Untick it for the Macintosh version's diagonals. With "Auto combat" ticked above, the party fights by itself: it casts Repond or Pontori, heals the weakest, fires when lined up and closes to melee, as in the Macintosh version.</p>
         </section>
         <section>
           <h3>Dungeons</h3>

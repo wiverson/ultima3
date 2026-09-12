@@ -9,9 +9,10 @@ import { World, type CombatState } from '../src/game/world.ts';
 
 const MISSING = 255;
 
-/** A flat grass arena with one member at (5, 9) and no monsters yet. */
-function arena(monsterShape = MapValue.Orc >> 1): { world: World; c: CombatState } {
+/** A flat grass arena with one member at (5, 9) and no monsters yet. Diagonals allowed unless `classic`. */
+function arena(monsterShape = MapValue.Orc >> 1, classic = false): { world: World; c: CombatState } {
   const world = newWorld(7);
+  world.setClassicMoves(classic);
   world.current.tiles.fill(MapValue.Grass);
   world.monsters.bytes.fill(0);
   const c = loadArena(world, BASERES + 4);
@@ -106,6 +107,34 @@ describe('auto-combat planning', () => {
     world.member(1).hitPoints = 40;
     monster(c, 0, 5, 2);
     expect(autoCombatKeys(world, 0)).toEqual(['C', 'C', '2']);
+  });
+
+  it('neither attacks nor fires diagonally in classic mode', () => {
+    const { world, c } = arena(MapValue.Orc >> 1, true);
+    fighter(world, 2);
+    monster(c, 0, 6, 8); // diagonally adjacent: a step, not an attack
+    expect(autoCombatKeys(world, 0)).not.toContain('A');
+    fighter(world, 5);
+    // The bow needs a row or column: the orc is expected to step to (6, 9),
+    // so the fighter steps west along that row rather than firing diagonally.
+    expect(autoCombatKeys(world, 0)).toEqual(['4']);
+    c.monsters[0].x = 5;
+    c.monsters[0].y = 3;
+    expect(autoCombatKeys(world, 0)).toEqual(['A', '8']);
+  });
+
+  it('retreats diagonally only when diagonals are allowed', () => {
+    const { world, c } = arena();
+    fighter(world, 2);
+    world.member(0).hitPoints = 20;
+    monster(c, 0, 5, 8);
+    monster(c, 1, 6, 10);
+    // South, west and east are all within reach; southwest is not.
+    expect(autoCombatKeys(world, 0)).toEqual(['1']);
+    // In classic mode there is nowhere safe to go; a wounded member in the
+    // top half of the arena then holds still rather than advancing.
+    world.setClassicMoves(true);
+    expect(autoCombatKeys(world, 0)).toEqual([Key.Space]);
   });
 
   it('passes when boxed in', () => {

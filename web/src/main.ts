@@ -25,8 +25,27 @@ async function start(): Promise<void> {
 
   const [resources, gfx, images] = await Promise.all([loadResources(), GraphicsSet.load(tileSet), loadImages()]);
 
-  // Resume the saved game unless the URL asks for a new one (?new).
+  const setting = (key: string, fallback: boolean): boolean => {
+    try {
+      const v = localStorage.getItem(key);
+      return v === null ? fallback : v === '1';
+    } catch {
+      return fallback;
+    }
+  };
+  const remember = (key: string, on: boolean) => {
+    try {
+      localStorage.setItem(key, on ? '1' : '0');
+    } catch {
+      /* storage unavailable */
+    }
+  };
+
+  // Classic moves (no party diagonals) must be known before the map loads.
   const world = new World(resources);
+  world.setClassicMoves(setting('ultima3.classicMoves', true));
+
+  // Resume the saved game unless the URL asks for a new one (?new).
   if (params.has('new') || !localSave.read(world)) world.newGame();
 
   const sounds = new SoundPlayer();
@@ -75,19 +94,11 @@ async function start(): Promise<void> {
   // Auto-combat: the party fights by itself (a LairWare addition). Escape in
   // a fight turns it off, so the checkbox follows the game as well.
   const autoCheck = document.getElementById('auto') as HTMLInputElement;
-  try {
-    world.autoCombat = localStorage.getItem('ultima3.autoCombat') === '1';
-  } catch {
-    /* storage unavailable */
-  }
+  world.autoCombat = setting('ultima3.autoCombat', false);
   autoCheck.checked = world.autoCombat;
   const rememberAuto = () => {
     autoCheck.checked = world.autoCombat;
-    try {
-      localStorage.setItem('ultima3.autoCombat', world.autoCombat ? '1' : '0');
-    } catch {
-      /* storage unavailable */
-    }
+    remember('ultima3.autoCombat', world.autoCombat);
   };
   autoCheck.addEventListener('change', () => {
     world.autoCombat = autoCheck.checked;
@@ -95,6 +106,15 @@ async function start(): Promise<void> {
     canvas.focus();
   });
   world.onAutoCombatChange = rememberAuto;
+
+  // Classic moves: the party has no diagonals, as on the Apple II.
+  const classicCheck = document.getElementById('classic') as HTMLInputElement;
+  classicCheck.checked = world.classicMoves;
+  classicCheck.addEventListener('change', () => {
+    world.setClassicMoves(classicCheck.checked);
+    remember('ultima3.classicMoves', world.classicMoves);
+    canvas.focus();
+  });
 
   status.textContent = '';
 

@@ -22,8 +22,9 @@
  *     else step to a square that lines one up next turn.
  *  6. A hand weapon: attack an adjacent monster, else step toward the nearest.
  *
- * The original had a "no diagonals" preference; this port always allows
- * diagonal moves, as the combat prompts do.
+ * The original's "no diagonals" preference is the classic-moves setting
+ * here: with it on, the member neither steps, attacks nor fires diagonally,
+ * though it still expects monsters to.
  */
 
 import { World } from './world.ts';
@@ -80,13 +81,21 @@ class Planner {
   /** Where each monster is expected to be next turn (`futureMonX/Y`). */
   private readonly futureX: number[] = [];
   private readonly futureY: number[] = [];
+  /** May this member move, attack and fire diagonally? */
+  private readonly diagonals: boolean;
 
   constructor(
     private readonly world: World,
     private readonly member: number,
   ) {
     this.c = world.combat!;
+    this.diagonals = !world.classicMoves;
     this.setupNow();
+  }
+
+  /** Is (dx, dy) a step this member may take? */
+  private allowed(dx: number, dy: number): boolean {
+    return this.diagonals || dx === 0 || dy === 0;
   }
 
   /** Mirrors `AutoCombat()`: the keys to press, in the order to press them. */
@@ -110,6 +119,7 @@ class Planner {
     // Nearly dead: run to a square no monster can reach.
     if (this.nearlyDead(member) && this.monsterCanAttack(x, y)) {
       for (const [dx, dy] of NEIGHBOURS) {
+        if (!this.allowed(dx, dy)) continue;
         if (!this.monsterCanAttack(x + dx, y + dy) && !this.occupied(x + dx, y + dy)) return [directionKey(dx, dy)!];
       }
       // Nowhere to run: fight on.
@@ -179,7 +189,10 @@ class Planner {
       [1, -1],
       [1, 1],
     ];
-    for (const [dx, dy] of order) if (monsterAt(this.c, x + dx, y + dy) >= 0) return directionKey(dx, dy)!;
+    for (const [dx, dy] of order) {
+      if (!this.allowed(dx, dy)) continue;
+      if (monsterAt(this.c, x + dx, y + dy) >= 0) return directionKey(dx, dy)!;
+    }
     return null;
   }
 
@@ -259,14 +272,18 @@ class Planner {
     return false;
   }
 
-  /** Mirrors `CombatCharHere()`: a member, or a square a member cannot stand on. */
+  /**
+   * Mirrors `CombatCharHere()`: a member, or a square a member cannot stand
+   * on. This port also counts a monster's square, which the original did
+   * not; stepping into one only wasted the turn on "INVALID MOVE!".
+   */
   occupied(x: number, y: number): boolean {
     const { c } = this;
     if (x < 0 || x > 10 || y < 0 || y > 10) return true;
     const tile = c.tiles[y * 11 + x];
     if (tile !== Shape.Grass && tile !== Shape.Brush && tile !== Shape.Forest && tile !== Shape.Floor) return true;
     for (const m of c.members) if (m.x === x && m.y === y) return true;
-    return false;
+    return monsterAt(c, x, y) >= 0;
   }
 
   /** Mirrors `DirToNearestMonster()`: the key that heads toward the closest (predicted) monster. */
@@ -308,6 +325,7 @@ class Planner {
       [-inward, 1],
     ];
     for (const [dx, dy] of candidates) {
+      if (!this.allowed(dx, dy)) continue;
       if (this.monsterLinedUp(me.x + dx, me.y + dy) !== null) return this.autoMove(dx, dy);
     }
     return this.dirToNearestMonster();
@@ -326,7 +344,7 @@ class Planner {
       if (c.monsters[i].hp === 0) continue;
       const fx = this.futureX[i];
       const fy = this.futureY[i];
-      const inLine = fx === x || fy === y || Math.abs(x - fx) === Math.abs(y - fy);
+      const inLine = fx === x || fy === y || (this.diagonals && Math.abs(x - fx) === Math.abs(y - fy));
       if (!inLine) continue;
       const d = Math.abs(fx - x) + Math.abs(fy - y);
       if (d < closestDistance) {
@@ -346,6 +364,8 @@ class Planner {
     const me = this.c.members[this.member];
     const free = (ddx: number, ddy: number) => !this.occupied(me.x + ddx, me.y + ddy);
     const key = (ddx: number, ddy: number) => directionKey(ddx, ddy) ?? Key.Space;
+    // Without diagonals a diagonal wish becomes a vertical step.
+    if (!this.diagonals && dx !== 0 && dy !== 0) dx = 0;
     if (free(dx, dy)) return key(dx, dy);
     let alternatives: [number, number][];
     if (dx === 0) {
@@ -371,7 +391,7 @@ class Planner {
         [dx, 0],
       ];
     }
-    for (const [ax, ay] of alternatives) if (free(ax, ay)) return key(ax, ay);
+    for (const [ax, ay] of alternatives) if (this.allowed(ax, ay) && free(ax, ay)) return key(ax, ay);
     return Key.Space;
   }
 }

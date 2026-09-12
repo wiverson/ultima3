@@ -17,7 +17,7 @@ import { World, type CombatState, type Combatant } from './world.ts';
 import { Location } from './party.ts';
 import { MapValue, Shape } from './tiles.ts';
 import { type GameIO, Key, Sound, Music, deathSound } from './io.ts';
-import { getDirection, moveForKey, moveDelta, what2, Msg as CmdMsg } from './commands.ts';
+import { getDirection, moveForKey, moveDelta, what2, DIAGONAL_KEYS, Msg as CmdMsg } from './commands.ts';
 import { ageChars } from './turn.ts';
 import { cast } from './spells.ts';
 import { negateTime, readyWeapon, stats, volume, addExperience } from './actions.ts';
@@ -464,7 +464,8 @@ async function memberTurn(world: World, io: GameIO, member: number): Promise<voi
 
     if (world.autoCombat) await scriptTurn(world, io, member);
     const key = await waitForCombatKey(world, io, member);
-    const move = moveForKey(key);
+    if (world.classicMoves && DIAGONAL_KEYS.includes(key)) return; // refused, and the turn is spent
+    const move = moveForKey(key, !world.classicMoves);
     if (move) {
       const delta = moveDelta(move);
       io.printMessage(delta.message);

@@ -203,6 +203,9 @@ export async function move(world: World, io: GameIO, name: MoveName): Promise<nu
 }
 
 /** Map a key press to a movement, or undefined. Arrow keys and the numeric keypad both work. */
+/** The keypad digits for diagonal steps. */
+export const DIAGONAL_KEYS = ['1', '3', '7', '9'];
+
 export function moveForKey(key: string, allowDiagonal = true): MoveName | undefined {
   switch (key) {
     case Key.Up:
@@ -248,8 +251,10 @@ export async function getDirection(
   world: World,
   io: GameIO,
   allowSpace = false,
-  allowDiagonal = true,
+  allowDiagonal?: boolean,
 ): Promise<Direction | null> {
+  // Diagonals follow the classic-moves setting unless the command says otherwise.
+  allowDiagonal ??= !world.classicMoves;
   const key = await io.chooseDirection(allowSpace, allowDiagonal);
   if (key === null || world.done) return null;
   if (key === Key.Space) {

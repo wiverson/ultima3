@@ -124,7 +124,8 @@ export class Game {
   /** Mirrors the key switch in `Game()` and `LetterCommand()`. */
   async dispatch(key: string): Promise<void> {
     const { world, io } = this;
-    const moveName = cmd.moveForKey(key);
+    if (world.classicMoves && cmd.DIAGONAL_KEYS.includes(key)) return; // no diagonals on the Apple II
+    const moveName = cmd.moveForKey(key, !world.classicMoves);
     if (moveName) {
       const npc = await cmd.move(world, io, moveName);
       // Walking into a townsperson talks to them (with the first living member).

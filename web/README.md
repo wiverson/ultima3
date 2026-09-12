@@ -72,6 +72,10 @@ Everything the Apple II game had:
   joining gold, ztats, death and resurrection, save and resume.
 - Music: the original QuickTime music files are decoded and played on a
   small Web Audio synthesizer (`src/ui/music.ts`).
+- Classic moves (ticked by default): the party cannot move, attack or fire
+  diagonally, as on the Apple II, while monsters always could. Untick it
+  for the Mac version's party diagonals; the land beside Exodus' castle
+  changes to match (see below).
 - Auto-combat (a LairWare addition): tick "Auto combat" above the screen
   and the party fights by itself. As in the Mac version the AI decides a
   member's turn and "types" it: it queues the keys a player would press
@@ -160,13 +164,13 @@ explained in `tiles.ts`, and the music event format in `ui/music.ts`.
   did. The C port tested for negative values first, which sent monsters the
   long way round when the party was far to their west.
 - Resurrection after a party wipe is automatic; the original showed a dialog.
-- Diagonal moves are always allowed (the Mac had a preference), so as the
-  Mac did in that case the force fields either side of Exodus' castle are
-  replaced with mountains (`blockExodusApproach`); the castle is reached
-  by sea only.
-- Auto-combat always allows diagonal moves (the Mac had a preference), and
-  when lining up a ranged attacker it steps onto the diagonal square it
-  checked; the C code stepped toward the monster instead.
+- The Mac's "no diagonals" preference is the "Classic moves" checkbox,
+  on by default. With it off, the lava either side of Exodus' castle
+  becomes mountains as on the Mac (`blockExodusApproach`), so the castle
+  is reached by sea only.
+- When auto-combat lines up a ranged attacker with diagonals on, it steps
+  onto the diagonal square it checked; the C code stepped toward the
+  monster instead.
 - The Mac version's "modern" appearance (portraits, bars, proportional
   text) is not reproduced; the classic bitmap-font layout is used throughout.
 
