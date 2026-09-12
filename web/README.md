@@ -79,7 +79,7 @@ Everything the Apple II game had:
 - Walking into things does what you would have typed next, a convenience
   this port adds: a townsperson is talked to, a shop counter opens the
   shop (after "Who will Transact"), a locked door beside you asks whose
-  key to use, and in combat a monster is attacked.
+  key to use, and a monster, on the surface or in combat, is attacked.
 - In controller mode the command menu puts the commands the surroundings
   call for at the top (`src/game/context.ts`): Enter on a town, Board on a
   horse, Klimb on a ladder, Attack beside a monster, and so on.

@@ -183,6 +183,8 @@ export function moveDelta(name: MoveName): { dx: number; dy: number; message: nu
 export type Bump =
   /** A townsperson (monster slot `index`): talk to them. */
   | { kind: 'person'; index: number }
+  /** A monster (or pirate ship) on the surface: attack it. */
+  | { kind: 'monster'; dx: number; dy: number }
   /** A shop counter with the merchant behind it: transact. */
   | { kind: 'counter'; dx: number; dy: number }
   /** A locked door beside the party: unlock it. */
@@ -210,9 +212,9 @@ export async function move(world: World, io: GameIO, name: MoveName): Promise<Bu
   }
   const xs = world.constrain(world.x + spec.dx);
   const ys = world.constrain(world.y + spec.dy);
+  const who = world.monsters.at(xs, ys);
+  if (who >= 0) return world.inTownOrCastle ? { kind: 'person', index: who } : { kind: 'monster', dx: spec.dx, dy: spec.dy };
   if (world.inTownOrCastle) {
-    const who = world.monsters.at(xs, ys);
-    if (who >= 0) return { kind: 'person', index: who };
     if (counterWithMerchant(world, xs, ys, spec.dx, spec.dy)) return { kind: 'counter', dx: spec.dx, dy: spec.dy };
     // Doors only open sideways, as the Unlock command requires.
     if (world.getXYVal(xs, ys) === MapValue.LetterI && spec.dx !== 0 && spec.dy === 0) return { kind: 'door', dx: spec.dx, dy: spec.dy };

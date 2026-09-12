@@ -87,6 +87,7 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
         { key: 'O', label: mm(world, MM.OrganizeAParty) },
       ],
       'none',
+      { row: 15, title: mm(world, MM.Options) },
     );
     if (key === 'J') {
       if (!world.party.formed) {
@@ -124,6 +125,7 @@ export async function organize(world: World, io: GameIO): Promise<void> {
         { key: 'M', label: mm(world, MM.MainMenu) },
       ],
       'none',
+      { row: 13, title: mm(world, MM.Options) },
     );
     switch (key || 'M') {
       case 'C':

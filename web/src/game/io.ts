@@ -28,6 +28,16 @@ export const Key = {
 } as const;
 
 /** One choice in a menu or a letter prompt. */
+/**
+ * Where a controller-mode menu window should go when the screen has text
+ * laid out for it (the title screens): its top row and the title to show.
+ * The window replaces the text at those rows. Keyboard mode ignores it.
+ */
+export interface MenuPlacement {
+  row: number;
+  title: string;
+}
+
 export interface MenuOption {
   /** The key the keyboard user presses (a letter, digit or Y/N). */
   key: string;
@@ -98,7 +108,7 @@ export interface GameIO {
    * `echo` says whether to print the chosen key ('none'), the key ('key'),
    * or the key and a newline ('line'), matching what the original printed.
    */
-  chooseOption(options: MenuOption[], echo: 'none' | 'key' | 'line'): Promise<string>;
+  chooseOption(options: MenuOption[], echo: 'none' | 'key' | 'line', place?: MenuPlacement): Promise<string>;
   /**
    * Read a line of text at the cursor with a blinking cursor, echoing each
    * character. Backspace edits; Enter finishes. (`UInputText`) With a

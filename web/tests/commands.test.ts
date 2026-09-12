@@ -312,3 +312,19 @@ describe('walking into counters and doors', () => {
     expect(world.y).toBe(20);
   });
 });
+
+describe('walking into a monster on the surface', () => {
+  it('reports the monster instead of stepping onto its square', async () => {
+    const world = newWorld();
+    const io = new FakeIO(world.resources);
+    world.current.tiles.fill(MapValue.Grass);
+    world.monsters.bytes.fill(0);
+    const m = world.monsters;
+    m.setType(0, MapValue.Orc);
+    m.setPosition(0, world.x + 1, world.y);
+    m.setHp(0, 0x80);
+    const x = world.x;
+    expect(await move(world, io, 'east')).toEqual({ kind: 'monster', dx: 1, dy: 0 });
+    expect(world.x).toBe(x);
+  });
+});

@@ -136,6 +136,9 @@ export class Game {
           const speaker = [0, 1, 2, 3].find((m) => world.memberAlive(m)) ?? 0;
           return interact.talkTo(world, io, bump.index, speaker);
         }
+        case 'monster':
+          io.print('Attack\n');
+          return interact.attackToward(world, io, bump.dx, bump.dy);
         case 'counter': {
           const member = await interact.whoTransacts(world, io);
           if (member >= 0) await interact.transactToward(world, io, member, bump.dx, bump.dy);

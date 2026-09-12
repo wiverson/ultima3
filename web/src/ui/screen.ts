@@ -30,7 +30,7 @@ import { suggestedCommands, prioritise } from '../game/context.ts';
 import { Location } from '../game/party.ts';
 import { buildViewport, VIEW_SIZE, type Viewport } from '../game/viewport.ts';
 import { buildDungeonView, secretMessage } from '../game/dungeon.ts';
-import { Key, type GameIO, type MenuOption, type CommandScope } from '../game/io.ts';
+import { Key, type GameIO, type MenuOption, type CommandScope, type MenuPlacement } from '../game/io.ts';
 import {
   controllerKeyFor,
   COMMAND_MENUS,
@@ -327,9 +327,18 @@ export class Screen implements GameIO {
    * cancels (-1). Letter keys still pick the matching option, so a keyboard
    * works in controller mode too.
    */
-  private async runMenu(title: string, options: MenuOption[], columns = 1): Promise<number> {
+  private async runMenu(title: string, options: MenuOption[], columns = 1, place?: MenuPlacement): Promise<number> {
     const visible = options.filter((o) => !o.hidden);
     const menu = layoutMenu(title, visible.map((o) => o.label), columns);
+    if (place) {
+      // A title screen: the window replaces the option text at these rows,
+      // and may be as wide as the screen rather than the map.
+      const longest = Math.max(title.length, ...visible.map((o) => o.label.length));
+      menu.width = Math.min(COLUMNS - 4, longest + 4);
+      menu.y = place.row;
+      menu.x = Math.floor((COLUMNS - menu.width) / 2);
+      this.black(1, place.row, COLUMNS - 2, menu.visibleRows + 2);
+    }
     this.openMenu(menu);
     try {
       for (;;) {
@@ -439,11 +448,11 @@ export class Screen implements GameIO {
     }
   }
 
-  async chooseOption(options: MenuOption[], echo: 'none' | 'key' | 'line'): Promise<string> {
+  async chooseOption(options: MenuOption[], echo: 'none' | 'key' | 'line', place?: MenuPlacement): Promise<string> {
     let key = '';
     for (;;) {
       if (this.promptMode === 'controller') {
-        const picked = await this.runMenu('Choose', options);
+        const picked = await this.runMenu(place?.title ?? 'Choose', options, 1, place);
         key = picked < 0 ? '' : options[picked].key;
         break;
       }

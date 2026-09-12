@@ -183,7 +183,12 @@ export async function attack(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Attack);
   const dir = await getDirection(world, io);
   if (!dir) return;
-  const mon = world.monsters.at(world.constrain(dir.xs), world.constrain(dir.ys));
+  await attackToward(world, io, dir.dx, dir.dy);
+}
+
+/** Attack whatever is one step (dx, dy) from the party. */
+export async function attackToward(world: World, io: GameIO, dx: number, dy: number): Promise<void> {
+  const mon = world.monsters.at(world.constrain(world.x + dx), world.constrain(world.y + dy));
   if (mon < 0) return notHere(io);
   await attackMonster(world, io, mon);
 }
