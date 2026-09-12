@@ -76,8 +76,13 @@ Everything the Apple II game had:
   diagonally, as on the Apple II, while monsters always could. Untick it
   for the Mac version's party diagonals; the land beside Exodus' castle
   changes to match (see below).
-- Walking into a townsperson talks to them, and in combat walking into a
-  monster attacks it. Both are conveniences this port adds.
+- Walking into things does what you would have typed next, a convenience
+  this port adds: a townsperson is talked to, a shop counter opens the
+  shop (after "Who will Transact"), a locked door beside you asks whose
+  key to use, and in combat a monster is attacked.
+- In controller mode the command menu puts the commands the surroundings
+  call for at the top (`src/game/context.ts`): Enter on a town, Board on a
+  horse, Klimb on a ladder, Attack beside a monster, and so on.
 - Auto-combat (a LairWare addition): tick "Auto combat" above the screen
   and the party fights by itself. As in the Mac version the AI decides a
   member's turn and "types" it: it queues the keys a player would press
@@ -113,6 +118,7 @@ src/game/   pure game logic, no DOM, unit tested
   actions.ts      the party's own records (Get, Hand, Ready, Wear, Ztats ...)
   interact.ts     other creatures (Transact, Attack, Fire, Steal, Unlock, Other)
   shops.ts        the eight shops
+  context.ts      which commands fit the surroundings (controller menu order)
   combat.ts       tactical combat
   autocombat.ts   the auto-combat planner (returns the keys to press)
   spells.ts       Cast and the spell effects

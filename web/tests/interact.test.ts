@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { newWorld, FakeIO } from './helpers.ts';
-import { speech, transact, unlock, steal, otherCommand, fire } from '../src/game/interact.ts';
+import { speech, transact, unlock, steal, otherCommand, fire, unlockToward, whoTransacts, transactToward } from '../src/game/interact.ts';
 import { shop } from '../src/game/shops.ts';
 import { cast } from '../src/game/spells.ts';
 import { getChest, readyWeapon, wearArmour, stats, handEquipment } from '../src/game/actions.ts';
@@ -95,6 +95,31 @@ describe('shops', () => {
 });
 
 describe('doors, chests and stealing', () => {
+  it('unlocks a door the party walked into', async () => {
+    const { world, io } = townWorld();
+    world.putXYVal(MapValue.LetterI, 21, 20);
+    world.member(0).bytes[38] = 1;
+    io.keys = ['1'];
+    await unlockToward(world, io, 1, 0);
+    expect(world.getXYVal(21, 20)).toBe(MapValue.Floor);
+    expect(world.member(0).keys).toBe(0);
+  });
+
+  it('shops at a counter the party walked into', async () => {
+    const { world, io } = townWorld();
+    world.y = 17; // 17 & 7 = 1: grocer
+    world.putXYVal(MapValue.LetterA, 21, 17);
+    world.putXYVal(MapValue.Merchant, 22, 17);
+    io.keys = ['1', 'N'];
+    io.inputs = ['10'];
+    const food = world.member(0).food;
+    const member = await whoTransacts(world, io);
+    expect(member).toBe(0);
+    await transactToward(world, io, member, 1, 0);
+    expect(io.output).toContain('GROCER');
+    expect(world.member(0).food).toBe(food + 10);
+  });
+
   it('unlocks a door with a key', async () => {
     const { world, io } = townWorld();
     world.putXYVal(MapValue.LetterI, 21, 20);

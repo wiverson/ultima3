@@ -13,7 +13,7 @@ import { World } from './world.ts';
 import { Location } from './party.ts';
 import { MapValue, Shape } from './tiles.ts';
 import { type GameIO, Sound, Music, deathSound, letterOptions } from './io.ts';
-import { getDirection, notHere, what2, Msg as CmdMsg, PartyShape } from './commands.ts';
+import { getDirection, notHere, what2, counterWithMerchant, Msg as CmdMsg, PartyShape } from './commands.ts';
 import { getChest, incapacitated, stealDisarmFails } from './actions.ts';
 import { shop } from './shops.ts';
 import { attackMonster, monsterName } from './combat.ts';
@@ -90,24 +90,36 @@ export function speech(talk: Uint8Array, person: number): string {
 
 /** Talk to whoever or whatever is in a chosen direction: NPCs, Lord British, or a shop counter. (`Transact`) */
 export async function transact(world: World, io: GameIO): Promise<void> {
-  io.printMessage(Msg.WhoTransacts);
-  const n = await io.chooseMember();
-  if (n < 1 || n > 4) return;
-  const member = n - 1;
-  if (!world.memberAlive(member)) return incapacitated(io);
+  const member = await whoTransacts(world, io);
+  if (member < 0) return;
   io.printMessage(Msg.Direction);
   const dir = await getDirection(world, io);
   if (!dir) return;
-  const xs = world.constrain(dir.xs);
-  const ys = world.constrain(dir.ys);
+  await transactToward(world, io, member, dir.dx, dir.dy);
+}
+
+/** The "Who will Transact-" prompt: a living member's index, or -1. */
+export async function whoTransacts(world: World, io: GameIO): Promise<number> {
+  io.printMessage(Msg.WhoTransacts);
+  const n = await io.chooseMember();
+  if (n < 1 || n > 4) return -1;
+  const member = n - 1;
+  if (!world.memberAlive(member)) {
+    incapacitated(io);
+    return -1;
+  }
+  return member;
+}
+
+/** Transact with whatever is one step (dx, dy) from the party. */
+export async function transactToward(world: World, io: GameIO, member: number, dx: number, dy: number): Promise<void> {
+  const xs = world.constrain(world.x + dx);
+  const ys = world.constrain(world.y + dy);
   const mon = world.monsters.at(xs, ys);
 
   if (mon < 0) {
     // No one there: perhaps a counter with a merchant behind it.
-    const tile = world.getXYVal(xs, ys);
-    if (tile < 0x94 || tile >= 0xe8) return notHere(io);
-    const behind = world.getXYVal(xs + dir.dx, ys + dir.dy);
-    if (behind !== MapValue.Merchant) return notHere(io);
+    if (!counterWithMerchant(world, xs, ys, dx, dy)) return notHere(io);
     const previousMusic = world.music;
     world.music = Music.Shop;
     io.music(Music.Shop);
@@ -250,6 +262,12 @@ export async function unlock(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Unlock);
   const dir = await getDirection(world, io, false, false);
   if (!dir) return;
+  await unlockToward(world, io, dir.dx, dir.dy);
+}
+
+/** Unlock the door one step (dx, dy) from the party, asking whose key to use. */
+export async function unlockToward(world: World, io: GameIO, dx: number, dy: number): Promise<void> {
+  const dir = { xs: world.x + dx, ys: world.y + dy, dx, dy };
   if (dir.dx === 0 && dir.dy !== 0) return notHere(io);
   if (world.getXYVal(dir.xs, dir.ys) !== MapValue.LetterI) return notHere(io);
   io.printMessage(Msg.WhoseKey);

@@ -177,29 +177,53 @@ export function moveDelta(name: MoveName): { dx: number; dy: number; message: nu
 }
 
 /**
- * Mirrors `North()`, `South()` ... `NorthWest()`. Returns the index of a
- * townsperson standing in the way (so the game can talk to them instead of
- * bumping, a convenience this port adds), or -1.
+ * What a move ran into instead of moving. A convenience this port adds:
+ * the game turns each into the command a player would have typed.
  */
-export async function move(world: World, io: GameIO, name: MoveName): Promise<number> {
+export type Bump =
+  /** A townsperson (monster slot `index`): talk to them. */
+  | { kind: 'person'; index: number }
+  /** A shop counter with the merchant behind it: transact. */
+  | { kind: 'counter'; dx: number; dy: number }
+  /** A locked door beside the party: unlock it. */
+  | { kind: 'door'; dx: number; dy: number }
+  | null;
+
+/** Is this map value a counter (a wall or letter tile) with a merchant behind it? (`Transact`) */
+export function counterWithMerchant(world: World, xs: number, ys: number, dx: number, dy: number): boolean {
+  const tile = world.getXYVal(xs, ys);
+  if (tile < MapValue.Wall2 || tile >= MapValue.SnakeBottom) return false;
+  return world.getXYVal(xs + dx, ys + dy) === MapValue.Merchant;
+}
+
+/**
+ * Mirrors `North()`, `South()` ... `NorthWest()`. Returns what stood in
+ * the way (see `Bump`) or null when the party moved or was simply blocked.
+ */
+export async function move(world: World, io: GameIO, name: MoveName): Promise<Bump> {
   const spec = MOVES[name];
   if (spec.dx !== 0) world.horseFacingEast = spec.dx > 0;
   io.printMessage(spec.message);
   if (!spec.compass.every((c) => validTrans(world, c))) {
     noGo(io);
-    return -1;
+    return null;
   }
+  const xs = world.constrain(world.x + spec.dx);
+  const ys = world.constrain(world.y + spec.dy);
   if (world.inTownOrCastle) {
-    const who = world.monsters.at(world.constrain(world.x + spec.dx), world.constrain(world.y + spec.dy));
-    if (who >= 0) return who;
+    const who = world.monsters.at(xs, ys);
+    if (who >= 0) return { kind: 'person', index: who };
+    if (counterWithMerchant(world, xs, ys, spec.dx, spec.dy)) return { kind: 'counter', dx: spec.dx, dy: spec.dy };
+    // Doors only open sideways, as the Unlock command requires.
+    if (world.getXYVal(xs, ys) === MapValue.LetterI && spec.dx !== 0 && spec.dy === 0) return { kind: 'door', dx: spec.dx, dy: spec.dy };
   }
   if (!(await validDir(world, io, world.getXYVal(world.x + spec.dx, world.y + spec.dy)))) {
     noGo(io);
-    return -1;
+    return null;
   }
-  world.x = world.constrain(world.x + spec.dx);
-  world.y = world.constrain(world.y + spec.dy);
-  return -1;
+  world.x = xs;
+  world.y = ys;
+  return null;
 }
 
 /** Map a key press to a movement, or undefined. Arrow keys and the numeric keypad both work. */

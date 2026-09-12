@@ -249,9 +249,9 @@ describe('walking into townspeople', () => {
     m.setTileUnder(3, MapValue.Floor);
     m.setPosition(3, 21, 20);
     world.putXYVal(MapValue.Jester, 21, 20);
-    expect(await move(world, io, 'east')).toBe(3);
+    expect(await move(world, io, 'east')).toEqual({ kind: 'person', index: 3 });
     expect(world.x).toBe(20);
-    expect(await move(world, io, 'west')).toBe(-1);
+    expect(await move(world, io, 'west')).toBeNull();
     expect(world.x).toBe(19);
   });
 });
@@ -277,5 +277,38 @@ describe('classic moves', () => {
     world.setClassicMoves(false);
     io.keys = ['9'];
     expect(await getDirection(world, io)).toMatchObject({ dx: 1, dy: -1 });
+  });
+});
+
+describe('walking into counters and doors', () => {
+  function town(): { world: World; io: FakeIO } {
+    const world = newWorld();
+    world.enterMap(MapId.FirstTown);
+    world.party.location = Location.Town;
+    world.current.tiles.fill(MapValue.Floor);
+    world.monsters.bytes.fill(0);
+    world.x = 20;
+    world.y = 20;
+    return { world, io: new FakeIO(world.resources) };
+  }
+
+  it('reports a shop counter with a merchant behind it', async () => {
+    const { world, io } = town();
+    world.putXYVal(MapValue.LetterA, 21, 20);
+    world.putXYVal(MapValue.Merchant, 22, 20);
+    expect(await move(world, io, 'east')).toEqual({ kind: 'counter', dx: 1, dy: 0 });
+    // A bare counter with nothing behind it is just a wall.
+    world.putXYVal(MapValue.Floor, 22, 20);
+    expect(await move(world, io, 'east')).toBeNull();
+    expect(world.x).toBe(20);
+  });
+
+  it('reports a locked door, but only from the side', async () => {
+    const { world, io } = town();
+    world.putXYVal(MapValue.LetterI, 21, 20);
+    expect(await move(world, io, 'east')).toEqual({ kind: 'door', dx: 1, dy: 0 });
+    world.putXYVal(MapValue.LetterI, 20, 19);
+    expect(await move(world, io, 'north')).toBeNull();
+    expect(world.y).toBe(20);
   });
 });

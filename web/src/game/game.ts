@@ -127,13 +127,24 @@ export class Game {
     if (world.classicMoves && cmd.DIAGONAL_KEYS.includes(key)) return; // no diagonals on the Apple II
     const moveName = cmd.moveForKey(key, !world.classicMoves);
     if (moveName) {
-      const npc = await cmd.move(world, io, moveName);
-      // Walking into a townsperson talks to them (with the first living member).
-      if (npc >= 0) {
-        const speaker = [0, 1, 2, 3].find((m) => world.memberAlive(m)) ?? 0;
-        await interact.talkTo(world, io, npc, speaker);
+      const bump = await cmd.move(world, io, moveName);
+      if (!bump) return;
+      // Walking into things does what a player would have typed next.
+      switch (bump.kind) {
+        case 'person': {
+          // Talk with the first living member.
+          const speaker = [0, 1, 2, 3].find((m) => world.memberAlive(m)) ?? 0;
+          return interact.talkTo(world, io, bump.index, speaker);
+        }
+        case 'counter': {
+          const member = await interact.whoTransacts(world, io);
+          if (member >= 0) await interact.transactToward(world, io, member, bump.dx, bump.dy);
+          return;
+        }
+        case 'door':
+          io.print('Unlock\n');
+          return interact.unlockToward(world, io, bump.dx, bump.dy);
       }
-      return;
     }
     switch (key.toUpperCase()) {
       case ' ':

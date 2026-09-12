@@ -26,6 +26,7 @@ import { SoundPlayer } from './sound.ts';
 import { MusicPlayer } from './music.ts';
 import { DungeonRenderer } from './dungeonView.ts';
 import { World } from '../game/world.ts';
+import { suggestedCommands, prioritise } from '../game/context.ts';
 import { Location } from '../game/party.ts';
 import { buildViewport, VIEW_SIZE, type Viewport } from '../game/viewport.ts';
 import { buildDungeonView, secretMessage } from '../game/dungeon.ts';
@@ -384,7 +385,8 @@ export class Screen implements GameIO {
     if (key === Key.X) return shortcuts.X;
     if (key === Key.Y) return shortcuts.Y;
     if (key === Key.A) {
-      const options = COMMAND_MENUS[scope];
+      // The commands the surroundings call for come first.
+      const options = prioritise(COMMAND_MENUS[scope], suggestedCommands(this.world, scope));
       const picked = await this.runMenu('Command', options);
       return picked < 0 ? null : options[picked].key;
     }
