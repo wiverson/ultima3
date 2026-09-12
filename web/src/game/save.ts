@@ -10,7 +10,7 @@
  * Sosaria at the square the party entered from: towns are never persisted.
  */
 
-import { World blockExodusApproach } from './world.ts';
+import { World, blockExodusApproach } from './world.ts';
 import { Location } from './party.ts';
 import { MapId } from '../data/resources.ts';
 
