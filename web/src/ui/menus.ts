@@ -201,21 +201,21 @@ export function drawMenu(ctx: CanvasRenderingContext2D, gfx: GraphicsSet, cell: 
       const py = y + 1 + row;
       const label = menu.items[index].slice(0, menu.columns > 1 ? colWidth - 1 : width - 4);
       text(label, px, py);
-      const tint = menu.disabled?.[index] ? '#707070' : menu.colours?.[index];
-      if (tint) {
-        // Tint the white glyphs: multiplying leaves the black background black.
-        ctx.save();
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.fillStyle = tint;
-        ctx.fillRect(px * cell, py * cell, label.length * cell, cell);
-        ctx.restore();
-      }
       if (index === menu.cursor) {
         // The cursor is an inverted cell to the left of the item.
         ctx.save();
         ctx.globalCompositeOperation = 'difference';
         ctx.fillStyle = '#fff';
         ctx.fillRect((px - 1) * cell, py * cell, (label.length + 1) * cell, cell);
+        ctx.restore();
+      }
+      const tint = menu.disabled?.[index] ? '#707070' : menu.colours?.[index];
+      if (tint) {
+        // Tint after the cursor: white glyphs (or the cursor's white bar) take the colour, black stays black.
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = tint;
+        ctx.fillRect((index === menu.cursor ? px - 1 : px) * cell, py * cell, (label.length + (index === menu.cursor ? 1 : 0)) * cell, cell);
         ctx.restore();
       }
     }
