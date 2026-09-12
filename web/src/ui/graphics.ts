@@ -99,7 +99,9 @@ export class GraphicsSet {
   /** Pixel size of one tile in the tile sheet. */
   readonly tileSize: number;
   /** Pixel size of one glyph in the font sheet. */
+  /** Width of a glyph in the font sheet; glyphs are `fontHeight` tall (the Apple II fonts are 7:8). */
   readonly fontSize: number;
+  readonly fontHeight: number;
   /** Pixel size of one UI piece. */
   readonly uiSize: number;
 
@@ -121,6 +123,7 @@ export class GraphicsSet {
   ) {
     this.tileSize = tiles.width / TILE_COLUMNS;
     this.fontSize = font.width / FONT_GLYPHS;
+    this.fontHeight = font.height;
     this.uiSize = ui.width / UI_COLUMNS;
   }
 
@@ -205,8 +208,8 @@ export class GraphicsSet {
   drawGlyph(ctx: CanvasRenderingContext2D, ch: string, dx: number, dy: number, size: number): void {
     let code = ch.charCodeAt(0) - 0x20;
     if (code < 0 || code >= FONT_GLYPHS) code = 0;
-    const s = this.fontSize;
-    ctx.drawImage(this.font, code * s, 0, s, s, dx, dy, size, size);
+    // The whole glyph, however tall, fits the square cell.
+    ctx.drawImage(this.font, code * this.fontSize, 0, this.fontSize, this.fontHeight, dx, dy, size, size);
   }
 
   /** Draw piece (column, row) of the UI sheet. */

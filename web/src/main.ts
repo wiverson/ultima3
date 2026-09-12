@@ -24,7 +24,7 @@ async function start(): Promise<void> {
 
   // The tile set (graphics, font and border) is chosen with a selector and remembered.
   const tilesSelect = document.getElementById('tiles') as HTMLSelectElement;
-  let tileSet = 'Nintendo';
+  let tileSet = 'Standard';
   try {
     const saved = localStorage.getItem('ultima3.tiles');
     if (saved && [...tilesSelect.options].some((o) => o.value === saved)) tileSet = saved;
