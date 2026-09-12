@@ -905,7 +905,7 @@ export class Screen implements GameIO {
    * The four character boxes, two rows each:
    *
    *   Tatiana       L!      name; status letter, or a green "L!" when Lord
-   *   H:0100/0150 M25       British would raise the member's level
+   *   0100/0150   M:25      British would raise the member's level
    *
    * Gold and food are pooled and shown on the top border (`showMoons`).
    */
@@ -924,7 +924,8 @@ export class Screen implements GameIO {
         this.drawText(p.name, 24, top);
         if (due && p.status === 'G') this.drawText('L!', 37, top, '#40ff40');
         else this.drawText(p.status, 38, top);
-        this.drawText(`H:${pad(p.hitPoints, 4)}/${pad(p.maxHitPoints, 4)} M${pad(p.mana, 2)}`, 24, top + 1);
+        this.drawText(`${pad(p.hitPoints, 4)}/${pad(p.maxHitPoints, 4)}`, 24, top + 1);
+        this.drawText(`M:${pad(p.mana, 2)}`, 35, top + 1);
       }
       if (this.highlighted.has(m)) this.invert(24, top, 15, BOX_ROWS);
     }
@@ -976,8 +977,40 @@ export class Screen implements GameIO {
   showMoons(): void {
     const w = this.world;
     if (!this.frameShown) return; // title screens have no status bar
-    const middle = w.party.location === Location.Dungeon ? ` Lvl:${w.dungeon.level + 1}` : `(${w.moonPhase[0]})(${w.moonPhase[1]})`;
-    this.drawText(`G:${pad(w.party.gold, 5)} ${middle} F:${pad(w.party.food, 5)}`.padEnd(22), 1, 0);
+    const piece = (n: number, x: number) => this.piece(n, x, 0);
+
+    // The moons (or dungeon level) in the middle, framed as the Apple II framed them.
+    piece(Piece.CapLeft, 8);
+    if (w.party.location === Location.Dungeon) this.drawText(`Lvl:${w.dungeon.level + 1}`.padEnd(6), 9, 0);
+    else this.drawText(`(${w.moonPhase[0]})(${w.moonPhase[1]})`, 9, 0);
+    piece(Piece.CapRight, 15);
+
+    // Gold on the left (columns 1-7) and food on the right (16-22), each with
+    // blue bar on either side while the number is short enough to leave room.
+    const gold = `G:${w.party.gold}`;
+    for (let x = 1; x <= 7; x++) piece(Piece.Horizontal, x);
+    if (gold.length <= 5) {
+      piece(Piece.CapLeft, 1);
+      this.drawText(gold, 2, 0);
+      piece(Piece.CapRight, 2 + gold.length);
+    } else if (gold.length === 6) {
+      piece(Piece.CapLeft, 1);
+      this.drawText(gold, 2, 0);
+    } else {
+      this.drawText(gold, 1, 0);
+    }
+    const food = `F:${w.party.food}`;
+    for (let x = 16; x <= 22; x++) piece(Piece.Horizontal, x);
+    if (food.length <= 5) {
+      piece(Piece.CapLeft, 21 - food.length);
+      this.drawText(food, 22 - food.length, 0);
+      piece(Piece.CapRight, 22);
+    } else if (food.length === 6) {
+      this.drawText(food, 16, 0);
+      piece(Piece.CapRight, 22);
+    } else {
+      this.drawText(food, 16, 0);
+    }
   }
 }
 

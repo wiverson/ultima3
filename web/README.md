@@ -181,7 +181,7 @@ explained in `tiles.ts`, and the music event format in `ui/music.ts`.
   member, 0..9999 each). The pool lives in spare bytes of the party record
   and shows on the top border either side of the moons; the character
   boxes are two rows each (name, status or a green "L!" when Lord British
-  would raise the member, hit points over max, mana), which gives the
+  would raise the member; hit points over max and mana), which gives the
   message area four more rows. Join gold is gone, Hand no longer moves
   food or gold, the grocer asks nobody's name, and Transact asks who only
   for Lord British and the shops that give something to a member. Members
