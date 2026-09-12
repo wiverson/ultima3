@@ -911,9 +911,37 @@ export class Screen implements GameIO {
       const dx = cell + (i % VIEW_SIZE) * tile;
       const dy = cell + Math.floor(i / VIEW_SIZE) * tile;
       gfx.drawShape(ctx, c.base, dx, dy, tile);
+      if (c.hit && this.tileSetName !== 'Standard') {
+        // The Apple II way: the ball's "HIT" frame replaces whatever was hit.
+        gfx.drawShape(ctx, c.hit.shape, dx, dy, tile, { masked: true, altFrame: true });
+        continue;
+      }
       if (c.overlay !== undefined) gfx.drawShape(ctx, c.overlay, dx, dy, tile, { masked: true, flip: c.flip, altFrame: c.altFrame });
+      if (c.hit) this.drawBurst(dx, dy, tile, c.hit.frame);
     }
     this.markActiveMember();
+  }
+
+  /**
+   * A hit with the Standard tiles: a red burst that grows over three frames,
+   * drawn on the 16-pixel grid of the era's tiles so it sits with the art.
+   * Frames 1 and 2 are filled discs, a bright rim round a darker centre;
+   * frame 3 is a ring, so the target shows through as the burst passes.
+   */
+  private drawBurst(dx: number, dy: number, tile: number, frame: number): void {
+    const { ctx } = this;
+    const gp = tile / 16;
+    const radius = [0, 2.6, 4.6, 6.8][frame] ?? 6.8;
+    const inner = frame === 3 ? 4.6 : frame === 2 ? 3.0 : 0; // hollow, or the darker centre
+    for (let py = 0; py < 16; py++) {
+      for (let px = 0; px < 16; px++) {
+        const d = Math.hypot(px - 7.5, py - 7.5);
+        if (d > radius) continue;
+        if (frame === 3 && d <= inner) continue;
+        ctx.fillStyle = d <= inner ? '#a01818' : d > radius - 1.2 ? '#ff5040' : '#e02020';
+        ctx.fillRect(dx + px * gp, dy + py * gp, gp, gp);
+      }
+    }
   }
 
 

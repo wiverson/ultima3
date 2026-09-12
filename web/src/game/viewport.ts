@@ -26,6 +26,12 @@ export interface ViewCell {
   flip?: boolean;
   /** Draw the overlay from its alternate animation frame (the "HIT" balls). */
   altFrame?: boolean;
+  /**
+   * A hit landing here: the frame 1..3 and the ball shape. The screen draws
+   * either the ball's "HIT" tile in place of the overlay, or, with the
+   * Standard tiles, an expanding burst over it.
+   */
+  hit?: { frame: number; shape: number };
 }
 
 export interface Viewport {
@@ -220,7 +226,9 @@ export function buildViewport(world: World, x = world.x, y = world.y): Viewport 
     }
     if (vx >= 0 && vx < VIEW_SIZE && vy >= 0 && vy < VIEW_SIZE) {
       const cell = view.cells[vy * VIEW_SIZE + vx];
-      view.cells[vy * VIEW_SIZE + vx] = { base: cell.base, overlay: ball.shape, altFrame: ball.hitFrame };
+      view.cells[vy * VIEW_SIZE + vx] = ball.hit
+        ? { ...cell, hit: { frame: ball.hit, shape: ball.shape } }
+        : { base: cell.base, overlay: ball.shape };
     }
   }
   return view;

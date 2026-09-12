@@ -202,7 +202,13 @@ export class World {
    * the terrain under it; keeping it separate is simpler. Coordinates are
    * map coordinates outside combat and arena cells during combat.
    */
-  ball: { x: number; y: number; shape: number; hitFrame?: boolean } | null = null;
+  ball: {
+    x: number;
+    y: number;
+    shape: number;
+    /** 0 or absent while the ball flies; 1..3 for the frames of a hit (the "HIT" tile, or the burst). */
+    hit?: number;
+  } | null = null;
 
   /** Which card slot Exodus expects next (0x1E..0x21). (`lastCard`) */
   lastCard = 0x1e;

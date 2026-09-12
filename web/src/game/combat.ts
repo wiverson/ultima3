@@ -57,6 +57,9 @@ const MISSING = 255;
 /** How long a member has to act before the turn passes by itself. */
 const TURN_TIMEOUT_MS = 4000;
 const BALL_MS = 80;
+/** A hit shows three frames of impact. */
+const HIT_FRAMES = 3;
+const HIT_FRAME_MS = 60;
 /** Pause before each automatic turn, so the player can follow the fight and interrupt it. */
 const AUTO_PAUSE_MS = 250;
 
@@ -199,11 +202,23 @@ export function memberAt(c: CombatState, x: number, y: number): number {
   return -1;
 }
 
-/** Draw a ball at an arena cell for one frame. */
+/**
+ * Draw a ball at an arena cell for one frame, or, for a hit, the three
+ * frames of the impact (the "HIT" tile on the Apple II; the Standard tiles
+ * get an expanding burst instead, drawn by the screen).
+ */
 export async function showBall(world: World, io: GameIO, x: number, y: number, shape: number, hit = false): Promise<void> {
-  world.ball = { x, y, shape, hitFrame: hit };
-  io.redrawMap();
-  await io.pause(hit ? 160 : BALL_MS);
+  if (!hit) {
+    world.ball = { x, y, shape };
+    io.redrawMap();
+    await io.pause(BALL_MS);
+  } else {
+    for (let frame = 1; frame <= HIT_FRAMES; frame++) {
+      world.ball = { x, y, shape, hit: frame };
+      io.redrawMap();
+      await io.pause(HIT_FRAME_MS);
+    }
+  }
   world.ball = null;
   io.redrawMap();
 }

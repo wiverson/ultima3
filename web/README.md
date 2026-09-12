@@ -125,6 +125,9 @@ save contains except the pooled gold and food.
   A; nothing when Good) or a green "L!" when Lord British would raise the
   member, then hit points over max and mana (none for fighters, thieves
   and barbarians). The message area gained four rows.
+- **Hits** with the Standard tiles show a three-frame red burst on the
+  16-pixel grid (a small disc, a larger one, then a ring) instead of the
+  "HIT" tile; the other tile sets keep their HIT tile.
 - **Combat marker**: the member whose turn it is gets a rounded outline,
   two game pixels wide, fading from white to grey over the four seconds
   before the turn passes by itself. The Apple II blinked the figure.
