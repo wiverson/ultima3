@@ -46,9 +46,7 @@ async function start(): Promise<void> {
   const screen = new Screen(canvas, gfx, images, keyboard, sounds, music, world);
   canvas.focus();
 
-  status.textContent =
-    'Menu: J journey onward, O organize. In play: arrows move, letters are commands (A attack, C cast, ' +
-    'E enter, T transact, Z stats, Q quit & save). URL options: ?new (fresh game), ?tiles=<set> (e.g. "PC EGA"), ?music=0.';
+  status.textContent = '';
 
   const game = new Game(world, screen, { save: (w) => localSave.write(w) });
   // Debug hook: lets the console (and the browser tests) inspect and poke the game.
