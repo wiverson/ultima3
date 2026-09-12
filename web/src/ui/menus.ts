@@ -134,6 +134,8 @@ export interface MenuWindow {
   visibleRows: number;
   /** For grid menus (the on-screen keyboard): items per row. */
   columns: number;
+  /** Optional one-line hint per item, drawn centred under the window. */
+  hints?: (string | undefined)[];
 }
 
 const MAX_ROWS = 12;
@@ -213,6 +215,14 @@ export function drawMenu(ctx: CanvasRenderingContext2D, gfx: GraphicsSet, cell: 
   // Scroll marks.
   if (menu.top > 0) text('^', x + width - 2, y + 1);
   if ((menu.top + menu.visibleRows) * menu.columns < menu.items.length) text('v', x + width - 2, y + height - 2);
+
+  // The highlighted item's hint on the row under the window.
+  const hint = menu.hints?.[menu.cursor];
+  if (menu.hints) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(cell, (y + height) * cell, 38 * cell, cell);
+    if (hint) text(hint.slice(0, 38), Math.max(1, 20 - Math.floor(hint.length / 2)), y + height);
+  }
 }
 
 /** Move the cursor for a d-pad key and keep it visible. Returns true if the key was a movement. */

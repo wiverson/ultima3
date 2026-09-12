@@ -330,15 +330,8 @@ export class Screen implements GameIO {
   private async runMenu(title: string, options: MenuOption[], columns = 1, place?: MenuPlacement): Promise<number> {
     const visible = options.filter((o) => !o.hidden);
     const menu = layoutMenu(title, visible.map((o) => o.label), columns);
-    if (place) {
-      // A title screen: the window replaces the option text at these rows,
-      // and may be as wide as the screen rather than the map.
-      const longest = Math.max(title.length, ...visible.map((o) => o.label.length));
-      menu.width = Math.min(COLUMNS - 4, longest + 4);
-      menu.y = place.row;
-      menu.x = Math.floor((COLUMNS - menu.width) / 2);
-      this.black(1, place.row, COLUMNS - 2, menu.visibleRows + 2);
-    }
+    if (visible.some((o) => o.hint)) menu.hints = visible.map((o) => o.hint);
+    if (place) this.placeMenu(menu, place);
     this.openMenu(menu);
     try {
       for (;;) {
@@ -348,10 +341,84 @@ export class Screen implements GameIO {
           this.showMenuNow();
           continue;
         }
-        if (key === Key.A) return visible.length ? options.indexOf(visible[menu.cursor]) : -1;
-        if (key === Key.B) return -1;
+        // Enter and Escape serve keyboard users where a menu is shown in both modes.
+        if (key === Key.A || key === Key.Enter) return visible.length ? options.indexOf(visible[menu.cursor]) : -1;
+        if (key === Key.B || key === Key.Escape) return -1;
         const byKey = options.findIndex((o) => o.key === key.toUpperCase());
         if (byKey >= 0) return byKey;
+      }
+    } finally {
+      this.closeMenu();
+    }
+  }
+
+  /**
+   * A title screen: the window replaces the text at these rows and may be
+   * as wide as the screen rather than the map.
+   */
+  private placeMenu(menu: MenuWindow, place: MenuPlacement): void {
+    const longest = Math.max(menu.title.length, ...menu.items.map((s) => s.length));
+    menu.width = Math.min(COLUMNS - 4, longest + 4);
+    menu.y = place.row;
+    menu.x = Math.floor((COLUMNS - menu.width) / 2);
+    // Keep the window (and its hint row) inside the frame; long lists scroll.
+    const available = ROWS - 1 - place.row - 2 - (menu.hints ? 1 : 0);
+    menu.visibleRows = Math.max(1, Math.min(menu.visibleRows, available));
+    if (place.cursor !== undefined && place.cursor >= 0 && place.cursor < menu.items.length) {
+      menu.cursor = place.cursor;
+      if (menu.cursor >= menu.visibleRows) menu.top = menu.cursor - menu.visibleRows + 1;
+    }
+    this.black(1, place.row, COLUMNS - 2, menu.visibleRows + 2 + (menu.hints ? 1 : 0));
+  }
+
+  async chooseFromList(options: MenuOption[], place: MenuPlacement): Promise<string> {
+    const picked = await this.runMenu(place.title, options, 1, place);
+    return picked < 0 ? '' : options[picked].key;
+  }
+
+  async allocatePoints(labels: string[], total: number, min: number, max: number, place: MenuPlacement): Promise<number[] | null> {
+    // Start with an even spread, the remainder going to the first rows.
+    const n = labels.length;
+    const values = labels.map((_, i) => Math.floor(total / n) + (i < total % n ? 1 : 0));
+    const left = () => total - values.reduce((a, b) => a + b, 0);
+    const width = Math.max(...labels.map((l) => l.length));
+    const items = () => [...labels.map((l, i) => `${l.padEnd(width)}  < ${String(values[i]).padStart(2)} >`), 'O.K.'];
+    const hints = () => {
+      const hint = left() > 0 ? `${left()} points left to spend` : left() < 0 ? 'Too many points' : 'All points spent';
+      return [...labels.map(() => hint), left() === 0 ? 'Press A or Enter to accept' : hint];
+    };
+    const menu = layoutMenu(place.title, items(), 1);
+    menu.hints = hints();
+    this.placeMenu(menu, place);
+    this.openMenu(menu);
+    try {
+      for (;;) {
+        const key = await this.readKey();
+        if (key === null) continue;
+        if (key === Key.Left || key === Key.Right) {
+          if (menu.cursor < n) {
+            const delta = key === Key.Right ? 1 : -1;
+            values[menu.cursor] = Math.max(min, Math.min(max, values[menu.cursor] + delta));
+            menu.items = items();
+            menu.hints = hints();
+            this.showMenuNow();
+          }
+          continue;
+        }
+        if (moveCursor(menu, key)) {
+          this.showMenuNow();
+          continue;
+        }
+        if (key === Key.A || key === Key.Enter) {
+          if (menu.cursor < n) {
+            menu.cursor++; // step to the next row, as a form would
+            this.showMenuNow();
+            continue;
+          }
+          if (left() === 0) return values;
+          continue;
+        }
+        if (key === Key.B || key === Key.Escape) return null;
       }
     } finally {
       this.closeMenu();

@@ -36,6 +36,8 @@ export const Key = {
 export interface MenuPlacement {
   row: number;
   title: string;
+  /** Item to highlight first (default 0). */
+  cursor?: number;
 }
 
 export interface MenuOption {
@@ -45,6 +47,8 @@ export interface MenuOption {
   label: string;
   /** Accepted from the keyboard but not shown in the menu (e.g. an item the member does not own). */
   hidden?: boolean;
+  /** One line shown under the menu while this item is highlighted. */
+  hint?: string;
 }
 
 /** Where a top-level command is being read; decides which command menu a controller sees. */
@@ -109,6 +113,19 @@ export interface GameIO {
    * or the key and a newline ('line'), matching what the original printed.
    */
   chooseOption(options: MenuOption[], echo: 'none' | 'key' | 'line', place?: MenuPlacement): Promise<string>;
+  /**
+   * Pick from a list shown as a menu in every input mode (the title and
+   * party screens, where there is no Apple II key to press). Resolves with
+   * the option's key, or '' when cancelled.
+   */
+  chooseFromList(options: MenuOption[], place: MenuPlacement): Promise<string>;
+  /**
+   * Share `total` points among `labels.length` attributes, each between
+   * `min` and `max`, on a screen where left and right adjust a row and OK
+   * is accepted once every point is spent. Resolves with the values, or
+   * null when cancelled.
+   */
+  allocatePoints(labels: string[], total: number, min: number, max: number, place: MenuPlacement): Promise<number[] | null>;
   /**
    * Read a line of text at the cursor with a blinking cursor, echoing each
    * character. Backspace edits; Enter finishes. (`UInputText`) With a

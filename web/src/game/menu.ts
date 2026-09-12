@@ -5,36 +5,31 @@
  * `Organize()`, `CreateChar()`, `FormParty()`, `DisperseParty()` and
  * `KillChar()` from UltimaMain.c.
  *
- * The Macintosh version replaced the Apple II text screens with dialogs.
- * This port follows the Apple II flow (which survives in comments in the C
- * source): everything is typed at prompts drawn on the title screen.
+ * The Apple II typed everything at prompts (entry numbers 1-20, attribute
+ * values) and the Macintosh used dialogs. This port uses menus drawn on the
+ * title screen in both input modes: the roster is a list to pick from, the
+ * party is a multi-select list, and attributes are shared out on a screen
+ * where left and right adjust each value. The records written are exactly
+ * what the Apple II wrote.
  */
 
 import { World } from './world.ts';
 import { Location } from './party.ts';
 import { PlayerRecord, ROSTER_SIZE } from './player.ts';
-import { type GameIO, Key } from './io.ts';
+import { type GameIO, type MenuOption } from './io.ts';
+import { randomName } from './names.ts';
 
 /** 1-based indices into the MoreMessages table. */
 const MM = {
-  JourneyOnward: 1,
   NotFormed: 2,
   FormTheParty: 4,
-  PartyInUse: 5,
-  Player1: 6,
-  NotAPlayer: 10,
-  Blank: 11,
   Formed: 12,
   DisperseTheParty: 13,
   NoOneThere: 14,
   Dispersed: 15,
   Create: 16,
-  EntryNumber: 17,
-  OneToTwenty: 18,
-  NotEmpty: 19,
+  Created: 21,
   Terminate: 22,
-  TerminateNoOne: 23,
-  WithAParty: 24,
   Terminated: 25,
   Copyright: 26,
   FromTheDepths: 27,
@@ -48,17 +43,25 @@ const MM = {
   DisperseThePartyOption: 37,
   TerminateACharacter: 38,
   MainMenu: 39,
-  PressSpace: 54,
 } as const;
+
+/** Where the menus sit on the title screen (rows below the picture). */
+const MENU_ROW = 13;
 
 function mm(world: World, n: number): string {
   // The bitmap font only has ASCII; the copyright sign becomes "(C)".
-  return (world.resources.strings.MoreMessages[n - 1] ?? '').replace(/\u00a9/g, '(C)');
+  return (world.resources.strings.MoreMessages[n - 1] ?? '').replace(/©/g, '(C)');
 }
 
 /** Wait for any key. */
 async function anyKey(io: GameIO): Promise<void> {
   await io.waitKey();
+}
+
+/** Show a line near the bottom of the title screen and wait for a key. */
+async function notice(io: GameIO, text: string): Promise<void> {
+  io.centreText(21, text);
+  await anyKey(io);
 }
 
 /**
@@ -76,23 +79,18 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
     io.clearBottom();
     io.centreText(11, mm(world, MM.FromTheDepths));
     io.centreText(12, mm(world, MM.HeComes));
-    io.centreText(15, mm(world, MM.Options));
-    io.centreText(17, `J) ${mm(world, MM.JourneyOnwardOption)}`);
-    io.centreText(18, `O) ${mm(world, MM.OrganizeAParty)}`);
     io.centreText(22, mm(world, MM.Copyright));
 
-    const key = await io.chooseOption(
+    const key = await io.chooseFromList(
       [
         { key: 'J', label: mm(world, MM.JourneyOnwardOption) },
         { key: 'O', label: mm(world, MM.OrganizeAParty) },
       ],
-      'none',
       { row: 15, title: mm(world, MM.Options) },
     );
     if (key === 'J') {
       if (!world.party.formed) {
-        io.centreText(20, mm(world, MM.NotFormed));
-        await anyKey(io);
+        await notice(io, mm(world, MM.NotFormed));
         continue;
       }
       await play();
@@ -105,28 +103,20 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
 
 /** Mirrors `Organize()`. */
 export async function organize(world: World, io: GameIO): Promise<void> {
+  let cursor = 0;
   for (;;) {
     io.showTitle();
     io.clearBottom();
     io.centreText(11, mm(world, MM.PartyOrganization));
-    io.centreText(13, mm(world, MM.Options));
-    io.centreText(15, `C) ${mm(world, MM.CreateACharacter)}`);
-    io.centreText(16, `F) ${mm(world, MM.FormThePartyOption)}`);
-    io.centreText(17, `D) ${mm(world, MM.DisperseThePartyOption)}`);
-    io.centreText(18, `T) ${mm(world, MM.TerminateACharacter)}`);
-    io.centreText(19, `M) ${mm(world, MM.MainMenu)}`);
-
-    const key = await io.chooseOption(
-      [
-        { key: 'C', label: mm(world, MM.CreateACharacter) },
-        { key: 'F', label: mm(world, MM.FormThePartyOption) },
-        { key: 'D', label: mm(world, MM.DisperseThePartyOption) },
-        { key: 'T', label: mm(world, MM.TerminateACharacter) },
-        { key: 'M', label: mm(world, MM.MainMenu) },
-      ],
-      'none',
-      { row: 13, title: mm(world, MM.Options) },
-    );
+    const options: MenuOption[] = [
+      { key: 'C', label: mm(world, MM.CreateACharacter) },
+      { key: 'F', label: mm(world, MM.FormThePartyOption) },
+      { key: 'D', label: mm(world, MM.DisperseThePartyOption) },
+      { key: 'T', label: mm(world, MM.TerminateACharacter) },
+      { key: 'M', label: mm(world, MM.MainMenu) },
+    ];
+    const key = await io.chooseFromList(options, { row: MENU_ROW, title: mm(world, MM.Options), cursor });
+    cursor = Math.max(0, options.findIndex((o) => o.key === key));
     switch (key || 'M') {
       case 'C':
         await createCharacter(world, io);
@@ -140,167 +130,252 @@ export async function organize(world: World, io: GameIO): Promise<void> {
       case 'T':
         await terminateCharacter(world, io);
         break;
-      case 'M':
-      case 'B':
-      case Key.Escape:
-        return;
       default:
-        break;
+        return;
     }
   }
 }
 
-/** Ask for a roster entry number, 1..20. Returns 0-based slot or -1. */
-async function askEntry(world: World, io: GameIO, y: number): Promise<number> {
-  io.textAt(14, y, mm(world, MM.EntryNumber));
-  const text = await io.inputTextAt(21, y, 2, true);
-  const n = parseInt(text, 10);
-  if (!Number.isFinite(n) || n < 1 || n > ROSTER_SIZE) {
-    io.centreText(21, mm(world, MM.OneToTwenty));
-    await anyKey(io);
-    return -1;
-  }
-  return n - 1;
+// ---------------------------------------------------------------------------
+// The roster as a list
+// ---------------------------------------------------------------------------
+
+/** One roster entry as a menu line: "12. Tatiana       Fighter    #1" (the mark is optional). Fits a 32-column window. */
+function rosterLabel(world: World, slot: number, mark = ''): string {
+  const p = world.roster.get(slot);
+  const number = `${slot + 1}.`.padStart(3);
+  if (!p.exists) return `${number} (empty)`;
+  const classes = world.resources.strings.Classes;
+  const careers = String.fromCharCode(...world.resources.misc.careerTable);
+  const className = classes[careers.indexOf(p.classLetter)] ?? '?';
+  return `${number} ${p.name.padEnd(13)} ${className.padEnd(11)}${mark}`;
 }
 
-/**
- * Mirrors the Apple II `CreateChar()`: pick an empty roster entry, then
- * type a name, sex, race, class and four attributes totalling 50 points.
- */
+/** The roster entries matching `include`, as menu options keyed by entry number. */
+function rosterOptions(world: World, include: (p: PlayerRecord) => boolean, mark?: (slot: number) => string): MenuOption[] {
+  const out: MenuOption[] = [];
+  for (let slot = 0; slot < ROSTER_SIZE; slot++) {
+    if (!include(world.roster.get(slot))) continue;
+    out.push({ key: String(slot + 1), label: rosterLabel(world, slot, mark?.(slot)) });
+  }
+  return out;
+}
+
+/** Ask the player to pick a roster entry. Returns the 0-based slot or -1. */
+async function pickEntry(world: World, io: GameIO, title: string, include: (p: PlayerRecord) => boolean, none: string): Promise<number> {
+  const options = rosterOptions(world, include);
+  if (options.length === 0) {
+    await notice(io, none);
+    return -1;
+  }
+  const key = await io.chooseFromList(options, { row: MENU_ROW, title });
+  return key ? Number(key) - 1 : -1;
+}
+
+// ---------------------------------------------------------------------------
+// Create
+// ---------------------------------------------------------------------------
+
+/** Race-dependent caps on each attribute (strength, dexterity, intelligence, wisdom), in race order. */
+const RACE_MAX: Record<string, [number, number, number, number]> = {
+  H: [75, 75, 75, 75],
+  E: [75, 99, 50, 75],
+  D: [99, 75, 75, 50],
+  B: [75, 50, 99, 75],
+  F: [25, 99, 75, 99],
+};
+
+/** A one-line description of what a class can do, from the game's own tables. */
+function classHint(world: World, classIndex: number): string {
+  const wa = world.resources.strings.WeaponsArmour;
+  const weaponMax = world.resources.misc.weaponUseTable[classIndex] - 'A'.charCodeAt(0) - 1; // highest weapon number
+  const armourMax = world.resources.misc.armourUseTable[classIndex] - 'A'.charCodeAt(0) - 1; // highest armour number
+  const weapons = weaponMax >= 15 ? 'any weapon' : `to ${wa[weaponMax].toLowerCase()}`;
+  const armour = armourMax >= 7 ? 'any armour' : `to ${wa[16 + armourMax].toLowerCase()}`;
+  const cleric = [1, 4, 7, 8, 10].includes(classIndex);
+  const wizard = [2, 6, 9, 8, 10].includes(classIndex);
+  const magic = cleric && wizard ? 'both magics, ' : cleric ? 'cleric magic, ' : wizard ? 'wizard magic, ' : '';
+  const thief = classIndex === 3 ? 'steals, ' : '';
+  return `${magic}${thief}${weapons}, ${armour}`;
+}
+
+/** The character creation screen. Writes the same record the Apple II `CreateChar()` wrote. */
 export async function createCharacter(world: World, io: GameIO): Promise<void> {
   io.clearBottom();
   io.centreText(11, mm(world, MM.Create));
-  const slot = await askEntry(world, io, 13);
+  const slot = await pickEntry(world, io, 'Which entry?', (p) => !p.exists, 'The roster is full.');
   if (slot < 0) return;
   const p = world.roster.get(slot);
-  if (p.exists) {
-    io.centreText(21, mm(world, MM.NotEmpty));
-    await anyKey(io);
-    return;
-  }
 
   const races = world.resources.strings.Races;
   const classes = world.resources.strings.Classes;
   const careers = String.fromCharCode(...world.resources.misc.careerTable);
+  const taken: string[] = [];
+  for (let i = 0; i < ROSTER_SIZE; i++) if (world.roster.get(i).exists) taken.push(world.roster.get(i).name);
 
-  for (;;) {
+  // The line at the top of the screen grows as choices are made.
+  const summary: string[] = [];
+  const header = () => {
     io.clearBottom();
-    io.textAt(11, 11, `Entry#${slot + 1}`);
-    io.textAt(20, 11, 'Points:50');
-    io.textAt(14, 13, 'Name:');
-    io.textAt(14, 14, 'Sex:');
-    io.textAt(14, 15, 'Race:');
-    io.textAt(14, 16, 'Type:');
-    io.textAt(12, 17, 'Strength........');
-    io.textAt(12, 18, 'Dexterity.......');
-    io.textAt(12, 19, 'Intelligence....');
-    io.textAt(12, 20, 'Wisdom..........');
-    io.textAt(14, 21, 'O.K.:');
+    io.centreText(11, `Entry ${slot + 1}: ${summary.join('  ')}`.trim());
+  };
 
-    const name = (await io.inputTextAt(19, 13, 13, false)).trim();
-    if (name.length === 0) return;
-
-    const sex = await io.chooseOption(
+  // Name: typed, or one from the stock list.
+  let name = '';
+  let suggestion = randomName(() => world.rng.range(0, 255) / 256, taken);
+  let cursor = 0;
+  for (;;) {
+    header();
+    const key = await io.chooseFromList(
       [
-        { key: 'M', label: 'Male' },
-        { key: 'F', label: 'Female' },
-        { key: 'O', label: 'Other' },
+        { key: 'T', label: 'Type a name' },
+        { key: 'U', label: `Use "${suggestion}"` },
+        { key: 'A', label: 'Another random name' },
       ],
-      'none',
+      { row: MENU_ROW, title: 'Name', cursor },
     );
-    if (!sex) return;
-    io.textAt(19, 14, { M: 'Male', F: 'Female', O: 'Other' }[sex]!);
-
-    const raceKey = await io.chooseOption(races.map((r) => ({ key: r[0], label: r })), 'none');
-    if (!raceKey) return;
-    const race = races.findIndex((r) => r[0] === raceKey);
-    io.textAt(19, 15, races[race]);
-
-    const classKey = await io.chooseOption(classes.map((c, i) => ({ key: careers[i], label: c })), 'none');
-    if (!classKey) return;
-    const career = careers.indexOf(classKey);
-    io.textAt(19, 16, classes[career]);
-
-    // Four attributes, 5..25 each, from a pool of 50 points.
-    const values: number[] = [];
-    let points = 50;
-    let valid = true;
-    for (let i = 0; i < 4 && valid; i++) {
-      io.textAt(27, 11, `${points} `);
-      const text = await io.inputTextAt(28, 17 + i, 2, true);
-      const v = parseInt(text, 10);
-      if (!Number.isFinite(v) || v < 5 || v > 25 || v > points) {
-        valid = false;
-        break;
-      }
-      values.push(v);
-      points -= v;
-    }
-    if (!valid) continue;
-    io.textAt(27, 11, `${points} `);
-
-    const ok = await io.chooseOption([{ key: 'Y', label: 'Yes' }, { key: 'N', label: 'No, start over' }], 'none');
-    io.textAt(19, 21, ok || 'N');
-    if (ok !== 'Y') continue;
-
-    p.bytes.fill(0);
-    p.name = name;
-    p.bytes[24] = sex.charCodeAt(0);
-    p.bytes[22] = races[race].charCodeAt(0);
-    p.bytes[23] = careers.charCodeAt(career);
-    p.bytes[18] = values[0];
-    p.bytes[19] = values[1];
-    p.bytes[20] = values[2];
-    p.bytes[21] = values[3];
-    p.status = 'G';
-    p.bytes[27] = 100; // hit points
-    p.bytes[29] = 100; // max hit points
-    p.bytes[32] = 1; // food 150
-    p.bytes[33] = 50;
-    p.bytes[36] = 150; // gold
-    p.bytes[41] = 1; // cloth
-    p.bytes[40] = 1; //   worn
-    p.bytes[49] = 1; // dagger
-    p.bytes[48] = 1; //   readied
-    io.centreText(22, mm(world, 21));
-    await anyKey(io);
-    return;
-  }
-}
-
-/** Mirrors the Apple II `FormParty()`: choose up to four roster entries. */
-export async function formParty(world: World, io: GameIO): Promise<void> {
-  io.clearBottom();
-  io.centreText(13, mm(world, MM.FormTheParty));
-  if (world.party.formed) {
-    io.centreText(16, mm(world, MM.PartyInUse));
-    await anyKey(io);
-    return;
-  }
-  world.party.bytes.fill(0);
-  for (let i = 0; i < 4; i++) io.textAt(15, 16 + i, mm(world, MM.Player1 + i));
-
-  const chosen: number[] = [];
-  for (let i = 0; i < 4; i++) {
-    const text = await io.inputTextAt(24, 16 + i, 2, true);
-    const n = parseInt(text, 10);
-    if (i > 0 && (!text || n === 0)) break;
-    const slot = n - 1;
-    const p = world.roster.get(slot);
-    let problem = '';
-    if (!Number.isFinite(n) || slot < 0 || slot >= ROSTER_SIZE || !p?.exists) problem = mm(world, MM.NotAPlayer);
-    else if (p.inParty || chosen.includes(slot)) problem = mm(world, 41);
-    if (problem) {
-      io.centreText(21, problem);
-      await anyKey(io);
-      io.centreText(21, mm(world, MM.Blank));
-      i--;
+    cursor = 2; // after "Another", stay on it
+    if (!key) return;
+    if (key === 'A') {
+      suggestion = randomName(() => world.rng.range(0, 255) / 256, [...taken, suggestion]);
       continue;
     }
-    chosen.push(slot);
+    if (key === 'U') {
+      name = suggestion;
+      break;
+    }
+    io.textAt(13, MENU_ROW + 1, 'Name:');
+    name = (await io.inputTextAt(19, MENU_ROW + 1, 13, false)).trim();
+    if (name) break;
   }
-  if (chosen.length === 0) return;
+  summary.push(name);
 
+  header();
+  const sex = await io.chooseFromList(
+    [
+      { key: 'M', label: 'Male' },
+      { key: 'F', label: 'Female' },
+      { key: 'O', label: 'Other' },
+    ],
+    { row: MENU_ROW, title: 'Sex' },
+  );
+  if (!sex) return;
+  summary.push({ M: 'Male', F: 'Female', O: 'Other' }[sex]!);
+
+  header();
+  const raceKey = await io.chooseFromList(
+    races.map((r) => {
+      const max = RACE_MAX[r[0]] ?? [75, 75, 75, 75];
+      return { key: r[0], label: r, hint: `Max STR ${max[0]} DEX ${max[1]} INT ${max[2]} WIS ${max[3]}` };
+    }),
+    { row: MENU_ROW, title: 'Race' },
+  );
+  if (!raceKey) return;
+  const race = races.findIndex((r) => r[0] === raceKey);
+  summary.push(races[race]);
+
+  header();
+  const classKey = await io.chooseFromList(
+    classes.map((c, i) => ({ key: careers[i], label: c, hint: classHint(world, i) })),
+    { row: MENU_ROW, title: 'Type' },
+  );
+  if (!classKey) return;
+  const career = careers.indexOf(classKey);
+  summary.push(classes[career]);
+
+  // Four attributes, 5..25 each, all 50 points spent.
+  header();
+  const values = await io.allocatePoints(['Strength', 'Dexterity', 'Intelligence', 'Wisdom'], 50, 5, 25, {
+    row: MENU_ROW,
+    title: '50 points',
+  });
+  if (!values) return;
+
+  header();
+  io.centreText(MENU_ROW - 1, `STR ${values[0]}  DEX ${values[1]}  INT ${values[2]}  WIS ${values[3]}`);
+  const ok = await io.chooseFromList(
+    [
+      { key: 'Y', label: 'Create this character' },
+      { key: 'N', label: 'Cancel' },
+    ],
+    { row: MENU_ROW + 1, title: 'O.K.?' },
+  );
+  if (ok !== 'Y') return;
+
+  p.bytes.fill(0);
+  p.name = name;
+  p.bytes[24] = sex.charCodeAt(0);
+  p.bytes[22] = races[race].charCodeAt(0);
+  p.bytes[23] = careers.charCodeAt(career);
+  p.bytes[18] = values[0];
+  p.bytes[19] = values[1];
+  p.bytes[20] = values[2];
+  p.bytes[21] = values[3];
+  p.status = 'G';
+  p.bytes[27] = 100; // hit points
+  p.bytes[29] = 100; // max hit points
+  p.bytes[32] = 1; // food 150
+  p.bytes[33] = 50;
+  p.bytes[36] = 150; // gold
+  p.bytes[41] = 1; // cloth
+  p.bytes[40] = 1; //   worn
+  p.bytes[49] = 1; // dagger
+  p.bytes[48] = 1; //   readied
+  await notice(io, mm(world, MM.Created));
+}
+
+// ---------------------------------------------------------------------------
+// Form, disperse, terminate
+// ---------------------------------------------------------------------------
+
+/**
+ * Mirrors the Apple II `FormParty()`: choose up to four roster entries, in
+ * marching order, from a list. Picking a chosen entry again removes it.
+ */
+export async function formParty(world: World, io: GameIO): Promise<void> {
+  io.clearBottom();
+  io.centreText(11, mm(world, MM.FormTheParty));
+  if (world.party.formed) {
+    const answer = await io.chooseFromList(
+      [
+        { key: 'Y', label: 'Disperse it and form a new one' },
+        { key: 'N', label: 'Keep the current party' },
+      ],
+      { row: MENU_ROW, title: 'A party is already formed' },
+    );
+    if (answer !== 'Y') return;
+    disperse(world);
+  }
+
+  const chosen: number[] = [];
+  let cursor = 0;
+  for (;;) {
+    io.clearBottom();
+    io.centreText(11, mm(world, MM.FormTheParty));
+    const order = (slot: number) => {
+      const i = chosen.indexOf(slot);
+      return i < 0 ? '' : ` #${i + 1}`;
+    };
+    const options = rosterOptions(world, (p) => p.exists && !p.inParty, order);
+    if (options.length === 0) {
+      await notice(io, 'No characters to choose from.');
+      return;
+    }
+    options.push({ key: 'D', label: chosen.length ? `Done (${chosen.length} chosen)` : 'Cancel' });
+    const key = await io.chooseFromList(options, { row: MENU_ROW, title: 'Choose up to four', cursor });
+    if (!key) return;
+    if (key === 'D') {
+      if (chosen.length === 0) return;
+      break;
+    }
+    const slot = Number(key) - 1;
+    cursor = options.findIndex((o) => o.key === key);
+    const at = chosen.indexOf(slot);
+    if (at >= 0) chosen.splice(at, 1);
+    else if (chosen.length < 4) chosen.push(slot);
+  }
+
+  world.party.bytes.fill(0);
   world.party.size = chosen.length;
   chosen.forEach((slot, i) => {
     world.party.setMemberRosterNumber(i, slot + 1);
@@ -316,36 +391,53 @@ export async function formParty(world: World, io: GameIO): Promise<void> {
   world.resetSosaria();
   world.moonPhase = [4, 4];
   world.moonTimer = [12, 4];
-  io.centreText(22, mm(world, MM.Formed));
-  await anyKey(io);
+  await notice(io, mm(world, MM.Formed));
+}
+
+/** Free every roster entry and clear the party record. */
+function disperse(world: World): void {
+  for (let i = 0; i < ROSTER_SIZE; i++) world.roster.get(i).inParty = false;
+  world.party.bytes.fill(0, 0, 17);
 }
 
 /** Mirrors `DisperseParty()`. */
 export async function disperseParty(world: World, io: GameIO): Promise<void> {
   io.clearBottom();
-  io.centreText(17, mm(world, MM.DisperseTheParty));
-  for (let i = 0; i < ROSTER_SIZE; i++) world.roster.get(i).inParty = false;
+  io.centreText(11, mm(world, MM.DisperseTheParty));
   if (!world.party.formed) {
-    io.centreText(20, mm(world, MM.NoOneThere));
-  } else {
-    world.party.bytes.fill(0, 0, 17);
-    io.centreText(19, mm(world, MM.Dispersed));
+    for (let i = 0; i < ROSTER_SIZE; i++) world.roster.get(i).inParty = false;
+    await notice(io, mm(world, MM.NoOneThere));
+    return;
   }
-  await anyKey(io);
+  const answer = await io.chooseFromList(
+    [
+      { key: 'Y', label: 'Yes, disperse the party' },
+      { key: 'N', label: 'No' },
+    ],
+    { row: MENU_ROW, title: 'Disperse the party?' },
+  );
+  if (answer !== 'Y') return;
+  disperse(world);
+  await notice(io, mm(world, MM.Dispersed));
 }
 
-/** Mirrors `KillChar()`: erase a roster entry that is not in a party. */
+/** Mirrors `KillChar()`: erase a roster entry that is not in a party, after confirming. */
 export async function terminateCharacter(world: World, io: GameIO): Promise<void> {
   io.clearBottom();
   io.centreText(11, mm(world, MM.Terminate));
-  const slot = await askEntry(world, io, 13);
+  const slot = await pickEntry(world, io, 'Terminate whom?', (p) => p.exists && !p.inParty, 'No one can be terminated (a party member must be dispersed first).');
   if (slot < 0) return;
-  const p: PlayerRecord = world.roster.get(slot);
-  if (!p.exists) io.centreText(21, mm(world, MM.TerminateNoOne));
-  else if (p.inParty) io.centreText(21, mm(world, MM.WithAParty));
-  else {
-    p.bytes.fill(0);
-    io.centreText(21, mm(world, MM.Terminated));
-  }
-  await anyKey(io);
+  const p = world.roster.get(slot);
+  io.clearBottom();
+  io.centreText(11, mm(world, MM.Terminate));
+  const answer = await io.chooseFromList(
+    [
+      { key: 'N', label: 'No, keep them' },
+      { key: 'Y', label: `Yes, terminate ${p.name}` },
+    ],
+    { row: MENU_ROW, title: `Terminate ${p.name}?` },
+  );
+  if (answer !== 'Y') return;
+  p.bytes.fill(0);
+  await notice(io, mm(world, MM.Terminated));
 }

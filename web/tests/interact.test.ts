@@ -4,7 +4,7 @@ import { speech, transact, unlock, steal, otherCommand, fire, unlockToward, whoT
 import { shop } from '../src/game/shops.ts';
 import { cast } from '../src/game/spells.ts';
 import { getChest, readyWeapon, wearArmour, stats, handEquipment } from '../src/game/actions.ts';
-import { mainMenu, createCharacter, formParty } from '../src/game/menu.ts';
+import { mainMenu, createCharacter, formParty, terminateCharacter } from '../src/game/menu.ts';
 import { MapValue } from '../src/game/tiles.ts';
 import { Location } from '../src/game/party.ts';
 import { Key } from '../src/game/io.ts';
@@ -254,9 +254,9 @@ describe('menus', () => {
   it('creates a character and forms a party', async () => {
     const world = new World(newWorld().resources, 3);
     const io = new FakeIO(world.resources);
-    // Entry 5: name, sex F, race Elf, class Wizard, 15/10/15/10 points, OK.
-    io.inputs = ['5', 'Mira', '15', '10', '15', '10'];
-    io.keys = ['F', 'E', 'W', 'Y', ' '];
+    // Entry 5; type the name Mira; sex F, race Elf, class Wizard; 15/10/15/10 points; OK.
+    io.keys = ['5', 'T', 'F', 'E', 'W', 'Y', ' '];
+    io.inputs = ['Mira', '15,10,15,10'];
     await createCharacter(world, io);
     const p = world.roster.get(4);
     expect(p.name).toBe('Mira');
@@ -265,8 +265,8 @@ describe('menus', () => {
     expect(p.intelligence).toBe(15);
     expect(p.hitPoints).toBe(100);
 
-    io.inputs = ['5', '0'];
-    io.keys = [' '];
+    // Pick entry 5, then Done.
+    io.keys = ['5', 'D', ' '];
     await formParty(world, io);
     expect(world.party.formed).toBe(true);
     expect(world.party.size).toBe(1);
@@ -287,5 +287,38 @@ describe('menus', () => {
     ).rejects.toThrow('no more keys');
     expect(played).toBe(false);
     expect(io.output).toContain('(Not formed)');
+  });
+});
+
+describe('party screens', () => {
+  it('offers a random name and refuses to create without spending all points', async () => {
+    const world = new World(newWorld().resources, 3);
+    const io = new FakeIO(world.resources);
+    // Entry 6, use the suggested name, Female Human Fighter, then cancel at the points screen.
+    io.keys = ['6', 'U', 'F', 'H', 'F'];
+    io.inputs = [''];
+    await createCharacter(world, io);
+    expect(world.roster.get(5).exists).toBe(false);
+  });
+
+  it('re-forms the party after dispersing, and terminates only with confirmation', async () => {
+    const world = newWorld(3); // the default party is formed
+    const io = new FakeIO(world.resources);
+    expect(world.party.formed).toBe(true);
+    // Form: a party exists -> disperse and form a new one; choose entry 2 then entry 1, Done.
+    io.keys = ['Y', '2', '1', 'D', ' '];
+    await formParty(world, io);
+    expect(world.party.size).toBe(2);
+    expect(world.party.memberSlot(0)).toBe(1);
+    expect(world.party.memberSlot(1)).toBe(0);
+    expect(world.roster.get(2).inParty).toBe(false);
+
+    // Terminate entry 3 (free now): first decline, then confirm.
+    io.keys = ['3', 'N'];
+    await terminateCharacter(world, io);
+    expect(world.roster.get(2).exists).toBe(true);
+    io.keys = ['3', 'Y', ' '];
+    await terminateCharacter(world, io);
+    expect(world.roster.get(2).exists).toBe(false);
   });
 });

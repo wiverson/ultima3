@@ -69,7 +69,12 @@ Everything the Apple II game had:
 - The shrines of Ambrosia, the cards and marks, the exotics, EVOCARE, the
   four cards in Exodus and the ending.
 - Party management: creation, forming, marching order, handing equipment,
-  joining gold, ztats, death and resurrection, save and resume.
+  joining gold, ztats, death and resurrection, save and resume. The title
+  and party screens are menu driven in both input modes (the Apple II typed
+  entry numbers and attribute values): the roster is a pick list, the party
+  a multi-select list in marching order, attributes a screen where left and
+  right adjust each value until all 50 points are spent, and a random name
+  is offered from a stock list (`src/game/names.ts`).
 - Music: the original QuickTime music files are decoded and played on a
   small Web Audio synthesizer (`src/ui/music.ts`).
 - Classic moves (ticked by default): the party cannot move, attack or fire

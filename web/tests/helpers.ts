@@ -100,6 +100,19 @@ export class FakeIO implements GameIO {
       return key;
     }
   }
+  /** Answered from the key queue like chooseOption. */
+  async chooseFromList(options: MenuOption[]): Promise<string> {
+    return this.chooseOption(options, 'none');
+  }
+  /** Answered from `inputs` as comma-separated values; an empty entry cancels. */
+  async allocatePoints(labels: string[]): Promise<number[] | null> {
+    const t = this.inputs.shift();
+    if (t === undefined) throw new Error('FakeIO: no more inputs');
+    if (t === '') return null;
+    const values = t.split(',').map((v) => parseInt(v, 10));
+    if (values.length !== labels.length) throw new Error(`FakeIO: expected ${labels.length} values`);
+    return values;
+  }
   async inputText(): Promise<string> {
     const t = this.inputs.shift();
     if (t === undefined) throw new Error('FakeIO: no more inputs');
