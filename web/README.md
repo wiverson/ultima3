@@ -126,10 +126,15 @@ save contains except the pooled gold and food.
   A; nothing when Good) or a green "L!" when Lord British would raise the
   member, then hit points over max and mana (none for fighters, thieves
   and barbarians). The message area gained four rows.
-- **The party on foot**, with the Standard tiles, is drawn as its members
-  at half size in a 2x2 grid in marching order; a poisoned member is all
-  green, a dead one or ashes is not drawn. On a horse or frigate, and in
-  the other tile sets, the Apple II's single figure is used.
+- **The party on foot**, with the Standard tiles, is drawn as its members.
+  On the overworld they are at half size in a 2x2 grid in marching order,
+  to sell the scale of the map. In towns and castles the leader stands at
+  full size and the others follow in a line on the squares the leader
+  walked through, as the NES version did; the line is only a drawing, the
+  party's position is still one square, and townspeople walk over it. A
+  poisoned member is all green, a dead one or ashes is not drawn. On a
+  horse or frigate, and in the other tile sets, the Apple II's single
+  figure is used.
 - **Hits** with the Standard tiles show a three-frame red burst on the
   16-pixel grid (a small disc, a larger one, then a ring) instead of the
   "HIT" tile; the other tile sets keep their HIT tile.

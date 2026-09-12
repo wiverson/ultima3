@@ -311,6 +311,7 @@ export class World {
   /** Enter a town or castle: the current map becomes a fresh copy of it. */
   enterMap(id: number): void {
     this.current = this.loadMapState(id);
+    this.trail = []; // everyone stands on the door square until they walk
   }
 
   /**
@@ -493,6 +494,14 @@ export class World {
    * true, or returns false when there is none. Used after a party wipe.
    */
   loadLastSave: (() => boolean) | null = null;
+
+  /**
+   * The squares the party leader last walked through inside a town or
+   * castle, most recent first, at most three: the other members are drawn
+   * on them in a line (a look borrowed from the NES version; the Standard
+   * tiles only). Purely visual; the party's position is still one square.
+   */
+  trail: { x: number; y: number }[] = [];
 
   /** Auto-combat on or off (a LairWare addition; see autocombat.ts). */
   autoCombat = false;

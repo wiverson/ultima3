@@ -239,6 +239,7 @@ export function exitToSurface(world: World, io: GameIO, hooks?: TurnHooks): void
   world.party.location = Location.Sosaria;
   world.party.surfaceX = world.x;
   world.party.surfaceY = world.y;
+  world.trail = [];
   world.returnToSurface();
   // After Exodus' defeat the land creatures merely wander. (`PullSosaria`)
   if (world.party.exodusDestroyed) {

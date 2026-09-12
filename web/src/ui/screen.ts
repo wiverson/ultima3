@@ -913,12 +913,13 @@ export class Screen implements GameIO {
       const dx = cell + (i % VIEW_SIZE) * tile;
       const dy = cell + Math.floor(i / VIEW_SIZE) * tile;
       gfx.drawShape(ctx, c.base, dx, dy, tile);
+      if (c.follower !== undefined && this.tileSetName === 'Standard') this.drawMember(c.follower, dx, dy, tile);
       if (c.hit && this.tileSetName !== 'Standard') {
         // The Apple II way: the ball's "HIT" frame replaces whatever was hit.
         gfx.drawShape(ctx, c.hit.shape, dx, dy, tile, { masked: true, altFrame: true });
         continue;
       }
-      if (c.party && this.tileSetName === 'Standard') this.drawPartyGrid(dx, dy, tile);
+      if (c.party && this.tileSetName === 'Standard') this.drawParty(dx, dy, tile);
       else if (c.overlay !== undefined) gfx.drawShape(ctx, c.overlay, dx, dy, tile, { masked: true, flip: c.flip, altFrame: c.altFrame });
       if (c.hit) this.drawBurst(dx, dy, tile, c.hit.frame);
     }
@@ -926,25 +927,35 @@ export class Screen implements GameIO {
   }
 
   /**
-   * With the Standard tiles the party on foot is drawn as its members, each
-   * at half size in a 2x2 grid in marching order (1 top left, 2 top right,
-   * 3 bottom left, 4 bottom right). A poisoned member is drawn all in
-   * green; a dead one, or ashes, is not drawn. The other tile sets keep the
-   * Apple II's single figure.
+   * With the Standard tiles the party on foot is drawn as its members. On
+   * the overworld they are at half size in a 2x2 grid in marching order
+   * (1 top left, 2 top right, 3 bottom left, 4 bottom right), which sells
+   * the scale of the map. In a town or castle the first living member
+   * stands here at full size and the others follow in a line behind (see
+   * `world.trail`). A poisoned member is drawn all in green; a dead one, or
+   * ashes, is not drawn. The other tile sets keep the Apple II's single figure.
    */
-  private drawPartyGrid(dx: number, dy: number, tile: number): void {
-    const { ctx, gfx, world } = this;
+  private drawParty(dx: number, dy: number, tile: number): void {
+    const { world } = this;
+    if (world.inTownOrCastle) {
+      const leader = [0, 1, 2, 3].find((m) => world.party.memberSlot(m) >= 0 && world.memberAlive(m));
+      if (leader !== undefined) this.drawMember(leader, dx, dy, tile);
+      return;
+    }
     const q = tile / 2;
     for (let m = 0; m < 4; m++) {
       if (world.party.memberSlot(m) < 0) continue;
-      const p = world.member(m);
-      if (p.status === 'D' || p.status === 'A') continue;
-      const shape = memberShape(world, p.classLetter);
-      const x = dx + (m % 2) * q;
-      const y = dy + Math.floor(m / 2) * q;
-      if (p.status === 'P') ctx.drawImage(this.greenFigure(shape, q), x, y);
-      else gfx.drawShape(ctx, shape, x, y, q, { masked: true });
+      this.drawMember(m, dx + (m % 2) * q, dy + Math.floor(m / 2) * q, q);
     }
+  }
+
+  /** One member's class figure at (x, y), `size` pixels square: green if poisoned, nothing if dead or ashes. */
+  private drawMember(m: number, x: number, y: number, size: number): void {
+    const p = this.world.member(m);
+    if (p.status === 'D' || p.status === 'A') return;
+    const shape = memberShape(this.world, p.classLetter);
+    if (p.status === 'P') this.ctx.drawImage(this.greenFigure(shape, size), x, y);
+    else this.gfx.drawShape(this.ctx, shape, x, y, size, { masked: true });
   }
 
   /** Cache of member figures recoloured green (poison), keyed by shape and size. */

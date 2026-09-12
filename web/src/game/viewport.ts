@@ -34,6 +34,8 @@ export interface ViewCell {
   hit?: { frame: number; shape: number };
   /** The party stands here on foot; the screen may draw the members instead of the overlay figure. */
   party?: boolean;
+  /** Member index (0-3) of a follower walking behind the leader here (towns and castles). */
+  follower?: number;
 }
 
 export interface Viewport {
@@ -181,6 +183,7 @@ function applyOverlays(world: World, shapes: Uint8Array, originX: number, origin
       centre.overlay = world.party.shape;
       centre.flip = world.party.shape === Shape.Horse && world.horseFacingEast;
       centre.party = world.party.shape === 0x7e; // on foot (the ranger figure)
+      if (centre.party && world.inTownOrCastle) markFollowers(world, cells, originX + VIEW_CENTRE, originY + VIEW_CENTRE);
     }
   }
   return cells;
@@ -203,6 +206,25 @@ function buildCombatViewport(world: World): Viewport {
     cells[p.y * VIEW_SIZE + p.x] = { base: p.tileUnder, overlay: p.shape };
   });
   return { cells, originX: 0, originY: 0 };
+}
+
+/**
+ * In a town or castle the living members after the leader walk in a line
+ * on the squares the leader came through (`world.trail`). Squares hidden
+ * by line of sight, or off the view, show nothing.
+ */
+function markFollowers(world: World, cells: ViewCell[], x: number, y: number): void {
+  const living = [0, 1, 2, 3].filter((m) => world.party.memberSlot(m) >= 0 && world.memberAlive(m));
+  world.trail.forEach((pos, i) => {
+    const member = living[i + 1];
+    if (member === undefined) return;
+    const vx = pos.x - x + VIEW_CENTRE;
+    const vy = pos.y - y + VIEW_CENTRE;
+    if (vx < 0 || vx >= VIEW_SIZE || vy < 0 || vy >= VIEW_SIZE) return;
+    const cell = cells[vy * VIEW_SIZE + vx];
+    if (cell.base === Shape.Void) return;
+    cell.follower = member;
+  });
 }
 
 /** Build the viewport centred on the party (or the arena during combat). */

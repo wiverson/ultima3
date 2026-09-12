@@ -223,6 +223,7 @@ export async function move(world: World, io: GameIO, name: MoveName): Promise<Bu
     noGo(io);
     return null;
   }
+  if (world.inTownOrCastle) world.trail = [{ x: world.x, y: world.y }, ...world.trail].slice(0, 3);
   world.x = xs;
   world.y = ys;
   return null;
