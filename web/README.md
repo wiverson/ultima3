@@ -177,6 +177,9 @@ save contains except the pooled gold and food.
   Terminate asks for confirmation.
 - **Controller mode** with pop-up menus, and a command menu ordered by
   what the surroundings call for (`context.ts`).
+- **Member pickers** ("Who?") colour each name by state the same way. A
+  member brought back to life during a fight is placed on the nearest open
+  square to where they fell.
 - **A party wipe** offers a choice: try again from the last save (the
   autosave at the last door, with everything since undone) or flee to Lord
   British as the Apple II did, resurrected with daggers, cloth, 150 gold a

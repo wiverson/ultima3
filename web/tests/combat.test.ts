@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { newWorld, FakeIO } from './helpers.ts';
-import { combat, chooseArena, loadArena, planMonster, handleMove, memberShape, monsterName, attackMonster } from '../src/game/combat.ts';
+import { combat, chooseArena, loadArena, planMonster, handleMove, memberShape, monsterName, attackMonster, placeRevived } from '../src/game/combat.ts';
 import { MapValue, Shape } from '../src/game/tiles.ts';
 import { Location } from '../src/game/party.ts';
 import { Key } from '../src/game/io.ts';
@@ -216,5 +216,25 @@ describe('party wipe', () => {
     expect(world.party.gold).toBe(150 * world.party.size);
     expect(world.member(0).status).toBe('G');
     expect(world.x).toBe(42);
+  });
+});
+
+describe('revival during a fight', () => {
+  it('puts a member brought back to life on the nearest open square to where they fell', () => {
+    const { world, io } = flatWorld();
+    const c = loadArena(world, BASERES + 4);
+    c.tiles.fill(Shape.Grass);
+    world.combat = c;
+    for (const m of c.monsters) m.hp = 0;
+    const me = c.members[0];
+    me.diedAt = { x: 5, y: 5 };
+    me.x = me.y = 255;
+    world.member(0).status = 'G';
+    c.monsters[0].x = 5;
+    c.monsters[0].y = 5;
+    c.monsters[0].hp = 10; // the death square itself is taken
+    placeRevived(world, io);
+    expect(Math.max(Math.abs(me.x - 5), Math.abs(me.y - 5))).toBe(1);
+    expect(io.redraws).toBeGreaterThan(0);
   });
 });

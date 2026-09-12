@@ -403,6 +403,7 @@ export class Screen implements GameIO {
     const menu = layoutMenu(title, visible.map((o) => o.label), columns);
     if (visible.some((o) => o.hint)) menu.hints = visible.map((o) => o.hint);
     if (visible.some((o) => o.disabled)) menu.disabled = visible.map((o) => !!o.disabled);
+    if (visible.some((o) => o.colour)) menu.colours = visible.map((o) => o.colour);
     if (place) this.placeMenu(menu, place);
     else if (cursor > 0 && cursor < menu.items.length) {
       menu.cursor = cursor;
@@ -681,7 +682,7 @@ export class Screen implements GameIO {
           const slot = this.world.party.memberSlot(m);
           if (slot < 0) continue;
           const p = this.world.roster.get(slot);
-          options.push({ key: String(m + 1), label: `${m + 1} ${p.name} (${p.status})` });
+          options.push({ key: String(m + 1), label: `${m + 1} ${p.name}`, colour: memberColour(p) });
         }
         const picked = await this.runMenu('Who?', options);
         n = picked < 0 ? 0 : Number(options[picked].key);
@@ -1224,9 +1225,7 @@ export class Screen implements GameIO {
       const top = m * BOX_PITCH + 1;
       this.black(24, top, 15, BOX_ROWS);
       if (p) {
-        const nameColour =
-          p.status === 'P' ? '#40ff40' : p.status === 'D' ? '#b0b0b0' : p.status === 'A' ? '#606060' : due ? '#60a0ff' : undefined;
-        this.drawText(p.name, 24, top, nameColour);
+        this.drawText(p.name, 24, top, memberColour(p, due));
         const hp = p.hitPoints;
         const max = Math.max(1, p.maxHitPoints);
         const hpColour = hp < max / 10 ? '#ff4040' : hp < max / 4 ? '#ffe040' : undefined;
@@ -1300,6 +1299,17 @@ export class Screen implements GameIO {
   }
 }
 
+
+/**
+ * The colour that tells a member's state: green poisoned, light grey dead,
+ * dark grey ashes, blue when a raise is due, undefined (white) otherwise.
+ */
+function memberColour(p: PlayerRecord, due = false): string | undefined {
+  if (p.status === 'P') return '#40ff40';
+  if (p.status === 'D') return '#b0b0b0';
+  if (p.status === 'A') return '#606060';
+  return due ? '#60a0ff' : undefined;
+}
 
 /**
  * Lord British's own test for raising a member: level above max hit points

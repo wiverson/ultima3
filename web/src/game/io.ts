@@ -51,6 +51,8 @@ export interface MenuOption {
   hint?: string;
   /** Shown greyed and not selectable (possible in principle, but e.g. nothing to use it with). */
   disabled?: boolean;
+  /** Draw the label in this colour (a CSS colour); e.g. a member's state. */
+  colour?: string;
 }
 
 /** Where a top-level command is being read; decides which command menu a controller sees. */

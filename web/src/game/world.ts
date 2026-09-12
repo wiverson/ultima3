@@ -54,6 +54,10 @@ export interface Combatant {
   shape: number;
   /** Monsters only: hit points, 0 = slot unused. */
   hp: number;
+  /** Members only: where they fell, so a revival mid-fight can put them back nearby. */
+  diedAt?: { x: number; y: number };
+  /** Members only: the arena's starting square, the fallback for a revival. */
+  start?: { x: number; y: number };
 }
 
 /**

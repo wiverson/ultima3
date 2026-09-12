@@ -117,7 +117,9 @@ export function loadArena(world: World, id: number): CombatState {
   }
   const members: Combatant[] = [];
   for (let i = 0; i < 4; i++) {
-    members.push({ x: raw[0xa0 + i], y: raw[0xa4 + i], tileUnder: raw[0xa8 + i], shape: raw[0xac + i], hp: 0 });
+    const x = raw[0xa0 + i];
+    const y = raw[0xa4 + i];
+    members.push({ x, y, tileUnder: raw[0xa8 + i], shape: raw[0xac + i], hp: 0, start: { x, y } });
   }
   return {
     tiles,
@@ -380,6 +382,7 @@ export async function combat(world: World, io: GameIO, monsterShape: number, var
       for (let member = 0; member < world.party.size; member++) {
         c.activeMember = member;
         if (world.resurrecting) return;
+        placeRevived(world, io);
         io.highlightMember(member, true);
         if (world.memberAlive(member)) await memberTurn(world, io, member);
         // Inside Exodus' castle, time cannot be negated.
@@ -532,6 +535,46 @@ async function memberTurn(world: World, io: GameIO, member: number): Promise<voi
         continue;
     }
   }
+}
+
+/**
+ * A member brought back to life during a fight (the cheat menu, for one)
+ * has no square: put them on the nearest open square to where they fell,
+ * or to their starting square if they never stood in this arena.
+ */
+export function placeRevived(world: World, io: GameIO): void {
+  const c = world.combat!;
+  let placed = false;
+  for (let member = 0; member < world.party.size; member++) {
+    const me = c.members[member];
+    if (!world.memberAlive(member) || me.x !== MISSING) continue;
+    const from = me.diedAt ?? me.start ?? { x: 5, y: 9 };
+    const spot = nearestOpenSquare(c, from.x, from.y);
+    if (!spot) continue;
+    me.x = spot.x;
+    me.y = spot.y;
+    me.tileUnder = arenaTile(c, spot.x, spot.y);
+    me.shape = memberShape(world, world.member(member).classLetter);
+    placed = true;
+  }
+  if (placed) io.redrawMap();
+}
+
+/** The open arena square nearest (x, y), by distance then by reading order; null if the arena is full. */
+function nearestOpenSquare(c: CombatState, x: number, y: number): { x: number; y: number } | null {
+  let best: { x: number; y: number } | null = null;
+  let bestDistance = Infinity;
+  for (let sy = 0; sy < 11; sy++) {
+    for (let sx = 0; sx < 11; sx++) {
+      if (!memberCanStand(arenaTile(c, sx, sy)) || monsterAt(c, sx, sy) >= 0 || memberAt(c, sx, sy) >= 0) continue;
+      const d = Math.max(Math.abs(sx - x), Math.abs(sy - y));
+      if (d < bestDistance) {
+        bestDistance = d;
+        best = { x: sx, y: sy };
+      }
+    }
+  }
+  return best;
 }
 
 /** Mirrors `HandleMove()`: step a member one cell if the arena allows. */
@@ -797,6 +840,7 @@ async function damageMember(world: World, io: GameIO, target: number, ballShape:
   io.updateStats();
   if (p.status === 'D') {
     io.printMessage(Msg.PlayerKilled);
+    me.diedAt = { x: me.x, y: me.y };
     me.x = me.y = MISSING;
     io.redrawMap();
     io.updateStats();
