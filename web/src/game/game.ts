@@ -60,6 +60,7 @@ export class Game {
       showBall: (vx, vy) => showBall(world, io, world.constrain(world.x - 5 + vx), world.constrain(world.y - 5 + vy), Shape.FireBall),
       goWhirlpool: () => this.goWhirlpool(),
       dungeonTurn: async () => {},
+      save: () => this.autosave(),
     };
   }
 
@@ -109,12 +110,9 @@ export class Game {
         await io.showSettings(); // no turn passes
         continue;
       }
-      const wasInside = world.inTownOrCastle;
       await this.dispatch(key);
       if (world.done) return;
       await endTurn(world, io, this.hooks);
-      // Walking out of a town or castle is a save point, as walking in was.
-      if (wasInside && world.onSurface) this.autosave();
       const wanted = this.locationMusic();
       if (world.music !== wanted && world.party.location !== Location.Combat) this.setMusic(wanted);
     }
@@ -140,9 +138,14 @@ export class Game {
    * journey starts). The surface is what gets saved, at the door's square,
    * so a reload after a wipe puts the party back outside.
    */
-  private autosave(): void {
-    if (this.world.resurrecting) return;
-    this.options.save?.(this.world);
+  private autosave(): boolean {
+    if (this.world.resurrecting) return false;
+    return this.options.save?.(this.world) ?? false;
+  }
+
+  /** Save at a door and say so under the "Enter town!" line. */
+  private announceSave(): void {
+    if (this.autosave()) this.io.print('(saved)\n');
   }
 
   /** Mirrors the key switch in `Game()` and `LetterCommand()`. */
@@ -241,24 +244,23 @@ export class Game {
         await interact.enterShrine(world, io);
         return;
       case 'dungeon':
-        this.autosave();
+        this.announceSave();
         await runDungeon(world, io);
         if (world.resurrecting || world.done) return;
-        exitToSurface(world, io);
+        exitToSurface(world, io, this.hooks);
         io.showGameFrame();
         io.updateStats(true);
         io.showMoons();
-        this.autosave();
         return;
       case 'castle':
         // Once Exodus is destroyed his castle stands empty and harmless.
         if (world.current.id === MapId.ExodusCastle && world.party.exodusDestroyed) interact.safeExodus(world);
         this.setMusic(this.locationMusic());
-        this.autosave();
+        this.announceSave();
         return;
       case 'town':
         this.setMusic(this.locationMusic());
-        this.autosave();
+        this.announceSave();
         return;
       default:
         return;

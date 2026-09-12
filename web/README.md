@@ -85,8 +85,9 @@ the game. Every setting is remembered by the browser.
 Prompts for "whom" take a member number 1-4; a direction is an arrow key.
 Q on the surface saves the game in this browser; it resumes on the next
 visit. The game also saves itself when the journey starts and at every
-town, castle and dungeon door, going in and coming out. `?new` on the URL
-starts a fresh game.
+town, castle and dungeon door, going in and coming out, and prints
+"(saved)" under the door message when it does. `?new` on the URL starts a
+fresh game.
 
 ### Controller mode (in the spirit of the NES version)
 

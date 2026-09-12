@@ -225,13 +225,15 @@ export interface TurnHooks extends MonsterHooks {
   goWhirlpool(): Promise<void>;
   /** Dungeon turn processing; not yet ported. */
   dungeonTurn(): Promise<void>;
+  /** Save the game at a door (this port's autosave). Return true if saved. */
+  save?(): boolean;
 }
 
 /**
  * Mirrors `Routine6E6B()`: the party walked off the edge of a town or
  * castle. Return to Sosaria at the square they entered from.
  */
-export function exitToSurface(world: World, io: GameIO): void {
+export function exitToSurface(world: World, io: GameIO, hooks?: TurnHooks): void {
   world.x = world.returnX;
   world.y = world.returnY;
   world.party.location = Location.Sosaria;
@@ -244,6 +246,8 @@ export function exitToSurface(world: World, io: GameIO): void {
     for (let i = 0; i < 32; i++) if (m.type(i) >= 0x40) m.setHp(i, 0x40);
   }
   io.printMessage(Msg.ExitToSosaria);
+  // The door is a save point in this port; the 16-column message area has no room on the same line.
+  if (hooks?.save?.()) io.print('(saved)\n');
   io.showWind();
 }
 
@@ -262,7 +266,7 @@ export async function endTurn(world: World, io: GameIO, hooks: TurnHooks): Promi
     return;
   }
   if (world.inTownOrCastle && (world.x === 0 || world.y === 0)) {
-    exitToSurface(world, io);
+    exitToSurface(world, io, hooks);
   }
 
   await ageChars(world, io);
