@@ -979,38 +979,15 @@ export class Screen implements GameIO {
     if (!this.frameShown) return; // title screens have no status bar
     const piece = (n: number, x: number) => this.piece(n, x, 0);
 
-    // The moons (or dungeon level) in the middle, framed as the Apple II framed them.
-    piece(Piece.CapLeft, 8);
+    // Plain bar across the top of the map, then the three fields over it:
+    // gold at the left, the moons (or dungeon level) in the middle where the
+    // Apple II showed them, food at the right.
+    for (let x = 1; x <= 22; x++) piece(Piece.Horizontal, x);
+    this.drawText(`G:${w.party.gold}`, 1, 0);
     if (w.party.location === Location.Dungeon) this.drawText(`Lvl:${w.dungeon.level + 1}`.padEnd(6), 9, 0);
     else this.drawText(`(${w.moonPhase[0]})(${w.moonPhase[1]})`, 9, 0);
-    piece(Piece.CapRight, 15);
-
-    // Gold on the left (columns 1-7) and food on the right (16-22), each with
-    // blue bar on either side while the number is short enough to leave room.
-    const gold = `G:${w.party.gold}`;
-    for (let x = 1; x <= 7; x++) piece(Piece.Horizontal, x);
-    if (gold.length <= 5) {
-      piece(Piece.CapLeft, 1);
-      this.drawText(gold, 2, 0);
-      piece(Piece.CapRight, 2 + gold.length);
-    } else if (gold.length === 6) {
-      piece(Piece.CapLeft, 1);
-      this.drawText(gold, 2, 0);
-    } else {
-      this.drawText(gold, 1, 0);
-    }
     const food = `F:${w.party.food}`;
-    for (let x = 16; x <= 22; x++) piece(Piece.Horizontal, x);
-    if (food.length <= 5) {
-      piece(Piece.CapLeft, 21 - food.length);
-      this.drawText(food, 22 - food.length, 0);
-      piece(Piece.CapRight, 22);
-    } else if (food.length === 6) {
-      this.drawText(food, 16, 0);
-      piece(Piece.CapRight, 22);
-    } else {
-      this.drawText(food, 16, 0);
-    }
+    this.drawText(food, 23 - food.length, 0);
   }
 }
 
