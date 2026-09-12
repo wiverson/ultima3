@@ -72,12 +72,17 @@ Everything the Apple II game had:
   joining gold, ztats, death and resurrection, save and resume.
 - Music: the original QuickTime music files are decoded and played on a
   small Web Audio synthesizer (`src/ui/music.ts`).
+- Auto-combat (a LairWare addition): tick "Auto combat" above the screen
+  and the party fights by itself. As in the Mac version the AI decides a
+  member's turn and "types" it: it queues the keys a player would press
+  (`GameIO.queueKeys`), and the ordinary combat prompts read them. Escape
+  during a fight turns it off, as Cmd-. did.
 
 Left out on purpose, all additions LairWare made for the Mac rather than
-parts of the game: the animated intro and attract mode, auto-combat and
-auto-heal, the "modern" stats dialog, the Diorama map and random map
-generator, text-to-speech, mouse control, and the Mac dialogs (the Apple
-II text flow is used instead).
+parts of the game: the animated intro and attract mode, auto-heal, the
+"modern" stats dialog, the Diorama map and random map generator,
+text-to-speech, mouse control, and the Mac dialogs (the Apple II text flow
+is used instead).
 
 ## How the code is organised
 
@@ -103,6 +108,7 @@ src/game/   pure game logic, no DOM, unit tested
   interact.ts     other creatures (Transact, Attack, Fire, Steal, Unlock, Other)
   shops.ts        the eight shops
   combat.ts       tactical combat
+  autocombat.ts   the auto-combat planner (returns the keys to press)
   spells.ts       Cast and the spell effects
   dungeon.ts      the dungeon loop and what is visible in first person
   death.ts        party wipe and resurrection
@@ -154,6 +160,9 @@ explained in `tiles.ts`, and the music event format in `ui/music.ts`.
   did. The C port tested for negative values first, which sent monsters the
   long way round when the party was far to their west.
 - Resurrection after a party wipe is automatic; the original showed a dialog.
+- Auto-combat always allows diagonal moves (the Mac had a preference), and
+  when lining up a ranged attacker it steps onto the diagonal square it
+  checked; the C code stepped toward the monster instead.
 - The Mac version's "modern" appearance (portraits, bars, proportional
   text) is not reproduced; the classic bitmap-font layout is used throughout.
 

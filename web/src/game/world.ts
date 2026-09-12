@@ -397,6 +397,11 @@ export class World {
   /** Sound effects on or off (the V command). The UI reads this. */
   soundEnabled = true;
 
+  /** Auto-combat on or off (a LairWare addition; see autocombat.ts). */
+  autoCombat = false;
+  /** Called when the game itself turns auto-combat off, so the page can show it. */
+  onAutoCombatChange: (() => void) | null = null;
+
   /** Once-per-fight flags for the Repond and Pontori spells. (`g5521`, `g56E7`) */
   spellFlags = { repond: false, pontori: false };
 }

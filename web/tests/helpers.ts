@@ -40,6 +40,8 @@ export class FakeIO implements GameIO {
   output = '';
   sounds: string[] = [];
   keys: string[] = [];
+  /** Scripted keys (auto-combat), read before `keys`. */
+  macro: string[] = [];
   /** When set, supplies keys after `keys` runs dry (for scripted fights). */
   keyProvider: (() => string | null) | null = null;
   inputs: string[] = [];
@@ -59,14 +61,17 @@ export class FakeIO implements GameIO {
     this.output += '\n>';
   }
   async waitKey(): Promise<string> {
-    const k = this.keys.shift() ?? this.keyProvider?.() ?? undefined;
+    const k = this.macro.shift() ?? this.keys.shift() ?? this.keyProvider?.() ?? undefined;
     if (k === undefined || k === null) throw new Error(`FakeIO: no more keys. Output so far:\n${this.output}`);
     return k;
   }
   async waitKeyOrTimeout(): Promise<string | null> {
-    return this.keys.shift() ?? this.keyProvider?.() ?? null;
+    return this.macro.shift() ?? this.keys.shift() ?? this.keyProvider?.() ?? null;
   }
   flushKeys(): void {}
+  queueKeys(keys: string[]): void {
+    this.macro = [...keys];
+  }
   /** Keyboard-style answers, read from the key queue exactly as the original read keys. */
   async waitCommand(_scope: CommandScope): Promise<string | null> {
     return this.waitKeyOrTimeout();

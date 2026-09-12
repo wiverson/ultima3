@@ -108,6 +108,8 @@ export class Screen implements GameIO {
   private readonly gamepads: GamepadReader;
   /** The menu window being shown, drawn over the map every frame. */
   private menu: MenuWindow | null = null;
+  /** Scripted keys (auto-combat), read before the keyboard. (`Macro[]`) */
+  private macro: string[] = [];
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -288,6 +290,8 @@ export class Screen implements GameIO {
    * mode (WASD to the d-pad, Enter/Z to A, Escape/X to B, C to X, V to Y).
    */
   private async readKey(timeoutMs?: number): Promise<string | null> {
+    const scripted = this.macro.shift();
+    if (scripted !== undefined) return scripted;
     const key = timeoutMs === undefined ? await this.keyboard.nextKey() : await this.keyboard.nextKeyOrTimeout(timeoutMs);
     if (key === null) return null;
     return this.inputMode === 'controller' ? controllerKeyFor(key) : key;
@@ -303,6 +307,16 @@ export class Screen implements GameIO {
 
   flushKeys(): void {
     this.keyboard.flush();
+    this.macro.length = 0;
+  }
+
+  queueKeys(keys: string[]): void {
+    this.macro = [...keys];
+  }
+
+  /** Scripted keys are Apple II keys, so prompts read them keyboard-style whatever the mode. */
+  private get promptMode(): 'keyboard' | 'controller' {
+    return this.macro.length > 0 ? 'keyboard' : this.inputMode;
   }
 
   // --- Semantic prompts: keyboard reads a key, controller shows a menu ----
@@ -363,7 +377,7 @@ export class Screen implements GameIO {
 
   async waitCommand(scope: CommandScope, timeoutMs: number): Promise<string | null> {
     const key = await this.readKey(timeoutMs);
-    if (key === null || this.inputMode === 'keyboard') return key;
+    if (key === null || this.promptMode === 'keyboard') return key;
     if (DIRECTION_KEYS.includes(key)) return key;
     const shortcuts = BUTTON_SHORTCUTS[scope];
     if (key === Key.B) return shortcuts.B;
@@ -380,7 +394,7 @@ export class Screen implements GameIO {
   async chooseMember(): Promise<number> {
     let n: number;
     for (;;) {
-      if (this.inputMode === 'controller') {
+      if (this.promptMode === 'controller') {
         const options: MenuOption[] = [];
         for (let m = 0; m < 4; m++) {
           const slot = this.world.party.memberSlot(m);
@@ -406,7 +420,7 @@ export class Screen implements GameIO {
 
   async chooseDirection(allowNone: boolean, allowDiagonal: boolean): Promise<string | null> {
     const accepted = allowDiagonal ? [...DIRECTION_KEYS, '1', '2', '3', '4', '6', '7', '8', '9'] : [...DIRECTION_KEYS, '2', '4', '6', '8'];
-    if (this.inputMode === 'controller') {
+    if (this.promptMode === 'controller') {
       const hint = layoutMenu('Direction?', [allowNone ? 'd-pad, or A: none' : 'd-pad, B: cancel']);
       hint.cursor = -1;
       this.openMenu(hint);
@@ -426,7 +440,7 @@ export class Screen implements GameIO {
   async chooseOption(options: MenuOption[], echo: 'none' | 'key' | 'line'): Promise<string> {
     let key = '';
     for (;;) {
-      if (this.inputMode === 'controller') {
+      if (this.promptMode === 'controller') {
         const picked = await this.runMenu('Choose', options);
         key = picked < 0 ? '' : options[picked].key;
         break;

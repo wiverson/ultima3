@@ -72,6 +72,30 @@ async function start(): Promise<void> {
   });
   screen.onModeChange = rememberMode;
 
+  // Auto-combat: the party fights by itself (a LairWare addition). Escape in
+  // a fight turns it off, so the checkbox follows the game as well.
+  const autoCheck = document.getElementById('auto') as HTMLInputElement;
+  try {
+    world.autoCombat = localStorage.getItem('ultima3.autoCombat') === '1';
+  } catch {
+    /* storage unavailable */
+  }
+  autoCheck.checked = world.autoCombat;
+  const rememberAuto = () => {
+    autoCheck.checked = world.autoCombat;
+    try {
+      localStorage.setItem('ultima3.autoCombat', world.autoCombat ? '1' : '0');
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  autoCheck.addEventListener('change', () => {
+    world.autoCombat = autoCheck.checked;
+    rememberAuto();
+    canvas.focus();
+  });
+  world.onAutoCombatChange = rememberAuto;
+
   status.textContent = '';
 
   const game = new Game(world, screen, { save: (w) => localSave.write(w) });

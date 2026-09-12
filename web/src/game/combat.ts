@@ -24,6 +24,7 @@ import { negateTime, readyWeapon, stats, volume, addExperience } from './actions
 import { BASERES } from '../data/resources.ts';
 import { checkAllDead } from './death.ts';
 import { VIEW_SIZE } from './viewport.ts';
+import { autoCombatKeys } from './autocombat.ts';
 
 /** Messages used by combat (1-based Messages table entries). */
 const Msg = {
@@ -57,6 +58,8 @@ const MISSING = 255;
 const TURN_TIMEOUT_MS = 4000;
 const BLINK_MS = 330;
 const BALL_MS = 80;
+/** Pause before each automatic turn, so the player can follow the fight and interrupt it. */
+const AUTO_PAUSE_MS = 250;
 
 // ---------------------------------------------------------------------------
 // Arena selection
@@ -386,6 +389,7 @@ export async function combat(world: World, io: GameIO, monsterShape: number, var
       }
     }
   } finally {
+    io.queueKeys([]);
     if (world.combat === c) {
       world.combat = null;
       c.hiddenMember = -1;
@@ -434,6 +438,23 @@ async function waitForCombatKey(world: World, io: GameIO, member: number): Promi
   }
 }
 
+/**
+ * Auto-combat: give the player a moment to interrupt (Escape, or B on a
+ * controller, turns it off as Cmd-. did on the Mac), then script the
+ * member's turn. The scripted keys are read by the same prompts a player
+ * answers, so nothing else in combat knows the difference.
+ */
+async function scriptTurn(world: World, io: GameIO, member: number): Promise<void> {
+  const pressed = await io.waitKeyOrTimeout(AUTO_PAUSE_MS);
+  if (pressed === Key.Escape || pressed === Key.B) {
+    world.autoCombat = false;
+    world.onAutoCombatChange?.();
+    io.print('Manual combat\n');
+    return;
+  }
+  io.queueKeys(autoCombatKeys(world, member));
+}
+
 async function memberTurn(world: World, io: GameIO, member: number): Promise<void> {
   for (;;) {
     io.printMessage(Msg.PlayerTurnPrefix);
@@ -441,6 +462,7 @@ async function memberTurn(world: World, io: GameIO, member: number): Promise<voi
     io.printMessage(Msg.PlayerTurnSuffix);
     io.prompt();
 
+    if (world.autoCombat) await scriptTurn(world, io, member);
     const key = await waitForCombatKey(world, io, member);
     const move = moveForKey(key);
     if (move) {

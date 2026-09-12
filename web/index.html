@@ -42,6 +42,12 @@
         color: #f0c060;
         min-height: 1.2em;
       }
+      #bar .settings {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        white-space: nowrap;
+      }
       #bar select {
         background: #111;
         color: #ddd;
@@ -102,12 +108,15 @@
     <canvas id="screen" width="1280" height="768" tabindex="0"></canvas>
     <div id="bar">
       <span id="status">Loading...</span>
-      <label>Input:
-        <select id="mode">
-          <option value="keyboard">Keyboard (Apple II commands)</option>
-          <option value="controller">Controller (d-pad and menus)</option>
-        </select>
-      </label>
+      <span class="settings">
+        <label><input type="checkbox" id="auto" /> Auto combat</label>
+        <label>Input:
+          <select id="mode">
+            <option value="keyboard">Keyboard (Apple II commands)</option>
+            <option value="controller">Controller (d-pad and menus)</option>
+          </select>
+        </label>
+      </span>
     </div>
 
     <details id="help" open>
@@ -178,7 +187,9 @@
             <dt>Arrows</dt><dd>Move the active member</dd>
             <dt>A</dt><dd>Attack in a direction (space for none)</dd>
             <dt>C N R Z V</dt><dd>Cast, Negate, Ready, Ztats, Volume</dd>
+            <dt>Escape</dt><dd>Turn auto combat off for this fight (B on a controller)</dd>
           </dl>
+          <p>With "Auto combat" ticked above, the party fights by itself: it casts Repond or Pontori, heals the weakest, fires when lined up and closes to melee, as in the Macintosh version.</p>
         </section>
         <section>
           <h3>Dungeons</h3>

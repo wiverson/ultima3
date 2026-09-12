@@ -69,6 +69,12 @@ export interface GameIO {
   waitKeyOrTimeout(ms: number): Promise<string | null>;
   /** Discard any queued key presses. (`FlushEvents`) */
   flushKeys(): void;
+  /**
+   * Replace the scripted keys. They are read before any real input, as the
+   * Apple II keys they are, whatever the input mode. Auto-combat uses this
+   * to "type" a member's turn. (`Macro[]` / `AddMacro`)
+   */
+  queueKeys(keys: string[]): void;
 
   // --- Semantic prompts ----------------------------------------------------
   // Game logic says what kind of answer it needs; the UI decides how to get
