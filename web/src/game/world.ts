@@ -58,14 +58,14 @@ export interface Combatant {
 
 /**
  * Mirrors `BlockExodus()`. The Apple II map has lava either side of Exodus'
- * castle, unreachable on foot without diagonal moves. With classic moves it
+ * castle, unreachable on foot without diagonal moves. Without diagonals it
  * stays; with diagonals allowed it becomes mountains, as on the Mac, so the
  * castle can only be reached by sea, past the Great Earth Serpent.
  */
-export function blockExodusApproach(map: MapState, classicMoves: boolean): void {
+export function blockExodusApproach(map: MapState, diagonalMoves: boolean): void {
   const at = (x: number, y: number) => map.tiles[y * map.size + x];
   if (at(0x0a, 0x35) !== MapValue.Castle || at(0x0b, 0x36) !== MapValue.Water || at(0x0c, 0x35) !== MapValue.Mountains) return;
-  const flank = classicMoves ? MapValue.Lava : MapValue.Mountains;
+  const flank = diagonalMoves ? MapValue.Mountains : MapValue.Lava;
   map.tiles[0x35 * map.size + 0x09] = flank;
   map.tiles[0x35 * map.size + 0x0b] = flank;
 }
@@ -298,7 +298,7 @@ export class World {
       this.whirlpool = { x: raw[t], y: raw[t + 1], dx: (raw[t + 2] << 24) >> 24, dy: (raw[t + 3] << 24) >> 24 };
     }
     const state = { id, size, tiles, monsters, talk: talk.slice() };
-    if (id === MapId.Sosaria) blockExodusApproach(state, this.classicMoves);
+    if (id === MapId.Sosaria) blockExodusApproach(state, this.diagonalMoves);
     return state;
   }
 
@@ -486,15 +486,15 @@ export class World {
   autoCombat = false;
 
   /**
-   * Classic moves: the party cannot move, attack or fire diagonally, as on
-   * the Apple II. Monsters always could, which was a small edge for them.
-   * Off gives the party diagonals too, as the Mac version allowed.
+   * Diagonal moves: may the party move, attack and fire diagonally? Off by
+   * default, as on the Apple II, where only monsters could (a small edge
+   * for them). On gives the party diagonals too, as the Mac version allowed.
    */
-  classicMoves = true;
+  diagonalMoves = false;
 
-  /** Change the classic-moves setting and fix the land around Exodus' castle to match. */
-  setClassicMoves(on: boolean): void {
-    this.classicMoves = on;
+  /** Change the diagonal-moves setting and fix the land around Exodus' castle to match. */
+  setDiagonalMoves(on: boolean): void {
+    this.diagonalMoves = on;
     blockExodusApproach(this.surface, on);
   }
   /** Called when the game itself turns auto-combat off, so the page can show it. */

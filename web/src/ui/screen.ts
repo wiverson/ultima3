@@ -450,7 +450,7 @@ export class Screen implements GameIO {
       const options: MenuOption[] = [
         { key: 'I', label: `Input: ${this.inputMode === 'controller' ? 'Controller' : 'Keyboard'}` },
         { key: 'T', label: `Tiles: ${this.tileSetName}` },
-        { key: 'C', label: `Classic moves: ${onOff(w.classicMoves)}` },
+        { key: 'D', label: `Diagonal moves: ${onOff(w.diagonalMoves)}` },
         { key: 'A', label: `Auto combat: ${onOff(w.autoCombat)}` },
         { key: 'S', label: `Sound effects: ${onOff(w.soundEnabled)}` },
         { key: 'M', label: `Music: ${onOff(this.musicPlayer.enabled)}` },
@@ -468,8 +468,8 @@ export class Screen implements GameIO {
         case 'T':
           await this.chooseTiles();
           break;
-        case 'C':
-          w.setClassicMoves(!w.classicMoves);
+        case 'D':
+          w.setDiagonalMoves(!w.diagonalMoves);
           break;
         case 'A':
           w.autoCombat = !w.autoCombat;

@@ -60,14 +60,14 @@ is used instead).
 
 Escape opens the Settings menu anywhere (on the title screen it is the
 third entry under Options; in controller mode it is the last entry of the
-command menu). Settings holds the input mode, the tile set, classic moves,
+command menu). Settings holds the input mode, the tile set, diagonal moves,
 auto combat, sound effects, music, and Help, which shows these controls in
 the game. Every setting is remembered by the browser.
 
 ### Keyboard mode (the Apple II commands)
 
     Arrows       walk; move in combat      Space   pass a turn
-    1 3 7 9      walk diagonally (only with classic moves off)
+    1 3 7 9      walk diagonally (only with diagonal moves on)
 
     A attack     B board      C cast      E enter     F fire
     G get chest  H hand       I ignite    L look      M modify order
@@ -124,8 +124,8 @@ save contains except the pooled gold and food.
 - **Combat marker**: the member whose turn it is gets a rounded outline,
   two game pixels wide, fading from white to grey over the four seconds
   before the turn passes by itself. The Apple II blinked the figure.
-- **Classic moves** (on by default): the party cannot move, attack or fire
-  diagonally, as on the Apple II, while monsters always could. Off gives
+- **Diagonal moves** (off by default): as on the Apple II, the party cannot
+  move, attack or fire diagonally while monsters always could. On gives
   the Mac version's party diagonals; the lava either side of Exodus'
   castle then becomes mountains as the Mac's `BlockExodus()` did, so the
   castle is reached by sea only.

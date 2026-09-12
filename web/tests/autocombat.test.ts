@@ -12,7 +12,7 @@ const MISSING = 255;
 /** A flat grass arena with one member at (5, 9) and no monsters yet. Diagonals allowed unless `classic`. */
 function arena(monsterShape = MapValue.Orc >> 1, classic = false): { world: World; c: CombatState } {
   const world = newWorld(7);
-  world.setClassicMoves(classic);
+  world.setDiagonalMoves(!classic);
   world.current.tiles.fill(MapValue.Grass);
   world.monsters.bytes.fill(0);
   const c = loadArena(world, BASERES + 4);
@@ -133,7 +133,7 @@ describe('auto-combat planning', () => {
     expect(autoCombatKeys(world, 0)).toEqual(['1']);
     // In classic mode there is nowhere safe to go; a wounded member in the
     // top half of the arena then holds still rather than advancing.
-    world.setClassicMoves(true);
+    world.setDiagonalMoves(false);
     expect(autoCombatKeys(world, 0)).toEqual([Key.Space]);
   });
 

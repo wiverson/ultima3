@@ -85,8 +85,8 @@ describe('contextual commands', () => {
     c.monsters[0].x = 6;
     c.monsters[0].y = 4;
     c.monsters[0].hp = 10;
-    expect(suggestedCommands(world, 'combat')).toEqual([]); // diagonal: not in classic mode
-    world.setClassicMoves(false);
+    expect(suggestedCommands(world, 'combat')).toEqual([]); // diagonal: not without diagonal moves
+    world.setDiagonalMoves(true);
     expect(suggestedCommands(world, 'combat')).toEqual(['A']);
   });
 

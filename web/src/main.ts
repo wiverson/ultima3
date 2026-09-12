@@ -27,19 +27,21 @@ const PREFS_KEY = 'ultima3.settings';
 interface Prefs {
   inputMode: 'keyboard' | 'controller';
   tiles: string;
-  classicMoves: boolean;
+  diagonalMoves: boolean;
   autoCombat: boolean;
   sound: boolean;
   music: boolean;
 }
 
-const DEFAULT_PREFS: Prefs = { inputMode: 'keyboard', tiles: 'Standard', classicMoves: true, autoCombat: false, sound: true, music: true };
+const DEFAULT_PREFS: Prefs = { inputMode: 'keyboard', tiles: 'Standard', diagonalMoves: false, autoCombat: false, sound: true, music: true };
 
 function loadPrefs(): Prefs {
   try {
     const raw = localStorage.getItem(PREFS_KEY);
-    const saved = raw ? (JSON.parse(raw) as Partial<Prefs>) : {};
+    const saved = raw ? (JSON.parse(raw) as Partial<Prefs> & { classicMoves?: boolean }) : {};
     const prefs = { ...DEFAULT_PREFS, ...saved };
+    // The setting was "classic moves" (the inverse) until September 2026.
+    if (saved.classicMoves !== undefined && saved.diagonalMoves === undefined) prefs.diagonalMoves = !saved.classicMoves;
     if (!TILE_SETS.includes(prefs.tiles)) prefs.tiles = DEFAULT_PREFS.tiles;
     if (prefs.inputMode !== 'controller') prefs.inputMode = 'keyboard';
     return prefs;
@@ -64,9 +66,9 @@ async function start(): Promise<void> {
 
   const [resources, gfx, images] = await Promise.all([loadResources(), GraphicsSet.load(prefs.tiles), loadImages()]);
 
-  // Classic moves (no party diagonals) must be known before the map loads.
+  // Diagonal moves must be known before the map loads (it shapes the land by Exodus' castle).
   const world = new World(resources);
-  world.setClassicMoves(prefs.classicMoves);
+  world.setDiagonalMoves(prefs.diagonalMoves);
   world.autoCombat = prefs.autoCombat;
   world.soundEnabled = prefs.sound;
 
@@ -97,7 +99,7 @@ async function start(): Promise<void> {
     savePrefs({
       inputMode: screen.inputMode,
       tiles: screen.tileSetName,
-      classicMoves: world.classicMoves,
+      diagonalMoves: world.diagonalMoves,
       autoCombat: world.autoCombat,
       sound: world.soundEnabled,
       music: music.enabled,

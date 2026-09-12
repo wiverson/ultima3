@@ -256,16 +256,16 @@ describe('walking into townspeople', () => {
   });
 });
 
-describe('classic moves', () => {
+describe('diagonal moves', () => {
   it('keeps the lava beside Exodus castle, and walls it off when diagonals are allowed', () => {
     const world = newWorld();
-    expect(world.classicMoves).toBe(true);
+    expect(world.diagonalMoves).toBe(false);
     expect(world.surface.tiles[0x35 * 64 + 0x0a]).toBe(MapValue.Castle);
     expect(world.surface.tiles[0x35 * 64 + 0x09]).toBe(MapValue.Lava);
-    world.setClassicMoves(false);
+    world.setDiagonalMoves(true);
     expect(world.surface.tiles[0x35 * 64 + 0x09]).toBe(MapValue.Mountains);
     expect(world.surface.tiles[0x35 * 64 + 0x0b]).toBe(MapValue.Mountains);
-    world.setClassicMoves(true);
+    world.setDiagonalMoves(false);
     expect(world.surface.tiles[0x35 * 64 + 0x0b]).toBe(MapValue.Lava);
   });
 
@@ -274,7 +274,7 @@ describe('classic moves', () => {
     const io = new FakeIO(world.resources);
     io.keys = ['9'];
     expect(await getDirection(world, io)).toBeNull();
-    world.setClassicMoves(false);
+    world.setDiagonalMoves(true);
     io.keys = ['9'];
     expect(await getDirection(world, io)).toMatchObject({ dx: 1, dy: -1 });
   });

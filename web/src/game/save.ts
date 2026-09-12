@@ -78,7 +78,7 @@ export function restore(world: World, data: SaveData): boolean {
     world.party.bytes.set(party);
     world.roster.bytes.set(roster);
     surface.tiles.set(tiles);
-    blockExodusApproach(surface, world.classicMoves); // the save may have been made with the other setting
+    blockExodusApproach(surface, world.diagonalMoves); // the save may have been made with the other setting
     surface.monsters.bytes.set(monsters);
     world.surface = surface;
     world.current = surface;

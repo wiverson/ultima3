@@ -465,8 +465,8 @@ async function memberTurn(world: World, io: GameIO, member: number): Promise<voi
       await io.showSettings(); // the member's turn is not spent
       continue;
     }
-    if (world.classicMoves && DIAGONAL_KEYS.includes(key)) return; // refused, and the turn is spent
-    const move = moveForKey(key, !world.classicMoves);
+    if (!world.diagonalMoves && DIAGONAL_KEYS.includes(key)) return; // refused, and the turn is spent
+    const move = moveForKey(key, world.diagonalMoves);
     if (move) {
       const delta = moveDelta(move);
       // Walking into a monster attacks it (a convenience this port adds).

@@ -279,8 +279,8 @@ export async function getDirection(
   allowSpace = false,
   allowDiagonal?: boolean,
 ): Promise<Direction | null> {
-  // Diagonals follow the classic-moves setting unless the command says otherwise.
-  allowDiagonal ??= !world.classicMoves;
+  // Diagonals follow the diagonal-moves setting unless the command says otherwise.
+  allowDiagonal ??= world.diagonalMoves;
   const key = await io.chooseDirection(allowSpace, allowDiagonal);
   if (key === null || world.done) return null;
   if (key === Key.Space) {

@@ -128,8 +128,8 @@ export class Game {
   /** Mirrors the key switch in `Game()` and `LetterCommand()`. */
   async dispatch(key: string): Promise<void> {
     const { world, io } = this;
-    if (world.classicMoves && cmd.DIAGONAL_KEYS.includes(key)) return; // no diagonals on the Apple II
-    const moveName = cmd.moveForKey(key, !world.classicMoves);
+    if (!world.diagonalMoves && cmd.DIAGONAL_KEYS.includes(key)) return; // no diagonals on the Apple II
+    const moveName = cmd.moveForKey(key, world.diagonalMoves);
     if (moveName) {
       const bump = await cmd.move(world, io, moveName);
       if (!bump) return;

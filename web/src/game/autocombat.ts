@@ -22,8 +22,8 @@
  *     else step to a square that lines one up next turn.
  *  6. A hand weapon: attack an adjacent monster, else step toward the nearest.
  *
- * The original's "no diagonals" preference is the classic-moves setting
- * here: with it on, the member neither steps, attacks nor fires diagonally,
+ * The original's "no diagonals" preference is the diagonal-moves setting
+ * here: with it off, the member neither steps, attacks nor fires diagonally,
  * though it still expects monsters to.
  */
 
@@ -89,7 +89,7 @@ class Planner {
     private readonly member: number,
   ) {
     this.c = world.combat!;
-    this.diagonals = !world.classicMoves;
+    this.diagonals = world.diagonalMoves;
     this.setupNow();
   }
 
