@@ -528,8 +528,8 @@ export class Screen implements GameIO {
     }
   }
 
-  async chooseFromList(options: MenuOption[], place: MenuPlacement): Promise<string> {
-    const picked = await this.runMenu(place.title, options, 1, place);
+  async chooseFromList(options: MenuOption[], place?: MenuPlacement): Promise<string> {
+    const picked = await this.runMenu(place?.title ?? 'Choose', options, 1, place);
     return picked < 0 ? '' : options[picked].key;
   }
 

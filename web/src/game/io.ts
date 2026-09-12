@@ -120,7 +120,7 @@ export interface GameIO {
    * party screens, where there is no Apple II key to press). Resolves with
    * the option's key, or '' when cancelled.
    */
-  chooseFromList(options: MenuOption[], place: MenuPlacement): Promise<string>;
+  chooseFromList(options: MenuOption[], place?: MenuPlacement): Promise<string>;
   /**
    * Share `total` points among `labels.length` attributes, each between
    * `min` and `max`, on a screen where left and right adjust a row and OK

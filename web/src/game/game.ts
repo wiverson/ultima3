@@ -37,8 +37,13 @@ const Msg = {
 } as const;
 
 export interface GameOptions {
-  /** Called when the player presses Q on the surface. Return true if the game was saved. (`QuitSave`) */
+  /**
+   * Called when the player presses Q on the surface, and by the autosave
+   * at every town, castle and dungeon door. Return true if the game was saved. (`QuitSave`)
+   */
   save?: (world: World) => boolean;
+  /** Restore the last save into the world; true if there was one. Offered after a party wipe. */
+  load?: (world: World) => boolean;
 }
 
 export class Game {
@@ -87,6 +92,8 @@ export class Game {
     io.showWind();
     io.showMoons();
     this.setMusic(this.locationMusic());
+    world.loadLastSave = this.options.load ? () => this.options.load!(world) : null;
+    this.autosave(); // so "last save" always exists once the journey starts
 
     while (!world.done) {
       io.redrawMap();
@@ -102,9 +109,12 @@ export class Game {
         await io.showSettings(); // no turn passes
         continue;
       }
+      const wasInside = world.inTownOrCastle;
       await this.dispatch(key);
       if (world.done) return;
       await endTurn(world, io, this.hooks);
+      // Walking out of a town or castle is a save point, as walking in was.
+      if (wasInside && world.onSurface) this.autosave();
       const wanted = this.locationMusic();
       if (world.music !== wanted && world.party.location !== Location.Combat) this.setMusic(wanted);
     }
@@ -123,6 +133,16 @@ export class Game {
       const key = await this.io.waitCommand('field', Math.min(WHIRLPOOL_TICK_MS, remaining));
       if (key !== null) return key;
     }
+  }
+
+  /**
+   * Silent save at the doors of towns, castles and dungeons (and when the
+   * journey starts). The surface is what gets saved, at the door's square,
+   * so a reload after a wipe puts the party back outside.
+   */
+  private autosave(): void {
+    if (this.world.resurrecting) return;
+    this.options.save?.(this.world);
   }
 
   /** Mirrors the key switch in `Game()` and `LetterCommand()`. */
@@ -221,20 +241,24 @@ export class Game {
         await interact.enterShrine(world, io);
         return;
       case 'dungeon':
+        this.autosave();
         await runDungeon(world, io);
         if (world.resurrecting || world.done) return;
         exitToSurface(world, io);
         io.showGameFrame();
         io.updateStats(true);
         io.showMoons();
+        this.autosave();
         return;
       case 'castle':
         // Once Exodus is destroyed his castle stands empty and harmless.
         if (world.current.id === MapId.ExodusCastle && world.party.exodusDestroyed) interact.safeExodus(world);
         this.setMusic(this.locationMusic());
+        this.autosave();
         return;
       case 'town':
         this.setMusic(this.locationMusic());
+        this.autosave();
         return;
       default:
         return;

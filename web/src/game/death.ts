@@ -2,9 +2,11 @@
  * death.ts
  *
  * What happens when the whole party is dead. A port of `CheckAllDead()`
- * from UltimaMain.c. The original offered a dialog to stay dead; this port
- * always resurrects the party at Lord British's castle with starting
- * equipment, as the Apple II did.
+ * from UltimaMain.c. The Apple II resurrected the party at Lord British's
+ * castle with starting equipment; the Mac offered a dialog to stay dead.
+ * This port offers a choice: go back to the last save (the game saves on
+ * every town, castle and dungeon door), or take Lord British's mercy and
+ * start over with nothing but daggers and cloth.
  */
 
 import { World } from './world.ts';
@@ -29,6 +31,26 @@ export async function checkAllDead(world: World, io: GameIO): Promise<void> {
   io.music(Music.None);
   io.flushKeys();
   await io.waitKey();
+
+  if (world.loadLastSave) {
+    const choice = await io.chooseFromList([
+      { key: 'T', label: 'Try again from last save' },
+      { key: 'F', label: 'Flee to Lord British (lose all gear)' },
+    ]);
+    if (choice !== 'F' && world.loadLastSave()) {
+      // Back on the surface where the save was made, everything since undone.
+      world.combat = null;
+      world.timeNegate = 0;
+      world.music = Music.Sosaria;
+      io.music(Music.Sosaria);
+      io.print('\n\n\n\n\n\n\n\n');
+      io.showWind();
+      io.updateStats(true);
+      world.resurrecting = true;
+      return;
+    }
+  }
+
   io.printMessage(Msg.Resurrecting);
   io.sound(Sound.BigDeath);
   await io.pause(1500);

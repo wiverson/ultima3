@@ -6,6 +6,7 @@ import { Location } from '../src/game/party.ts';
 import { Key } from '../src/game/io.ts';
 import { BASERES } from '../src/data/resources.ts';
 import { World } from '../src/game/world.ts';
+import { checkAllDead } from '../src/game/death.ts';
 
 function flatWorld(): { world: World; io: FakeIO } {
   const world = newWorld(42);
@@ -185,5 +186,35 @@ describe('a whole fight', () => {
     expect(m.type(0)).toBe(0);
     expect(world.getXYVal(33, 32)).toBe(MapValue.Chest + 2); // chest on brush
     expect(io.output).toContain('VICTORY');
+  });
+});
+
+describe('party wipe', () => {
+  it('offers the last save, and Lord British otherwise', async () => {
+    const { world, io } = flatWorld();
+    for (let m = 0; m < world.party.size; m++) world.member(m).status = 'D';
+    world.party.gold = 4321;
+    let loaded = 0;
+    world.loadLastSave = () => {
+      loaded++;
+      world.party.gold = 999; // stands in for the restored save
+      for (let m = 0; m < world.party.size; m++) world.member(m).status = 'G';
+      return true;
+    };
+    io.keys = [' ', 'T'];
+    await checkAllDead(world, io);
+    expect(loaded).toBe(1);
+    expect(world.party.gold).toBe(999);
+    expect(world.resurrecting).toBe(true);
+
+    // Fleeing keeps the world but strips the gear.
+    for (let m = 0; m < world.party.size; m++) world.member(m).status = 'D';
+    world.resurrecting = false;
+    io.keys = [' ', 'F'];
+    await checkAllDead(world, io);
+    expect(loaded).toBe(1);
+    expect(world.party.gold).toBe(150 * world.party.size);
+    expect(world.member(0).status).toBe('G');
+    expect(world.x).toBe(42);
   });
 });

@@ -482,6 +482,12 @@ export class World {
   /** Sound effects on or off (the V command). The UI reads this. */
   soundEnabled = true;
 
+  /**
+   * Set by the game: restores the last save into this world and returns
+   * true, or returns false when there is none. Used after a party wipe.
+   */
+  loadLastSave: (() => boolean) | null = null;
+
   /** Auto-combat on or off (a LairWare addition; see autocombat.ts). */
   autoCombat = false;
 

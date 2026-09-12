@@ -84,7 +84,9 @@ the game. Every setting is remembered by the browser.
 
 Prompts for "whom" take a member number 1-4; a direction is an arrow key.
 Q on the surface saves the game in this browser; it resumes on the next
-visit. `?new` on the URL starts a fresh game.
+visit. The game also saves itself when the journey starts and at every
+town, castle and dungeon door, going in and coming out. `?new` on the URL
+starts a fresh game.
 
 ### Controller mode (in the spirit of the NES version)
 
@@ -147,8 +149,11 @@ save contains except the pooled gold and food.
   Terminate asks for confirmation.
 - **Controller mode** with pop-up menus, and a command menu ordered by
   what the surroundings call for (`context.ts`).
-- **Resurrection** after a party wipe is automatic; the original showed a
-  dialog.
+- **A party wipe** offers a choice: try again from the last save (the
+  autosave at the last door, with everything since undone) or flee to Lord
+  British as the Apple II did, resurrected with daggers, cloth, 150 gold a
+  head and a little food. The overworld is deliberately not autosaved
+  between doors, so a long trek keeps its risk.
 - **`heading()`** in `monsters.ts` uses true 8-bit wrap-around, as the
   Apple II did. The C port tested for negative values first, which sent
   monsters the long way round when the party was far to their west.

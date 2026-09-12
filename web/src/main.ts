@@ -111,7 +111,7 @@ async function start(): Promise<void> {
 
   status.textContent = '';
 
-  const game = new Game(world, screen, { save: (w) => localSave.write(w) });
+  const game = new Game(world, screen, { save: (w) => localSave.write(w), load: (w) => localSave.read(w) });
   // Debug hook: lets the console (and the browser tests) inspect and poke the game.
   (window as unknown as { u3: unknown }).u3 = { world, screen, game };
   await mainMenu(world, screen, () => game.run(), { save: (w) => localSave.write(w) });
