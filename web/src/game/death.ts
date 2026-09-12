@@ -36,7 +36,7 @@ export async function checkAllDead(world: World, io: GameIO): Promise<void> {
     const choice = await io.chooseFromList(
       [
         { key: 'T', label: 'Try again from last save' },
-        { key: 'F', label: 'Flee to Lord British (lose all gear)' },
+        { key: 'F', label: 'Flee to Lord British, lose gear' },
       ],
       { row: 9, title: 'All players out!' },
     );
