@@ -1,5 +1,9 @@
 # LairWare's Ultima III
 
+> **Browser port in progress.** A TypeScript port that runs the game in a
+> browser lives in [`web/`](web/README.md). The original Macintosh sources
+> below are kept unchanged as its reference.
+
 This started out as an unofficial fan remake of the original 1983 Apple II game from Origin Systems.  Origin had made official Mac ports of a few older Ultima games, but these were all monochrome.  My remake was originally implemented in Think C for 1990s-era color Macintosh computers on Motorola processors running Mac OS 7.  I really liked how it was turning out, so I managed to get ahold of Richard Garriott over AOL and he liked it enough to give me permission to release it officially sometime in 1994 or 1995.
 
 Some of the logic was originally gleaned through examining the Apple II version's 6502 assembly code.  You can find comments throughout the source referring to memory locations in this version!  There were no such things as "shrinkwrap" licenses back then which would forbid such reverse engineering.
