@@ -6,20 +6,25 @@
  * in the bitmap font. Which set of pages shows depends on the input mode.
  */
 
-/** Tile sets shipped in public/graphics, as the Settings menu lists them. */
+/**
+ * Tile sets shipped in public/graphics, as the Settings menu lists them:
+ * best first. Standard is LairWare's 64-pixel art, drawn at native size;
+ * then the 32-pixel colour sets, the tripled Apple II colour sets, the
+ * monochrome sets, and the 16-pixel 8-bit and early PC sets.
+ */
 export const TILE_SETS = [
   'Standard',
+  'PC VGA',
   'Nintendo',
+  'PC Ultima V',
+  'PC MCGA',
   'Apple II Color',
   'Apple II Color TV',
   'Apple II Mono',
-  'Commodore 64',
   'Macintosh B&W',
-  'PC CGA',
   'PC EGA',
-  'PC MCGA',
-  'PC VGA',
-  'PC Ultima V',
+  'PC CGA',
+  'Commodore 64',
 ];
 
 export const KEYBOARD_HELP: string[][] = [
