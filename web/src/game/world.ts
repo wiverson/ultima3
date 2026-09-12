@@ -56,6 +56,19 @@ export interface Combatant {
   hp: number;
 }
 
+/**
+ * Mirrors `BlockExodus()`. The Apple II map has force fields either side of
+ * Exodus' castle, unreachable on foot without diagonal moves. This port,
+ * like the Mac with diagonals on, replaces them with mountains so the
+ * castle can only be reached by sea, past the Great Earth Serpent.
+ */
+export function blockExodusApproach(map: MapState): void {
+  const at = (x: number, y: number) => map.tiles[y * map.size + x];
+  if (at(0x0a, 0x35) !== MapValue.Castle || at(0x0b, 0x36) !== MapValue.Water || at(0x0c, 0x35) !== MapValue.Mountains) return;
+  map.tiles[0x35 * map.size + 0x09] = MapValue.Mountains;
+  map.tiles[0x35 * map.size + 0x0b] = MapValue.Mountains;
+}
+
 /** The state of a fight. See combat.ts. */
 export interface CombatState {
   /** 11x11 arena shapes (same numbering as the viewport). */
@@ -277,7 +290,9 @@ export class World {
       // dx/dy are signed bytes.
       this.whirlpool = { x: raw[t], y: raw[t + 1], dx: (raw[t + 2] << 24) >> 24, dy: (raw[t + 3] << 24) >> 24 };
     }
-    return { id, size, tiles, monsters, talk: talk.slice() };
+    const state = { id, size, tiles, monsters, talk: talk.slice() };
+    if (id === MapId.Sosaria) blockExodusApproach(state);
+    return state;
   }
 
   /** Enter a town or castle: the current map becomes a fresh copy of it. */

@@ -10,7 +10,7 @@
  * Sosaria at the square the party entered from: towns are never persisted.
  */
 
-import { World } from './world.ts';
+import { World blockExodusApproach } from './world.ts';
 import { Location } from './party.ts';
 import { MapId } from '../data/resources.ts';
 
@@ -77,6 +77,7 @@ export function restore(world: World, data: SaveData): boolean {
     world.party.bytes.set(party);
     world.roster.bytes.set(roster);
     surface.tiles.set(tiles);
+    blockExodusApproach(surface); // older saves still carry the force fields
     surface.monsters.bytes.set(monsters);
     world.surface = surface;
     world.current = surface;

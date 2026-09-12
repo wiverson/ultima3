@@ -160,6 +160,10 @@ explained in `tiles.ts`, and the music event format in `ui/music.ts`.
   did. The C port tested for negative values first, which sent monsters the
   long way round when the party was far to their west.
 - Resurrection after a party wipe is automatic; the original showed a dialog.
+- Diagonal moves are always allowed (the Mac had a preference), so as the
+  Mac did in that case the force fields either side of Exodus' castle are
+  replaced with mountains (`blockExodusApproach`); the castle is reached
+  by sea only.
 - Auto-combat always allows diagonal moves (the Mac had a preference), and
   when lining up a ranged attacker it steps onto the diagonal square it
   checked; the C code stepped toward the monster instead.

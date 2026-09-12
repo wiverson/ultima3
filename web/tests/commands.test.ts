@@ -255,3 +255,12 @@ describe('walking into townspeople', () => {
     expect(world.x).toBe(19);
   });
 });
+
+describe('diagonal moves near Exodus', () => {
+  it('walls off the force fields beside Exodus castle, as the Mac did with diagonals on', () => {
+    const world = newWorld();
+    expect(world.surface.tiles[0x35 * 64 + 0x0a]).toBe(MapValue.Castle);
+    expect(world.surface.tiles[0x35 * 64 + 0x09]).toBe(MapValue.Mountains);
+    expect(world.surface.tiles[0x35 * 64 + 0x0b]).toBe(MapValue.Mountains);
+  });
+});
