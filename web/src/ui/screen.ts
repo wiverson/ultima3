@@ -31,6 +31,7 @@ import { DungeonRenderer } from './dungeonView.ts';
 import { World } from '../game/world.ts';
 import { PlayerRecord } from '../game/player.ts';
 import { suggestedCommands, prioritise } from '../game/context.ts';
+import { memberShape } from '../game/combat.ts';
 import { TILE_SETS, KEYBOARD_HELP, CONTROLLER_HELP } from './help.ts';
 import { Location } from '../game/party.ts';
 import { buildViewport, VIEW_SIZE, type Viewport } from '../game/viewport.ts';
@@ -242,6 +243,7 @@ export class Screen implements GameIO {
    */
   setGraphics(gfx: GraphicsSet): void {
     this.gfx = gfx;
+    this.greenFigures.clear();
     this.redrawAll();
   }
 
@@ -916,10 +918,61 @@ export class Screen implements GameIO {
         gfx.drawShape(ctx, c.hit.shape, dx, dy, tile, { masked: true, altFrame: true });
         continue;
       }
-      if (c.overlay !== undefined) gfx.drawShape(ctx, c.overlay, dx, dy, tile, { masked: true, flip: c.flip, altFrame: c.altFrame });
+      if (c.party && this.tileSetName === 'Standard') this.drawPartyGrid(dx, dy, tile);
+      else if (c.overlay !== undefined) gfx.drawShape(ctx, c.overlay, dx, dy, tile, { masked: true, flip: c.flip, altFrame: c.altFrame });
       if (c.hit) this.drawBurst(dx, dy, tile, c.hit.frame);
     }
     this.markActiveMember();
+  }
+
+  /**
+   * With the Standard tiles the party on foot is drawn as its members, each
+   * at half size in a 2x2 grid in marching order (1 top left, 2 top right,
+   * 3 bottom left, 4 bottom right). A poisoned member is drawn all in
+   * green; a dead one, or ashes, is not drawn. The other tile sets keep the
+   * Apple II's single figure.
+   */
+  private drawPartyGrid(dx: number, dy: number, tile: number): void {
+    const { ctx, gfx, world } = this;
+    const q = tile / 2;
+    for (let m = 0; m < 4; m++) {
+      if (world.party.memberSlot(m) < 0) continue;
+      const p = world.member(m);
+      if (p.status === 'D' || p.status === 'A') continue;
+      const shape = memberShape(world, p.classLetter);
+      const x = dx + (m % 2) * q;
+      const y = dy + Math.floor(m / 2) * q;
+      if (p.status === 'P') ctx.drawImage(this.greenFigure(shape, q), x, y);
+      else gfx.drawShape(ctx, shape, x, y, q, { masked: true });
+    }
+  }
+
+  /** Cache of member figures recoloured green (poison), keyed by shape and size. */
+  private greenFigures = new Map<string, HTMLCanvasElement>();
+
+  /** A member figure with every pixel turned green, its shading kept as brightness. */
+  private greenFigure(shape: number, size: number): HTMLCanvasElement {
+    const key = `${shape}:${size}`;
+    const cached = this.greenFigures.get(key);
+    if (cached) return cached;
+    const off = document.createElement('canvas');
+    off.width = size;
+    off.height = size;
+    const octx = off.getContext('2d')!;
+    octx.imageSmoothingEnabled = false;
+    this.gfx.drawShape(octx, shape, 0, 0, size, { masked: true });
+    const image = octx.getImageData(0, 0, size, size);
+    const d = image.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] === 0) continue;
+      const bright = Math.max(d[i], d[i + 1], d[i + 2]);
+      d[i] = 0;
+      d[i + 1] = Math.max(64, bright);
+      d[i + 2] = 0;
+    }
+    octx.putImageData(image, 0, 0);
+    this.greenFigures.set(key, off);
+    return off;
   }
 
   /**

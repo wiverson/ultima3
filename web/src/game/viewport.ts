@@ -32,6 +32,8 @@ export interface ViewCell {
    * Standard tiles, an expanding burst over it.
    */
   hit?: { frame: number; shape: number };
+  /** The party stands here on foot; the screen may draw the members instead of the overlay figure. */
+  party?: boolean;
 }
 
 export interface Viewport {
@@ -178,6 +180,7 @@ function applyOverlays(world: World, shapes: Uint8Array, originX: number, origin
     if (!isBall(centre.overlay ?? centre.base)) {
       centre.overlay = world.party.shape;
       centre.flip = world.party.shape === Shape.Horse && world.horseFacingEast;
+      centre.party = world.party.shape === 0x7e; // on foot (the ranger figure)
     }
   }
   return cells;
