@@ -24,6 +24,14 @@ describe('contextual commands', () => {
     expect(suggestedCommands(world, 'field')).toEqual(['X']);
   });
 
+  it('suggests Get first on a chest, whatever terrain it was left on', () => {
+    const world = newWorld();
+    world.current.tiles.fill(MapValue.Grass);
+    world.monsters.bytes.fill(0);
+    world.putXYVal(MapValue.Chest + 2, world.x, world.y); // a chest dropped on forest
+    expect(suggestedCommands(world, 'field')).toEqual(['G']);
+  });
+
   it('suggests Attack beside a monster, and Fire too from a frigate', () => {
     const world = newWorld();
     world.current.tiles.fill(MapValue.Grass);

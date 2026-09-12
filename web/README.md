@@ -129,7 +129,8 @@ src/game/   pure game logic, no DOM, unit tested
   spells.ts       Cast and the spell effects
   dungeon.ts      the dungeon loop and what is visible in first person
   death.ts        party wipe and resurrection
-  menu.ts         title screen and party organisation
+  menu.ts         title screen, character creation, party organisation (menus)
+  names.ts        stock of names for the "random name" option
   game.ts         the main loop (Game) and command dispatch
   io.ts           the GameIO interface: how logic talks to screen/keys/sound
   save.ts         save-game serialisation

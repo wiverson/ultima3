@@ -47,7 +47,8 @@ function fieldSuggestions(world: World): string[] {
   }
   if (shape === PartyShape.OnFoot && (here === MapValue.Horse || here === MapValue.Frigate)) out.push('B');
   if (shape === PartyShape.Horse || shape === PartyShape.Frigate) out.push('X');
-  if (here === MapValue.Chest) out.push('G');
+  // A chest left by a monster carries the terrain it stood on in its low bits.
+  if (here >= MapValue.Chest && here <= MapValue.Chest + 3) out.unshift('G');
 
   // Things one step away.
   let person = false;
