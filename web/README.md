@@ -70,10 +70,10 @@ the game. Every setting is remembered by the browser.
     1 3 7 9      walk diagonally (only with diagonal moves on)
 
     A attack     B board      C cast      E enter     F fire
-    G get chest  H hand       I ignite    L look      M modify order
-    N negate     O other      P peer gem  Q quit/save R ready weapon
-    S steal      T transact   U unlock    V volume    W wear armour
-    X exit craft Y yell       Z ztats
+    G get chest  I ignite     L look      M modify    N negate
+    O other      P peer gem   Q quit/save R ready     S steal
+    T transact   U unlock     V volume    W wear      X exit craft
+    Y yell       Z ztats
 
     O and Y are the same prompt: a member and a word (SEARCH, BRIBE,
     PRAY, EVOCARE, INSERT, DIG, PAXUM, SCREAM).
@@ -138,10 +138,25 @@ save contains except the pooled gold and food.
 - **Gold and food are pooled** for the whole party (the Apple II kept them
   per member, 0..9999 each). The pool lives in spare bytes of the party
   record and shows on the top border either side of the moons. Join gold
-  is gone and Hand no longer moves food or gold. Members eat a tenth of a
+  is gone. Members eat a tenth of a
   ration a turn from the pool and go hungry together when it is empty; the
   Apple II's food-borrow quirk went with the per-member counters. Forming
   a party pools the members' purses; dispersing shares the pool out again.
+- **Weapons and armour are pooled** as well: the party carries one bag
+  (spare bytes of the party record again), and a member's record keeps
+  only what they have readied and worn. Ready and Wear draw from the bag
+  and return the old item to it, so one sword cannot arm two members;
+  the lists mark the item in use and grey what the class may not use.
+  Shops still ask who is at the counter: the member's readied weapon or
+  worn armour is announced, stock they cannot use is greyed but still for
+  sale, and after a purchase they can use, the shop offers to ready or
+  wear it there and then. Selling takes from the bag only. Ztats lists the
+  bag on every member's page. Chest finds, dug exotics and thrown daggers
+  come and go from the bag; a pilfering thief empties one kind from it.
+  Forming a party pools the members' bags (each keeps what is in hand);
+  dispersing deals the bag out, to members who can use each item first.
+  The Hand command, which moved gear between members, is gone: gems, keys,
+  torches and powders are found by their "whose" prompts.
 - **Character boxes** are two rows: the name, coloured by state (green
   poisoned, light grey dead, dark grey ashes, blue when Lord British would
   raise the member, white otherwise), then hit points over max, yellow
@@ -267,7 +282,7 @@ src/game/   pure game logic, no DOM, unit tested
   monsters.ts     SpawnMonster / MoveMonsters
   turn.ts         end-of-turn processing (the C code's Routine6E35)
   commands.ts     movement and the world commands (Board, Enter, Look ...)
-  actions.ts      the party's own records (Get, Hand, Ready, Wear, Ztats ...)
+  actions.ts      the party's own records (Get, Ready, Wear, Ztats ...)
   interact.ts     other creatures (Transact, Attack, Fire, Steal, Unlock, Other)
   shops.ts        the eight shops
   context.ts      which commands fit the surroundings (controller menu order)

@@ -52,3 +52,20 @@ describe('save and restore', () => {
     expect(restore(new World(a.resources), data)).toBe(false);
   });
 });
+
+describe('save migration', () => {
+  it('pools a version 2 save\'s member bags into the party\'s, keeping items in hand', () => {
+    const a = newWorld();
+    a.member(0).bytes[48 + 6] = 2; // two swords in the old per-member bag ...
+    a.member(0).bytes[48] = 6; // ... one in hand
+    a.member(1).bytes[40 + 3] = 1; // chain, not worn
+    const data = JSON.parse(JSON.stringify(serialize(a)));
+    data.version = 2;
+    const b = new World(a.resources);
+    expect(restore(b, data)).toBe(true);
+    expect(b.party.weapons(6)).toBe(1);
+    expect(b.member(0).bytes[48]).toBe(6);
+    expect(b.member(0).bytes[48 + 6]).toBe(0);
+    expect(b.party.armour(3)).toBe(1);
+  });
+});

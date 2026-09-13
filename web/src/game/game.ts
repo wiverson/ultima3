@@ -192,8 +192,6 @@ export class Game {
         return interact.fire(world, io);
       case 'G':
         return act.getChest(world, io, 0, 'command');
-      case 'H':
-        return act.handEquipment(world, io);
       case 'I':
         return act.igniteTorch(world, io);
       case 'K':

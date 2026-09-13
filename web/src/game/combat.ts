@@ -636,15 +636,12 @@ async function combatAttack(
   } else {
     target = monsterAt(c, me.x + dir.dx, me.y + dir.dy);
     // A dagger can be thrown at a distant foe, and is used up. This port
-    // only throws a spare: the Apple II let a new character throw their
-    // only dagger and fight bare-handed after.
-    if (target < 0 && (weapon !== 1 || p.bytes[49] <= 1)) return missed();
+    // only throws a spare from the party's bag, keeping the one in hand:
+    // the Apple II let a new character throw their only dagger and fight
+    // bare-handed after.
+    if (target < 0 && (weapon !== 1 || world.party.weapons(1) < 1)) return missed();
     if (target < 0) {
-      p.bytes[49]--;
-      if (p.bytes[49] < 1 || p.bytes[49] > 250) {
-        p.bytes[48] = 0;
-        p.bytes[49] = 0;
-      }
+      world.party.setWeapons(1, world.party.weapons(1) - 1);
       target = await shoot(world, io, me.x, me.y, dir.dx, dir.dy, Shape.FireBall);
       if (target < 0) return missed();
     }
@@ -853,17 +850,16 @@ async function damageMember(world: World, io: GameIO, target: number, ballShape:
   }
 }
 
-/** Mirrors `Pilfer()`: a thief steals a random weapon or armour that is not in use. */
+/** Mirrors `Pilfer()`: a thief steals a whole stack of one kind of weapon or armour nobody is using, from the party's bag. */
 function pilfer(world: World, io: GameIO, member: number): void {
-  const p = world.member(member);
   if (world.rng.range(0, 255) < 128) {
     const item = world.rng.range(0, 15);
-    if (item === 0 || p.bytes[48] === item || p.bytes[48 + item] === 0) return;
-    p.bytes[48 + item] = 0;
+    if (item === 0 || world.party.weapons(item) === 0) return;
+    world.party.setWeapons(item, 0);
   } else {
     const item = world.rng.range(0, 7);
-    if (item === 0 || p.bytes[40] === item || p.bytes[40 + item] === 0) return;
-    p.bytes[40 + item] = 0;
+    if (item === 0 || world.party.armour(item) === 0) return;
+    world.party.setArmour(item, 0);
   }
   io.printMessage(Msg.Plr);
   io.print(String(member + 1));

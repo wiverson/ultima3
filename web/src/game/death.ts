@@ -66,13 +66,12 @@ export async function checkAllDead(world: World, io: GameIO): Promise<void> {
     const p = world.member(m);
     p.bytes.fill(0, 35, 64); // gold (unused now), gems, keys, powders, armour, weapons
     p.torches = 0;
-    p.bytes[41] = 1; // cloth armour
-    p.bytes[40] = 1; //   in use
-    p.bytes[49] = 1; // dagger
-    p.bytes[48] = 1; //   in use
+    p.bytes[40] = 1; // cloth armour worn
+    p.bytes[48] = 1; // dagger in hand
     p.status = 'G';
     p.hitPoints = 100;
   }
+  world.party.clearGear(); // the bag is lost too
   world.combat = null;
   world.party.location = Location.Sosaria;
   world.party.shape = 0x7e;

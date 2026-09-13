@@ -58,7 +58,6 @@ export const KEYBOARD_HELP: string[][] = [
     'C  cast a spell',
     'R  ready a weapon',
     'W  wear armour',
-    'H  hand equipment to a member',
     'M  modify the marching order',
     'N  negate time (needs a powder)',
     'Q  quit and save (on the surface)',

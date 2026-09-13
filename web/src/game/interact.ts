@@ -382,8 +382,8 @@ export async function otherCommand(world: World, io: GameIO, fromYell = false): 
       return insertCard(world, io, member);
     case 'DIG': {
       if (!world.onSurface) return notHere(io);
-      if (world.x === 0x21 && world.y === 0x03) p.bytes[63] = 1; // exotic weapon
-      else if (world.x === 0x13 && world.y === 0x2c) p.bytes[47] = 1; // exotic armour
+      if (world.x === 0x21 && world.y === 0x03) world.addGear(true, 15); // exotic weapon
+      else if (world.x === 0x13 && world.y === 0x2c) world.addGear(false, 7); // exotic armour
       else return notHere(io);
       return io.printMessage(Msg.Exotics);
     }

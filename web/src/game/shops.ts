@@ -44,6 +44,8 @@ const Msg = {
   HereYouAre: 210,
   ForSale: 211,
   DontOwn: 212,
+  /** " Ready" (shared with actions.ts). */
+  Ready: 83,
   ThankYou: 213,
   TooMuchGold: 214,
   MaybeNextTime: 215,
@@ -220,6 +222,9 @@ async function healer(world: World, io: GameIO, p: PlayerRecord): Promise<void> 
   io.updateStats();
 }
 
+/** Grey for stock the member at the counter cannot use (still for sale, for someone else). */
+const UNUSABLE = '#808080';
+
 /** Print the weapons or armour price list a few lines at a time. (`WeaponList`, `ArmourList`) */
 async function priceList(world: World, io: GameIO, isWeapon: boolean, last: number): Promise<void> {
   const names = world.resources.strings.WeaponsArmour;
@@ -238,27 +243,39 @@ async function priceList(world: World, io: GameIO, isWeapon: boolean, last: numb
   await io.waitKey();
 }
 
-/** Buy or sell weapons or armour. (`Shop` cases 3 and 4) */
+/**
+ * Buy or sell weapons or armour. (`Shop` cases 3 and 4)
+ *
+ * Gear belongs to the party (this port), so purchases go into the bag and
+ * sales come out of it; the member at the counter matters for what their
+ * class can use: those items are greyed in the list, the item they have
+ * readied or worn is announced first, and after buying something better
+ * suited the shop offers to ready or wear it on the spot.
+ */
 async function equipmentShop(world: World, io: GameIO, p: PlayerRecord, isWeapon: boolean): Promise<void> {
   const names = world.resources.strings.WeaponsArmour;
   const nameBase = isWeapon ? 0 : 16;
   const priceBase = isWeapon ? 24 : 40;
-  const countBase = isWeapon ? 48 : 40;
+  const inUseBase = isWeapon ? 48 : 40;
   // Ordinary shops stop at the 2-H sword and plate; Dawn (surface X = 37) sells
   // up to the +4 weapons and +2 plate. Exotics are never for sale. (`opnum`)
   const fullStock = world.party.surfaceX === 37;
   const last = isWeapon ? (fullStock ? 15 : 8) : fullStock ? 7 : 5; // exclusive letter index
 
-  // Menu of what the shop stocks (letters B..), with prices.
+  // Menu of what the shop stocks (letters B..), with prices; what this member cannot use is greyed but still for sale.
   const stock: MenuOption[] = [];
-  for (let i = 1; i < last; i++) stock.push({ key: String.fromCharCode(65 + i), label: `${String.fromCharCode(65 + i)} ${names[nameBase + i]} ${names[priceBase + i]}gp` });
-  const owned = (): MenuOption[] => stock.filter((o) => p.bytes[countBase + o.key.charCodeAt(0) - 65] > 0);
+  for (let i = 1; i < last; i++) {
+    const letter = String.fromCharCode(65 + i);
+    stock.push({ key: letter, label: `${letter} ${names[nameBase + i]} ${names[priceBase + i]}gp`, colour: world.canUse(p, isWeapon, i) ? undefined : UNUSABLE });
+  }
+  const owned = (): MenuOption[] => stock.filter((o) => world.party.gear(isWeapon, o.key.charCodeAt(0) - 65) > 0);
   const nothing: MenuOption = { key: ' ', label: 'Nothing' };
 
   io.printMessage(isWeapon ? Msg.WeaponsShop : Msg.ArmourShop);
   let key = await io.chooseOption([{ key: 'Y', label: 'Yes, list' }, { key: 'N', label: 'No' }], 'none');
   io.print(key || 'N');
   if (key === 'Y') await priceList(world, io, isWeapon, last);
+  io.print(`\n${isWeapon ? 'Readied' : 'Worn'}: ${names[nameBase + p.bytes[inUseBase]]}`);
   io.printMessage(Msg.BuyOrSell);
   key = await io.chooseOption([{ key: 'B', label: 'Buy' }, { key: 'S', label: 'Sell' }], 'none');
   io.print(key || 'S');
@@ -276,31 +293,41 @@ async function equipmentShop(world: World, io: GameIO, p: PlayerRecord, isWeapon
         io.printMessage(Msg.NoGold);
         return;
       }
-      if (p.bytes[countBase + index] > 98) {
+      if (world.party.gear(isWeapon, index) > 98) {
         io.printMessage(Msg.NotEnoughRoom);
         io.print('\n\n');
         error(io);
         continue;
       }
       world.party.gold -= price;
-      p.bytes[countBase + index]++;
+      world.addGear(isWeapon, index);
       io.printMessage(Msg.HereYouAre);
+      // Something new this member can use: offer to put it to use now.
+      if (index !== p.bytes[inUseBase] && world.canUse(p, isWeapon, index)) {
+        io.print(`\n${isWeapon ? 'Ready' : 'Wear'} it? (Y/N)-`);
+        const yes = await io.chooseOption([{ key: 'Y', label: 'Yes' }, { key: 'N', label: 'No' }], 'none');
+        io.print(`${yes || 'N'}\n`);
+        if (yes === 'Y') {
+          world.equip(p, isWeapon, index);
+          io.print(`${names[nameBase + index]}`);
+          io.printMessage(Msg.Ready);
+        }
+      }
     } else {
       io.printMessage(Msg.ForSale);
       const k = await io.chooseOption([...owned(), nothing], 'none');
       const index = k.charCodeAt(0) - 'A'.charCodeAt(0);
       if (!k || k < 'B' || index >= last) break;
       io.print(k);
-      if (p.bytes[countBase + index] < 1) {
-        io.printMessage(Msg.DontOwn);
+      if (world.party.gear(isWeapon, index) < 1) {
+        io.printMessage(Msg.DontOwn); // only what is in the bag sells; an item in hand must be unreadied first
         return;
       }
       if (!addGold(world, priceOf(world, priceBase + index), false)) {
         io.printMessage(Msg.TooMuchGold);
         return error(io);
       }
-      p.bytes[countBase + index]--;
-      if (p.bytes[countBase + index] < 1 && p.bytes[countBase] === index) p.bytes[countBase] = 0;
+      world.party.setGear(isWeapon, index, world.party.gear(isWeapon, index) - 1);
       io.printMessage(Msg.ThankYou);
       mode = 'S';
     }

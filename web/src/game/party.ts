@@ -22,9 +22,14 @@
  *   15      Party[16]  1 once Exodus has been destroyed
  *   20-22   (port)     the party's gold, 0..99999, low byte first
  *   24-26   (port)     the party's food in hundredths, 0..9,999,999, low byte first
+ *   32-46   (port)     weapons in the party's bag, by weapon index 1..15 (Dagger..Exotic)
+ *   48-54   (port)     armour in the party's bag, by armour index 1..7 (Cloth..Exotic)
  *
- * The last two are this port's addition: gold and food belong to the party
- * as a whole rather than to each member (see World.poolPurses).
+ * The last four are this port's additions: gold, food, weapons and armour
+ * belong to the party as a whole rather than to each member (see
+ * World.poolPurses and World.poolGear). The bag holds what nobody has
+ * readied or worn; a member's record keeps only the item in hand (byte 48)
+ * and the armour worn (byte 40).
  */
 
 export const PARTY_RECORD_SIZE = 64;
@@ -163,6 +168,34 @@ export class Party {
   }
   set food(v: number) {
     this.foodHundredths = Math.max(0, Math.min(FOOD_MAX, Math.floor(v))) * 100;
+  }
+
+  /** Weapons in the bag (nobody's hand), by weapon index 1..15; 0 for hands. */
+  weapons(index: number): number {
+    return index >= 1 && index <= 15 ? this.bytes[31 + index] : 0;
+  }
+  setWeapons(index: number, n: number): void {
+    if (index >= 1 && index <= 15) this.bytes[31 + index] = Math.max(0, Math.min(99, n));
+  }
+  /** Armour in the bag (nobody wearing it), by armour index 1..7; 0 for skin. */
+  armour(index: number): number {
+    return index >= 1 && index <= 7 ? this.bytes[47 + index] : 0;
+  }
+  setArmour(index: number, n: number): void {
+    if (index >= 1 && index <= 7) this.bytes[47 + index] = Math.max(0, Math.min(99, n));
+  }
+  /** What the bag holds of one kind: `gear(true, 6)` is swords. */
+  gear(isWeapon: boolean, index: number): number {
+    return isWeapon ? this.weapons(index) : this.armour(index);
+  }
+  setGear(isWeapon: boolean, index: number, n: number): void {
+    if (isWeapon) this.setWeapons(index, n);
+    else this.setArmour(index, n);
+  }
+  /** Empty the bag (the party lost everything). */
+  clearGear(): void {
+    this.bytes.fill(0, 32, 47);
+    this.bytes.fill(0, 48, 55);
   }
 
   /** `Party[16]`: set once Exodus is destroyed. */

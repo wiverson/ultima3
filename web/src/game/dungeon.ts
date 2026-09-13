@@ -24,7 +24,6 @@ import { checkAllDead } from './death.ts';
 import { speech, otherCommand, yell } from './interact.ts';
 import {
   getChest,
-  handEquipment,
   igniteTorch,
   modifyOrder,
   negateTime,
@@ -249,8 +248,6 @@ async function dispatch(world: World, io: GameIO, key: string): Promise<void> {
       return descend(world, io);
     case 'G':
       return getChest(world, io, 0, 'command');
-    case 'H':
-      return handEquipment(world, io);
     case 'I':
       return igniteTorch(world, io);
     case 'K':

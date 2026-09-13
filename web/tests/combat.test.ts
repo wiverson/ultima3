@@ -252,16 +252,15 @@ describe('throwing daggers', () => {
     c.monsters[0].y = 5;
     c.monsters[0].hp = 10;
     const p = world.member(0);
-    p.bytes[48] = 1; // dagger readied
-    p.bytes[49] = 1; // just the one
+    p.bytes[48] = 1; // dagger readied, none spare in the bag
+    world.party.setWeapons(1, 0);
     io.keys = [Key.Up];
     await combatAttackForTest(world, io, 0);
-    expect(p.bytes[49]).toBe(1);
     expect(io.output).toContain('Missed');
-    p.bytes[49] = 2;
+    world.party.setWeapons(1, 1); // a spare: it is thrown, the one in hand stays
     io.keys = [Key.Up];
     await combatAttackForTest(world, io, 0);
-    expect(p.bytes[49]).toBe(1);
+    expect(world.party.weapons(1)).toBe(0);
     expect(p.bytes[48]).toBe(1);
   });
 });

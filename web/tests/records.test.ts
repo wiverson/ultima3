@@ -66,3 +66,31 @@ describe('party record', () => {
     expect(party.bytes[11]).toBe(1);
   });
 });
+
+describe('the party bag', () => {
+  it('pools each member\'s gear on forming, keeping what is in hand, and deals it out on dispersing', async () => {
+    const { newWorld } = await import('./helpers.ts');
+    const world = newWorld();
+    // A new game already pooled the default party: four daggers in hand, none spare.
+    expect(world.party.weapons(1)).toBe(0);
+    expect(world.member(0).bytes[48]).toBe(1);
+    expect(world.member(0).bytes[49]).toBe(0);
+    // Give members some gear the old way and pool it again.
+    world.member(0).bytes[48 + 6] = 2; // two swords, none in hand
+    world.member(1).bytes[48 + 6] = 1;
+    world.member(1).bytes[48] = 6; // ... one of which is in hand
+    world.member(2).bytes[40 + 3] = 1; // chain, not worn
+    world.poolGear();
+    expect(world.party.weapons(6)).toBe(2);
+    expect(world.party.armour(3)).toBe(1);
+    expect(world.member(1).bytes[48]).toBe(6);
+    expect(world.member(1).bytes[48 + 6]).toBe(0);
+    // Dispersing: the sword in hand stays with its owner, the rest go to members who can use them.
+    world.splitGear();
+    expect(world.member(1).bytes[48 + 6]).toBeGreaterThanOrEqual(1); // the one in hand, at least
+    const swords = [0, 1, 2, 3].map((m) => world.member(m).bytes[48 + 6]);
+    expect(swords.reduce((a, b) => a + b, 0)).toBe(3);
+    expect(world.party.weapons(6)).toBe(0);
+    for (let m = 0; m < 4; m++) if (world.member(m).bytes[40 + 3] === 1) expect(world.canUse(world.member(m), false, 3)).toBe(true);
+  });
+});

@@ -3,7 +3,7 @@ import { newWorld, FakeIO } from './helpers.ts';
 import { speech, transact, unlock, steal, otherCommand, fire, unlockToward, transactToward } from '../src/game/interact.ts';
 import { shop } from '../src/game/shops.ts';
 import { cast } from '../src/game/spells.ts';
-import { getChest, readyWeapon, wearArmour, stats, handEquipment } from '../src/game/actions.ts';
+import { getChest, readyWeapon, wearArmour, stats } from '../src/game/actions.ts';
 import { mainMenu, createCharacter, formParty, terminateCharacter } from '../src/game/menu.ts';
 import { MapValue } from '../src/game/tiles.ts';
 import { Location } from '../src/game/party.ts';
@@ -62,24 +62,50 @@ describe('talking', () => {
 });
 
 describe('shops', () => {
-  it('sells a weapon the class may use and buys it back', async () => {
+  it('sells a weapon into the party bag, offers to ready it, and buys it back', async () => {
     const { world, io } = townWorld();
-    const p = world.member(1); // Roderic, a ranger
+    const p = world.member(1); // Roderic, a ranger, dagger in hand
     world.party.gold = 500;
     world.party.surfaceX = 0; // a basic shop
-    // No list; buy a mace; Escape leaves the shop (buying stays in buy mode, as in the original).
-    io.keys = ['N', 'B', 'C', Key.Escape];
+    // No list; buy a mace; decline to ready it; Escape leaves the shop (buying stays in buy mode, as in the original).
+    io.keys = ['N', 'B', 'C', 'N', Key.Escape];
     await shop(world, io, 3, 1);
     expect(io.output).toContain('WEAPONS SHOP');
+    expect(io.output).toContain('Readied: Dagger');
     expect(io.output).toContain('Here you are');
-    expect(p.bytes[48 + 2]).toBe(1);
+    expect(io.output).toContain('Ready it? (Y/N)-N');
+    expect(world.party.weapons(2)).toBe(1);
+    expect(p.bytes[48]).toBe(1);
     expect(world.party.gold).toBe(470);
     // Sell it back.
     io.keys = ['N', 'S', 'C', Key.Escape];
     await shop(world, io, 3, 1);
     expect(io.output).toContain('Thank you');
-    expect(p.bytes[48 + 2]).toBe(0);
+    expect(world.party.weapons(2)).toBe(0);
     expect(world.party.gold).toBe(500);
+  });
+
+  it('readies a purchase on the spot when asked, returning the old weapon to the bag', async () => {
+    const { world, io } = townWorld();
+    const p = world.member(1);
+    world.party.gold = 500;
+    world.party.surfaceX = 0;
+    io.keys = ['N', 'B', 'G', 'Y', Key.Escape]; // a sword, readied
+    await shop(world, io, 3, 1);
+    expect(io.output).toContain('Sword Ready');
+    expect(p.bytes[48]).toBe(6);
+    expect(world.party.weapons(6)).toBe(0);
+    expect(world.party.weapons(1)).toBe(1); // the dagger went back in the bag
+  });
+
+  it('does not offer to ready what the member cannot use, and greys it in the list', async () => {
+    const { world, io } = townWorld();
+    world.party.gold = 500;
+    world.party.surfaceX = 0;
+    io.keys = ['N', 'B', 'H', Key.Escape]; // a 2-H sword for the thief (member 0): no offer
+    await shop(world, io, 3, 0);
+    expect(io.output).not.toContain('Ready it?');
+    expect(world.party.weapons(7)).toBe(1);
   });
 
   it('the healer cures poison for 100 gold', async () => {
@@ -156,28 +182,35 @@ describe('doors, chests and stealing', () => {
 });
 
 describe('equipment and stats', () => {
-  it('readies a weapon only if owned and allowed', async () => {
+  it('readies a weapon only if the bag holds one and the class allows it', async () => {
     const { world, io } = townWorld();
     const p = world.member(0); // a thief may use a sword but not a two-handed sword
-    p.bytes[55] = 1; // owns a 2-H-Swd
+    world.party.setWeapons(7, 1); // the bag holds a 2-H-Swd
     io.keys = ['1', 'H'];
     await readyWeapon(world, io);
     expect(io.output).toContain('Not allowed');
     io.keys = ['1', 'B'];
     await readyWeapon(world, io);
-    expect(io.output).toContain('Dagger Ready');
+    expect(io.output).toContain('Dagger Ready'); // already in hand: nothing moves
+    expect(p.bytes[48]).toBe(1);
     io.keys = ['1', 'C'];
     await wearArmour(world, io);
     expect(io.output).toContain('Not owned');
   });
 
-  it('hands a weapon between members', async () => {
+  it('swaps through the bag: readying a mace returns the dagger for another member', async () => {
     const { world, io } = townWorld();
-    world.member(0).bytes[48 + 2] = 1; // a mace
-    io.keys = ['1', '2', 'W', 'C'];
-    await handEquipment(world, io);
-    expect(world.member(0).bytes[48 + 2]).toBe(0);
-    expect(world.member(1).bytes[48 + 2]).toBe(1);
+    world.party.setWeapons(2, 1);
+    io.keys = ['1', 'C'];
+    await readyWeapon(world, io);
+    expect(world.member(0).bytes[48]).toBe(2);
+    expect(world.party.weapons(2)).toBe(0);
+    expect(world.party.weapons(1)).toBe(1);
+    world.member(1).bytes[48] = 0; // bare-handed, takes the spare dagger
+    io.keys = ['2', 'B'];
+    await readyWeapon(world, io);
+    expect(world.member(1).bytes[48]).toBe(1);
+    expect(world.party.weapons(1)).toBe(0);
   });
 
   it('prints the stats screen and stops on escape', async () => {
@@ -348,8 +381,8 @@ describe('the weapons and armour shops', () => {
     const { world, io } = shopWorld(MapValue.LetterA, 19); // 19 & 7 = 3: weapons
     io.keys = ['1', 'N', 'B', 'H', 'I', ' ']; // I is not offered; space is Nothing
     await transactToward(world, io, 1, 0);
-    expect(world.member(0).bytes[48 + 7]).toBe(1); // a 2-H sword
-    expect(world.member(0).bytes[48 + 8]).toBe(0); // no +2 axe
+    expect(world.party.weapons(7)).toBe(1); // a 2-H sword, in the party bag
+    expect(world.party.weapons(8)).toBe(0); // no +2 axe
     expect(io.output).toContain('maybe\nnext time');
   });
 
@@ -357,8 +390,8 @@ describe('the weapons and armour shops', () => {
     const { world, io } = shopWorld(MapValue.LetterA, 20); // 20 & 7 = 4: armour
     io.keys = ['1', 'N', 'B', 'E', 'F', ' '];
     await transactToward(world, io, 1, 0);
-    expect(world.member(0).bytes[40 + 4]).toBe(1); // plate
-    expect(world.member(0).bytes[40 + 5]).toBe(0); // no +2 chain
+    expect(world.party.armour(4)).toBe(1); // plate
+    expect(world.party.armour(5)).toBe(0); // no +2 chain
   });
 
   it('Dawn sells up to the +4 sword and +2 plate, never exotics', async () => {
@@ -366,13 +399,13 @@ describe('the weapons and armour shops', () => {
     world.party.surfaceX = 37;
     io.keys = ['1', 'N', 'B', 'O', 'P', ' '];
     await transactToward(world, io, 1, 0);
-    expect(world.member(0).bytes[48 + 14]).toBe(1); // +4 sword
-    expect(world.member(0).bytes[48 + 15]).toBe(0); // exotic refused
+    expect(world.party.weapons(14)).toBe(1); // +4 sword
+    expect(world.party.weapons(15)).toBe(0); // exotic refused
     const armour = shopWorld(MapValue.LetterA, 20);
     armour.world.party.surfaceX = 37;
     armour.io.keys = ['1', 'N', 'B', 'G', 'H', ' '];
     await transactToward(armour.world, armour.io, 1, 0);
-    expect(armour.world.member(0).bytes[40 + 6]).toBe(1); // +2 plate
-    expect(armour.world.member(0).bytes[40 + 7]).toBe(0);
+    expect(armour.world.party.armour(6)).toBe(1); // +2 plate
+    expect(armour.world.party.armour(7)).toBe(0);
   });
 });

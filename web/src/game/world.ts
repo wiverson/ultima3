@@ -12,6 +12,7 @@
  * `surface`. The effect is the same and there is nothing to push or pull.
  */
 
+import type { PlayerRecord } from './player.ts';
 import { AutoMap, type MapMode } from './automap.ts';
 import { type GameResources, MapId, BASERES } from '../data/resources.ts';
 import { MonsterTable } from './monsterTable.ts';
@@ -419,6 +420,88 @@ export class World {
     this.party.foodHundredths = 0;
   }
 
+  /**
+   * Weapons and armour belong to the party (this port): move each member's
+   * bag into the party's, leaving them only what they have readied and
+   * worn. The Apple II counted the item in hand among the member's stock;
+   * here it is out of the bag.
+   */
+  poolGear(): void {
+    for (let m = 0; m < 4; m++) {
+      if (this.party.memberSlot(m) < 0) continue;
+      const p = this.member(m);
+      for (const isWeapon of [true, false]) {
+        const base = isWeapon ? 48 : 40;
+        const last = isWeapon ? 15 : 7;
+        for (let i = 1; i <= last; i++) {
+          let n = p.bytes[base + i];
+          if (p.bytes[base] === i && n > 0) n--; // the one in use stays with the member
+          this.party.setGear(isWeapon, i, this.party.gear(isWeapon, i) + n);
+          p.bytes[base + i] = 0;
+        }
+      }
+    }
+  }
+
+  /**
+   * The reverse of `poolGear()`, for dispersing: each member keeps what they
+   * have readied and worn, and the bag is dealt out one item at a time,
+   * first to members whose class can use the item, else to anyone.
+   */
+  splitGear(): void {
+    const members = [0, 1, 2, 3].filter((m) => this.party.memberSlot(m) >= 0);
+    if (members.length === 0) return;
+    for (const isWeapon of [true, false]) {
+      const base = isWeapon ? 48 : 40;
+      const last = isWeapon ? 15 : 7;
+      for (const m of members) {
+        const p = this.member(m);
+        if (p.bytes[base] > 0) p.bytes[base + p.bytes[base]] = 1;
+      }
+      for (let i = 1; i <= last; i++) {
+        const able = members.filter((m) => this.canUse(this.member(m), isWeapon, i));
+        const takers = able.length ? able : members;
+        let next = 0;
+        for (let n = this.party.gear(isWeapon, i); n > 0; n--) {
+          const p = this.member(takers[next++ % takers.length]);
+          p.bytes[base + i] = Math.min(99, p.bytes[base + i] + 1);
+        }
+      }
+    }
+    this.party.clearGear();
+  }
+
+  /** Whether a member's class may ready the weapon / wear the armour. Exotics suit everyone. (`weaponUseTable`) */
+  canUse(p: PlayerRecord, isWeapon: boolean, index: number): boolean {
+    if (index === 0) return true;
+    if (index === (isWeapon ? 15 : 7)) return true;
+    const careers = String.fromCharCode(...this.resources.misc.careerTable);
+    const classIndex = Math.max(0, careers.indexOf(p.classLetter));
+    const table = isWeapon ? this.resources.misc.weaponUseTable : this.resources.misc.armourUseTable;
+    return 65 + index < table[classIndex];
+  }
+
+  /**
+   * Ready a weapon or wear armour from the bag: the old item goes back in,
+   * the new one comes out. Returns false when the bag has none (0, hands or
+   * skin, is always available).
+   */
+  equip(p: PlayerRecord, isWeapon: boolean, index: number): boolean {
+    const base = isWeapon ? 48 : 40;
+    const old = p.bytes[base];
+    if (index === old) return true;
+    if (index > 0 && this.party.gear(isWeapon, index) < 1) return false;
+    if (old > 0) this.party.setGear(isWeapon, old, this.party.gear(isWeapon, old) + 1);
+    if (index > 0) this.party.setGear(isWeapon, index, this.party.gear(isWeapon, index) - 1);
+    p.bytes[base] = index;
+    return true;
+  }
+
+  /** Put found or bought gear in the bag (capped at 99 of a kind, as `AddItem()` capped a member's). */
+  addGear(isWeapon: boolean, index: number, amount = 1): void {
+    this.party.setGear(isWeapon, index, this.party.gear(isWeapon, index) + amount);
+  }
+
   /** Add gold to the pool. Returns false if any was lost to the cap. */
   addGold(amount: number): boolean {
     const before = this.party.gold;
@@ -461,6 +544,7 @@ export class World {
     this.roster.bytes.set(this.resources.defaultRoster);
     for (let m = 0; m < this.party.size; m++) this.member(m).inParty = true;
     this.poolPurses();
+    this.poolGear();
     this.party.location = Location.Sosaria;
     this.party.shape = 0x7e;
     this.x = this.party.surfaceX;
