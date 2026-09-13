@@ -207,8 +207,10 @@ export async function talkTo(world: World, io: GameIO, mon: number, member: numb
   if (hpmax >= 25 && !world.party.exodusDestroyed) return io.printMessage(Msg.NoMore);
   if (hpmax > 4 && !(p.marks & 0x80)) return io.printMessage(Msg.SeekMarkOfKings);
   const newMax = Math.min(9950, p.maxHitPoints + 100);
+  const gained = newMax - p.maxHitPoints;
   p.bytes[28] = Math.floor(newMax / 256);
   p.bytes[29] = newMax % 256;
+  p.addHitPoints(gained); // this port: the new hit points are also given, not just room for them
   io.printMessage(Msg.ThouArtGreater);
   await io.flashTiles();
   io.sound(Sound.LBLevelRise);

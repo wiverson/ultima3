@@ -425,6 +425,7 @@ describe('Lord British', () => {
     expect(io.output).toContain('Transact-3');
     expect(io.output.toUpperCase()).toContain('GREATER');
     expect(p.maxHitPoints).toBe(200);
+    expect(p.hitPoints).toBe(200); // the raise comes with the hit points, not just the room
     expect(world.member(0).maxHitPoints).toBe(100);
   });
 });
