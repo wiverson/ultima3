@@ -999,31 +999,37 @@ export class Screen implements GameIO {
   private paintViewport(): void {
     const { ctx, cell, gfx, world } = this;
     const inDungeon = world.party.location === Location.Dungeon && !world.combat;
-    const overlay = inDungeon && world.mapMode === 'small';
+    const overlay = inDungeon && world.mapMode !== 'off'; // small: the 5x5 map; full: the small first-person view
     if (this.overlayShown && !overlay) {
       // The overlay has gone: bring back the text it was covering.
       this.overlayShown = false;
       this.redrawTextArea();
     }
     if (inDungeon) {
+      const lit = world.dungeon.torch > 0 && this.dungeonRenderer;
+      const view = lit ? this.dungeonRenderer!.render(buildDungeonView(world), world.dungeon.torch, secretMessage(world)) : null;
       if (world.mapMode === 'full') {
+        // The level fills the window; the first-person view shrinks into the overlay slot.
+        this.overlayShown = true;
         this.black(1, 1, 22, 22);
         this.paintAutoMap(0, 0, 16, 16, 4, 4); // where Peer draws the level
+        this.black(MAP_OVERLAY_LEFT, MAP_OVERLAY_TOP, MAP_OVERLAY_SIZE, MAP_OVERLAY_SIZE);
+        if (view) {
+          const w = MAP_OVERLAY_SIZE * cell;
+          const h = Math.round((w * 512) / 600);
+          ctx.drawImage(view, MAP_OVERLAY_LEFT * cell, MAP_OVERLAY_TOP * cell + Math.floor((MAP_OVERLAY_SIZE * cell - h) / 2), w, h);
+        }
         return;
       }
       if (overlay) {
         this.overlayShown = true;
         this.paintAutoMap(world.x - 2, world.y - 2, MAP_OVERLAY_SIZE, MAP_OVERLAY_SIZE, MAP_OVERLAY_LEFT, MAP_OVERLAY_TOP);
       }
-      if (world.dungeon.torch < 1 || !this.dungeonRenderer) {
-        this.black(1, 1, 22, 22);
-        return;
-      }
-      const image = this.dungeonRenderer.render(buildDungeonView(world), world.dungeon.torch, secretMessage(world));
+      this.black(1, 1, 22, 22);
+      if (!view) return;
       // The original drew the 600x512 view at (84, 128) for 32-pixel cells, scaling with the cell size.
       const mult = cell / 32;
-      this.black(1, 1, 22, 22);
-      ctx.drawImage(image, 84 * mult, 128 * mult, 600 * mult, 512 * mult);
+      ctx.drawImage(view, 84 * mult, 128 * mult, 600 * mult, 512 * mult);
       return;
     }
     if (!this.view) return;

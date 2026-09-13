@@ -94,6 +94,25 @@ function stepTo(world: World, io: GameIO, heading: number, message: number): voi
   io.redrawMap();
 }
 
+/** Messages for the compass directions, indexed by heading (north, east, south, west). */
+const COMPASS_MSG = [24, 26, 25, 27];
+
+/**
+ * A move in full-map mode (this port): the arrows work as on the overworld.
+ * The party turns to face the direction pressed, then steps that way, so
+ * the small first-person view looks where the player is going. Inside a
+ * doorway, where the original forbids turning, only along the door works.
+ */
+export function stepCompass(world: World, io: GameIO, heading: number): void {
+  const inDoorway = world.getXYDng(world.x, world.y) >= 0xa0;
+  if (inDoorway && heading !== world.dungeon.heading && heading !== ((world.dungeon.heading + 2) & 3)) {
+    io.printMessage(COMPASS_MSG[heading]);
+    return noGo(io);
+  }
+  if (!inDoorway) world.dungeon.heading = heading;
+  stepTo(world, io, heading, COMPASS_MSG[heading]);
+}
+
 /** Mirrors `Forward()`. */
 export function forward(world: World, io: GameIO): void {
   stepTo(world, io, world.dungeon.heading, Msg.Advance);
@@ -225,18 +244,19 @@ async function dispatch(world: World, io: GameIO, key: string): Promise<void> {
   switch (key.toUpperCase()) {
     case Key.Space:
       return io.printMessage(Msg.Pass);
+    // With the whole level on screen the arrows are compass moves; otherwise the original's turn and advance.
     case Key.Left:
     case '4':
-      return turn(world, io, false);
+      return world.mapMode === 'full' ? stepCompass(world, io, 3) : turn(world, io, false);
     case Key.Right:
     case '6':
-      return turn(world, io, true);
+      return world.mapMode === 'full' ? stepCompass(world, io, 1) : turn(world, io, true);
     case Key.Up:
     case '8':
-      return forward(world, io);
+      return world.mapMode === 'full' ? stepCompass(world, io, 0) : forward(world, io);
     case Key.Down:
     case '2':
-      return retreat(world, io);
+      return world.mapMode === 'full' ? stepCompass(world, io, 2) : retreat(world, io);
     case 'C':
       await cast(world, io);
       return;

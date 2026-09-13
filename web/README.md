@@ -227,7 +227,9 @@ save contains except the pooled gold and food.
   in the controller menu) cycles between no map, a 5x5 overlay in the top
   right of the message area with the party centred, and the whole level
   in place of the first-person view, which turns the dungeon into a
-  top-down crawl. Only seen cells are drawn, with Peer's map pieces from
+  top-down crawl: the arrows then move north, south, east and west as on
+  the overworld, the party turns to face each move, and the first-person
+  view shrinks into the corner the small map used. Only seen cells are drawn, with Peer's map pieces from
   the live level data, so an opened chest shows as opened; a secret door
   is drawn as a wall with one pixel out of place where Peer shows it
   plainly. In the dark nothing is recorded, but the 3x3 around the party

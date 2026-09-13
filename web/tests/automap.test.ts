@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { newWorld, FakeIO } from './helpers.ts';
 import { AutoMap, cellVisible, nextMapMode, type AutoMapStore } from '../src/game/automap.ts';
-import { runDungeon, toggleMap } from '../src/game/dungeon.ts';
+import { runDungeon, toggleMap, stepCompass } from '../src/game/dungeon.ts';
 import { DungeonCell } from '../src/game/world.ts';
 import { Location } from '../src/game/party.ts';
 import { MapId } from '../src/data/resources.ts';
@@ -99,5 +99,31 @@ describe('the auto-map in play', () => {
     expect(world.mapMode).toBe('full');
     expect(io.output).toContain('Map: full');
     expect(told).toBe(2);
+  });
+});
+
+describe('full-map movement', () => {
+  it('moves by compass, turning to face each move, and refuses walls', async () => {
+    const world = newWorld(7);
+    world.enterDungeon(MapId.FirstDungeon);
+    world.party.location = Location.Dungeon;
+    world.dungeon.tiles.fill(DungeonCell.Wall, 0, 256);
+    world.putXYDng(DungeonCell.Open, 5, 5);
+    world.putXYDng(DungeonCell.Open, 5, 4);
+    world.putXYDng(DungeonCell.Open, 6, 4);
+    world.x = 5;
+    world.y = 5;
+    world.dungeon.heading = 1;
+    world.mapMode = 'full';
+    const io = new FakeIO(world.resources);
+    stepCompass(world, io, 0); // north
+    expect([world.x, world.y, world.dungeon.heading]).toEqual([5, 4, 0]);
+    stepCompass(world, io, 1); // east
+    expect([world.x, world.y, world.dungeon.heading]).toEqual([6, 4, 1]);
+    stepCompass(world, io, 3); // west, back
+    stepCompass(world, io, 3); // west again: a wall; the party still turns to face it
+    expect([world.x, world.y, world.dungeon.heading]).toEqual([5, 4, 3]);
+    expect(io.output).toContain('North');
+    expect(io.output).toContain('West');
   });
 });

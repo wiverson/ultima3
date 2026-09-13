@@ -73,6 +73,7 @@ export const KEYBOARD_HELP: string[][] = [
     'Left/Right turn',
     'I  K  D    ignite torch, klimb, descend',
     'L          map: off, 5x5, whole level',
+    '           (whole: arrows = compass)',
   ],
   [
     'HOW THINGS WORK              page 3/3',
