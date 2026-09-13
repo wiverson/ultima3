@@ -96,6 +96,52 @@ export async function cast(world: World, io: GameIO, member?: number): Promise<b
     return false;
   }
   await processMagic(world, io, member, spell);
+  world.lastSpell[member] = spell; // for the combat menu's "Cast (spell)" shortcut
+  return true;
+}
+
+/** The plain name of a spell, as the menus show it. */
+export function spellName(spell: number): string {
+  return SPELL_INFO[spell]?.name ?? '?';
+}
+
+/** What a spell costs in mana. Terraform, Armageddon and Flotellum have their own prices. */
+export function spellCost(spell: number): number {
+  return spell === 32 ? 10 : spell === 33 ? 85 : spell === 34 ? 90 : (spell & 0x0f) * 5;
+}
+
+/**
+ * The spell the combat menu offers as "Cast (spell)": the member's last
+ * spell, else Magic bolt for anyone with wizard spells and Heal for the
+ * cleric-only classes. Null for a member with no magic.
+ */
+export function quickSpell(world: World, member: number): number | null {
+  const last = world.lastSpell[member];
+  if (last !== undefined) return last;
+  const careers = String.fromCharCode(...world.resources.misc.careerTable);
+  switch (careers.indexOf(world.member(member).classLetter)) {
+    case 2: // Wizard
+    case 6: // Lark
+    case 8: // Druid
+    case 9: // Alchemist
+    case 10: // Ranger
+      return 1; // Mittar, magic bolt
+    case 1: // Cleric
+    case 4: // Paladin
+    case 7: // Illusionist
+      return 18; // Sanctu, heal
+    default:
+      return null;
+  }
+}
+
+/** Cast the quick spell straight away, without the spell menu. Returns false when the member has none. */
+export async function quickCast(world: World, io: GameIO, member: number): Promise<boolean> {
+  const spell = quickSpell(world, member);
+  if (spell === null) return false;
+  io.print(`${spellName(spell)}\n`);
+  await processMagic(world, io, member, spell);
+  world.lastSpell[member] = spell;
   return true;
 }
 
@@ -147,7 +193,7 @@ const SPELL_INFO: { name: string; does: string }[] = [
 /** Menu option for a spell: its letter and plain name, with the book name, cost and effect as the hint. */
 function spellOption(world: World, spell: number, letter: string, member: number): MenuOption {
   const book = spell < 32 ? world.resources.strings.Spells[spell] : ['TERRAFORM', 'ARMAGEDDON', 'FLOTELLUM'][spell - 32];
-  const cost = spell === 32 ? 10 : spell === 33 ? 85 : spell === 34 ? 90 : (spell & 0x0f) * 5;
+  const cost = spellCost(spell);
   const info = SPELL_INFO[spell] ?? { name: book.trim() || '?', does: '' };
   // Greyed when the caster cannot afford it, like other menu entries with nothing on hand.
   const disabled = cost > world.member(member).mana;

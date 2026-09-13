@@ -633,6 +633,9 @@ export class World {
    */
   trail: { x: number; y: number }[] = [];
 
+  /** Each member's last spell this session, for the combat menu's "Cast (spell)" shortcut (this port). */
+  lastSpell: (number | undefined)[] = [];
+
   /** Auto-combat on or off (a LairWare addition; see autocombat.ts). */
   autoCombat = false;
 

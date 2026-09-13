@@ -19,7 +19,8 @@ import { MapValue, Shape } from './tiles.ts';
 import { type GameIO, Key, Sound, Music, deathSound } from './io.ts';
 import { getDirection, moveForKey, moveDelta, what2, DIAGONAL_KEYS, Msg as CmdMsg } from './commands.ts';
 import { ageChars } from './turn.ts';
-import { cast } from './spells.ts';
+import { cast, quickCast } from './spells.ts';
+import { QUICK_CAST_KEY } from './context.ts';
 import { negateTime, readyWeapon, stats, volume, addExperience } from './actions.ts';
 import { BASERES } from '../data/resources.ts';
 import { checkAllDead } from './death.ts';
@@ -508,6 +509,12 @@ async function memberTurn(world: World, io: GameIO, member: number): Promise<voi
         if (await cast(world, io, member)) return;
         io.print(' ');
         continue; // cancelled: ask again
+      case QUICK_CAST_KEY:
+        io.printMessage(Msg.CastSpell);
+        if (await quickCast(world, io, member)) return;
+        io.printMessage(Msg.NotUsable);
+        io.sound(Sound.Error2);
+        continue;
       case 'N':
         await negateTime(world, io);
         return;

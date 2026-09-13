@@ -15,6 +15,7 @@ import { MapValue } from './tiles.ts';
 import type { CommandScope, MenuOption } from './io.ts';
 import { PartyShape, counterWithMerchant } from './commands.ts';
 import { monsterAt } from './combat.ts';
+import { quickSpell, spellName, spellCost } from './spells.ts';
 import type { PlayerRecord } from './player.ts';
 
 /** Fighters, thieves and barbarians have no magic. */
@@ -128,7 +129,42 @@ export function commandAvailability(world: World, scope: CommandScope): Map<stri
 export function commandMenu(world: World, scope: CommandScope, template: MenuOption[]): MenuOption[] {
   const availability = commandAvailability(world, scope);
   const shown = template.filter((o) => availability.get(o.key) !== 'hidden').map((o) => ({ ...o, disabled: availability.get(o.key) === 'disabled' }));
+  if (scope === 'combat' && world.combat) return combatMenu(world, shown);
   return prioritise(shown, suggestedCommands(world, scope));
+}
+
+/** The ranged weapons: sling and the bows. A dagger counts only with a spare in the bag, so the last one is never thrown. */
+const RANGED = [3, 5, 9, 13];
+
+/** The name of the active member's ranged weapon, or null if what they hold is for melee. */
+export function rangedWeaponName(world: World, member: number): string | null {
+  const weapon = world.member(member).bytes[48];
+  const ranged = RANGED.includes(weapon) || (weapon === 1 && world.party.weapons(1) >= 1);
+  return ranged ? world.resources.strings.WeaponsArmour[weapon] : null;
+}
+
+/** Key of the "Cast (spell)" shortcut in the combat menu (this port); cast the member's quick spell at once. */
+export const QUICK_CAST_KEY = '!';
+
+/**
+ * The combat menu for the member whose turn it is (this port). A ranged
+ * weapon in hand puts "Attack (Bow)" first, since melee is done by walking
+ * into the foe; a caster gets "Cast (spell)", their last spell or a
+ * sensible first one, ahead of the plain Cast, first of all when there is
+ * no ranged weapon. Attack is suggested for melee only beside a foe.
+ */
+function combatMenu(world: World, shown: MenuOption[]): MenuOption[] {
+  const me = world.combat!.activeMember;
+  const ranged = rangedWeaponName(world, me);
+  const spell = hasMagic(world, world.member(me)) ? quickSpell(world, me) : null;
+  let options = shown.map((o) => (o.key === 'A' && ranged ? { ...o, label: `Attack (${ranged})` } : o));
+  if (spell !== null) {
+    const quick: MenuOption = { key: QUICK_CAST_KEY, label: `Cast (${spellName(spell)})`, disabled: spellCost(spell) > world.member(me).mana };
+    options = [quick, ...options];
+  }
+  const casting = spell !== null ? [QUICK_CAST_KEY, 'C'] : [];
+  const first = ranged ? ['A', ...casting] : [...casting, ...combatSuggestions(world)];
+  return prioritise(options, first);
 }
 
 /** The four orthogonal steps. */

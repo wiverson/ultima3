@@ -6,6 +6,7 @@ import { Location } from '../src/game/party.ts';
 import { MapId } from '../src/data/resources.ts';
 import { PartyShape } from '../src/game/commands.ts';
 import { COMMAND_MENUS } from '../src/ui/menus.ts';
+import { World } from '../src/game/world.ts';
 import { loadArena } from '../src/game/combat.ts';
 import { BASERES } from '../src/data/resources.ts';
 import { DungeonCell } from '../src/game/world.ts';
@@ -139,5 +140,56 @@ describe('command menu availability', () => {
     world.party.torches = 1;
     expect(menu().find((o) => o.key === 'K')).toBeDefined();
     expect(menu().find((o) => o.key === 'I')?.disabled).toBe(false);
+  });
+});
+
+describe('the combat menu reads the turn', () => {
+  function fight(member: number) {
+    const world = newWorld();
+    const c = loadArena(world, BASERES + 4);
+    world.combat = c;
+    c.activeMember = member;
+    c.members[member].x = 5;
+    c.members[member].y = 5;
+    for (const m of c.monsters) m.hp = 0;
+    return world;
+  }
+  const keys = (world: World) => commandMenu(world, 'combat', COMMAND_MENUS.combat).map((o) => o.key + ':' + o.label);
+
+  it('puts a ranged weapon first, then the quick spell, then Cast', () => {
+    const world = fight(1); // Roderic, a ranger: wizard and cleric spells, dagger in hand
+    world.member(1).bytes[48] = 5; // a bow
+    expect(keys(world).slice(0, 3)).toEqual(['A:Attack (Bow)', '!:Cast (Magic bolt)', 'C:Cast spell']);
+  });
+
+  it('counts a dagger as ranged only with a spare, and names the last spell cast', () => {
+    const world = fight(1);
+    world.party.setWeapons(1, 0);
+    world.lastSpell[1] = 5; // Fireball
+    expect(keys(world).slice(0, 3)).toEqual(['!:Cast (Fireball)', 'C:Cast spell', 'A:Attack']);
+    world.party.setWeapons(1, 1);
+    expect(keys(world)[0]).toBe('A:Attack (Dagger)');
+  });
+
+  it('offers no quick spell to a fighter and greys one the caster cannot afford', () => {
+    const thief = fight(0);
+    expect(keys(thief).some((k) => k.startsWith('!'))).toBe(false);
+    const world = fight(1);
+    world.member(1).mana = 0;
+    const quick = commandMenu(world, 'combat', COMMAND_MENUS.combat).find((o) => o.key === '!');
+    expect(quick?.disabled).toBe(true);
+  });
+});
+
+describe('the combat menu for a non-caster', () => {
+  it('leaves Cast where it was', () => {
+    const world = newWorld();
+    const c = loadArena(world, BASERES + 4);
+    world.combat = c;
+    c.activeMember = 0; // the thief
+    for (const m of c.monsters) m.hp = 0;
+    const keys = commandMenu(world, 'combat', COMMAND_MENUS.combat).map((o) => o.key);
+    expect(keys[0]).toBe('A');
+    expect(keys.includes('!')).toBe(false);
   });
 });

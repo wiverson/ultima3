@@ -218,7 +218,12 @@ save contains except the pooled gold and food.
   spent, and a random name is offered from a stock list (`names.ts`).
   Terminate asks for confirmation.
 - **Controller mode** with pop-up menus, and a command menu ordered by
-  what the surroundings call for (`context.ts`).
+  what the surroundings call for (`context.ts`). In combat the menu reads
+  the member's turn: a ranged weapon in hand (sling, bow, or a dagger with
+  a spare in the bag) puts "Attack (Bow)" first, and a caster gets "Cast
+  (spell)", their last spell or Magic bolt (Heal for the cleric classes),
+  ahead of the plain Cast: first of all without a ranged weapon, second
+  with one. Melee needs no entry, since walking into a foe attacks it.
 - **Other and Yell are one command.** The Apple II's Yell was Other under
   another name, with one difference: EVOCARE parted the great serpent only
   when yelled, and said "No effect" when typed at Other. EVOCARE now works
