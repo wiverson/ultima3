@@ -478,7 +478,7 @@ export class Screen implements GameIO {
       const options: MenuOption[] = [
         { key: 'I', label: `Input: ${this.inputMode === 'controller' ? 'Controller' : 'Keyboard'}` },
         { key: 'T', label: `Tiles: ${this.tileSetName}` },
-        { key: 'D', label: `Diagonal moves: ${onOff(w.diagonalMoves)}` },
+        { key: 'D', label: `Diagonal move: ${onOff(w.diagonalMoves)}` },
         { key: 'A', label: `Auto combat: ${onOff(w.autoCombat)}` },
         { key: 'S', label: `Sound effects: ${onOff(w.soundEnabled)}` },
         { key: 'M', label: `Music: ${onOff(this.musicPlayer.enabled)}` },
