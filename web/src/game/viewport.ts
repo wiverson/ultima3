@@ -183,7 +183,7 @@ function applyOverlays(world: World, shapes: Uint8Array, originX: number, origin
       centre.overlay = world.party.shape;
       centre.flip = world.party.shape === Shape.Horse && world.horseFacingEast;
       centre.party = world.party.shape === 0x7e; // on foot (the ranger figure)
-      if (centre.party && world.inTownOrCastle) markFollowers(world, cells, originX + VIEW_CENTRE, originY + VIEW_CENTRE);
+      if (centre.party) markFollowers(world, cells, originX + VIEW_CENTRE, originY + VIEW_CENTRE);
     }
   }
   return cells;
@@ -215,11 +215,16 @@ function buildCombatViewport(world: World): Viewport {
  */
 function markFollowers(world: World, cells: ViewCell[], x: number, y: number): void {
   const living = [0, 1, 2, 3].filter((m) => world.party.memberSlot(m) >= 0 && world.memberAlive(m));
+  const size = world.mapSize;
+  const wrap = (d: number) => ((((d + size / 2) % size) + size) % size) - size / 2; // shortest way round a wrapping map
   world.trail.forEach((pos, i) => {
     const member = living[i + 1];
     if (member === undefined) return;
-    const vx = pos.x - x + VIEW_CENTRE;
-    const vy = pos.y - y + VIEW_CENTRE;
+    const ddx = wrap(pos.x - x);
+    const ddy = wrap(pos.y - y);
+    if (Math.abs(ddx) > 3 || Math.abs(ddy) > 3) return; // a moongate or whirlpool left this square behind
+    const vx = ddx + VIEW_CENTRE;
+    const vy = ddy + VIEW_CENTRE;
     if (vx < 0 || vx >= VIEW_SIZE || vy < 0 || vy >= VIEW_SIZE) return;
     const cell = cells[vy * VIEW_SIZE + vx];
     if (cell.base === Shape.Void) return;

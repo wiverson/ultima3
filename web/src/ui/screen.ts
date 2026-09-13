@@ -164,13 +164,15 @@ export class Screen implements GameIO {
   onSettingsChange: (() => void) | null = null;
   /** Name of the tile set in use (see help.ts TILE_SETS). */
   tileSetName = 'Standard';
-  /** Standard alone draws the overworld party as a 2x2 grid of its members. */
-  private get gridTiles(): boolean {
-    return this.tileSetName === 'Standard';
-  }
-  /** Standard and Nintendo draw the party in towns as the leader with the others following in a line. */
-  private get trailTiles(): boolean {
-    return this.tileSetName === 'Standard' || this.tileSetName === 'Nintendo';
+  /**
+   * How the party on foot is drawn here: 'grid' is the 2x2 of members (Standard,
+   * overworld), 'line' the leader with the others following in a line (Standard
+   * in towns and castles, Nintendo everywhere), 'symbol' the Apple II's single figure.
+   */
+  private get partyStyle(): 'grid' | 'line' | 'symbol' {
+    if (this.tileSetName === 'Nintendo') return 'line';
+    if (this.tileSetName === 'Standard') return this.world.inTownOrCastle ? 'line' : 'grid';
+    return 'symbol';
   }
   /** Standard alone shows the red burst on a hit instead of the HIT tile. */
   private get burstTiles(): boolean {
@@ -1047,13 +1049,13 @@ export class Screen implements GameIO {
       const dx = cell + (i % VIEW_SIZE) * tile;
       const dy = cell + Math.floor(i / VIEW_SIZE) * tile;
       gfx.drawShape(ctx, c.base, dx, dy, tile);
-      if (c.follower !== undefined && this.trailTiles) this.drawMember(c.follower, dx, dy, tile);
+      if (c.follower !== undefined && this.partyStyle === 'line') this.drawMember(c.follower, dx, dy, tile);
       if (c.hit && !this.burstTiles) {
         // The Apple II way: the ball's "HIT" frame replaces whatever was hit.
         gfx.drawShape(ctx, c.hit.shape, dx, dy, tile, { masked: true, altFrame: true });
         continue;
       }
-      if (c.party && (this.world.inTownOrCastle ? this.trailTiles : this.gridTiles)) this.drawParty(dx, dy, tile);
+      if (c.party && this.partyStyle !== 'symbol') this.drawParty(dx, dy, tile, this.partyStyle);
       else if (c.overlay !== undefined) gfx.drawShape(ctx, c.overlay, dx, dy, tile, { masked: true, flip: c.flip, altFrame: c.altFrame });
       if (c.hit) this.drawBurst(dx, dy, tile, c.hit.frame);
     }
@@ -1066,12 +1068,13 @@ export class Screen implements GameIO {
    * (1 top left, 2 top right, 3 bottom left, 4 bottom right), which sells
    * the scale of the map. In a town or castle the first living member
    * stands here at full size and the others follow in a line behind (see
-   * `world.trail`). A poisoned member is drawn all in green; a dead one, or
+   * `world.trail`); with the Nintendo tiles the line is used everywhere, as
+   * the NES did. A poisoned member is drawn all in green; a dead one, or
    * ashes, is not drawn. The other tile sets keep the Apple II's single figure.
    */
-  private drawParty(dx: number, dy: number, tile: number): void {
+  private drawParty(dx: number, dy: number, tile: number, style: 'grid' | 'line'): void {
     const { world } = this;
-    if (world.inTownOrCastle) {
+    if (style === 'line') {
       const leader = [0, 1, 2, 3].find((m) => world.party.memberSlot(m) >= 0 && world.memberAlive(m));
       if (leader !== undefined) this.drawMember(leader, dx, dy, tile);
       return;

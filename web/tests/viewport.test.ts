@@ -93,3 +93,26 @@ describe('viewport', () => {
     expect(view.cells[5 * VIEW_SIZE + 3].overlay).toBeUndefined();
   });
 });
+
+describe('the follower line', () => {
+  it('marks the squares the leader came through on the overworld too, nearest first', async () => {
+    const { newWorld } = await import('./helpers.ts');
+    const { move } = await import('../src/game/commands.ts');
+    const { FakeIO } = await import('./helpers.ts');
+    const world = newWorld();
+    world.current.tiles.fill(MapValue.Grass);
+    world.monsters.bytes.fill(0);
+    world.x = 32;
+    world.y = 32;
+    const io = new FakeIO(world.resources);
+    await move(world, io, 'north');
+    await move(world, io, 'north');
+    await move(world, io, 'east');
+    const view = buildViewport(world);
+    const at = (dx: number, dy: number) => view.cells[(VIEW_SIZE / 2 + dy - 0.5) * VIEW_SIZE + (VIEW_SIZE / 2 + dx - 0.5)];
+    expect(at(0, 0).party).toBe(true);
+    expect(at(-1, 0).follower).toBe(1); // where the leader just was
+    expect(at(-1, 1).follower).toBe(2);
+    expect(at(-1, 2).follower).toBe(3);
+  });
+});

@@ -223,7 +223,8 @@ export async function move(world: World, io: GameIO, name: MoveName): Promise<Bu
     noGo(io);
     return null;
   }
-  if (world.inTownOrCastle) world.trail = [{ x: world.x, y: world.y }, ...world.trail].slice(0, 3);
+  // The squares the leader came through, for the follower line (towns, castles and the overworld alike).
+  world.trail = [{ x: world.x, y: world.y }, ...world.trail].slice(0, 3);
   world.x = xs;
   world.y = ys;
   return null;

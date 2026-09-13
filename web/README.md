@@ -169,11 +169,12 @@ save contains except the pooled gold and food.
   name's grey. The message area gained four rows.
 - **The party on foot** is drawn as its members in two ways. With the
   Standard tiles, on the overworld they are at half size in a 2x2 grid in
-  marching order, to sell the scale of the map. With the Standard or
-  Nintendo tiles, in towns and castles the leader stands at full size and
-  the others follow in a line on the squares the leader walked through,
-  as the NES version did; the line is only a drawing, the party's
-  position is still one square, and townspeople walk over it. A poisoned
+  marching order, to sell the scale of the map. In towns and castles with
+  the Standard tiles, and everywhere with the Nintendo tiles, the leader
+  stands at full size and the others follow in a line on the squares the
+  leader walked through, as the NES version did; the line is only a
+  drawing, the party's position is still one square, and townspeople and
+  monsters walk over it. A poisoned
   member is all green, a dead one or ashes is not drawn. On a horse or
   frigate, and otherwise, the Apple II's single figure is used.
 - **Hits** with the Standard tiles show a three-frame red burst on the
