@@ -320,3 +320,16 @@ describe('party screens', () => {
     expect(world.roster.get(2).exists).toBe(false);
   });
 });
+
+describe('whose key', () => {
+  it('fills in the only key holder without asking', async () => {
+    const { world, io } = townWorld();
+    world.putXYVal(MapValue.LetterI, 21, 20);
+    world.member(1).bytes[38] = 2;
+    io.keys = []; // nothing typed: the holder is known
+    await unlockToward(world, io, 1, 0);
+    expect(io.output).toContain('Whose key-2\n');
+    expect(world.member(1).keys).toBe(1);
+    expect(world.getXYVal(21, 20)).toBe(MapValue.Floor);
+  });
+});

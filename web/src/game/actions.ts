@@ -340,7 +340,7 @@ export async function igniteTorch(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.IgniteTorch);
   if (world.party.location !== Location.Dungeon) return notHere(io);
   io.printMessage(Msg.WhoseTorch);
-  const n = await io.chooseMember();
+  const n = await chooseHolder(world, io, (p) => p.torches);
   if (n < 1 || n > 4) return;
   const p = world.member(n - 1);
   if (p.torches < 1) return io.printMessage(Msg.NoneLeft);
@@ -392,7 +392,7 @@ export async function peerGem(world: World, io: GameIO): Promise<void> {
 }
 
 /**
- * "Whose gem-" and the like, answered by the inventory: the controller menu
+ * "Whose gem-", "Whose torch-", "Whose key-", answered by the inventory: the controller menu
  * lists only the members who have one, and when exactly one member has any
  * the answer is echoed without asking. With nobody holding one (a keyboard
  * can still get here) the ordinary prompt runs and the command says "None

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { newWorld, FakeIO } from './helpers.ts';
 import { forward, retreat, turn, klimb, descend, buildDungeonView, cellAtLocation, runDungeon } from '../src/game/dungeon.ts';
+import { igniteTorch } from '../src/game/actions.ts';
 import { DungeonCell } from '../src/game/world.ts';
 import { Location } from '../src/game/party.ts';
 import { MapId } from '../src/data/resources.ts';
@@ -146,5 +147,17 @@ describe('fountain prompts', () => {
     const asks = io.output.split('who\nwill drink?').length - 1;
     expect(asks).toBe(1);
     expect(world.dungeon.exit).toBe(true);
+  });
+});
+
+describe('whose torch', () => {
+  it('fills in the only torch holder without asking', async () => {
+    const { world, io } = dungeonWorld();
+    world.member(2).torches = 3;
+    io.keys = [];
+    await igniteTorch(world, io);
+    expect(io.output).toContain('Whose torch-3\n');
+    expect(world.member(2).torches).toBe(2);
+    expect(world.dungeon.torch).toBe(255);
   });
 });

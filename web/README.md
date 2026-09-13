@@ -223,9 +223,9 @@ save contains except the pooled gold and food.
   EGA, MCGA, VGA and Ultima V sets. Standard, the Mac tiles, takes the
   VGA stone. The pieces are painted into the Mac sheet's layout and cut
   by its mask, so the drawing code is unchanged (`docs/dungeon-sheet.md`).
-- **Peer at gem** asks "whose" only when it matters: the controller menu
-  lists just the members holding a gem, and with a single holder the
-  answer is filled in.
+- **Peer at gem, Ignite torch and Unlock** ask "whose" only when it
+  matters: the controller menu lists just the members holding a gem, torch
+  or key, and with a single holder the answer is filled in.
 - **Daggers** are thrown only when the member has a spare; with a single
   dagger an attack at a distant foe just misses. The Apple II let a new
   character throw away their only weapon.

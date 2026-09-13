@@ -14,7 +14,7 @@ import { Location } from './party.ts';
 import { MapValue, Shape } from './tiles.ts';
 import { type GameIO, Sound, Music, deathSound, letterOptions } from './io.ts';
 import { getDirection, notHere, what2, counterWithMerchant, Msg as CmdMsg, PartyShape } from './commands.ts';
-import { getChest, incapacitated, stealDisarmFails } from './actions.ts';
+import { getChest, incapacitated, stealDisarmFails, chooseHolder } from './actions.ts';
 import { shop } from './shops.ts';
 import { attackMonster, monsterName } from './combat.ts';
 import { showBall } from './combat.ts';
@@ -294,7 +294,7 @@ export async function unlockToward(world: World, io: GameIO, dx: number, dy: num
   if (dir.dx === 0 && dir.dy !== 0) return notHere(io);
   if (world.getXYVal(dir.xs, dir.ys) !== MapValue.LetterI) return notHere(io);
   io.printMessage(Msg.WhoseKey);
-  const n = await io.chooseMember();
+  const n = await chooseHolder(world, io, (p) => p.keys);
   if (n < 1) return;
   if (n > 4) {
     io.printMessage(Msg.NoSuchPlayer);
