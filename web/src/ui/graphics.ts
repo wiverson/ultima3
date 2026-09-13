@@ -18,6 +18,7 @@
  * `FullUpdate()` advanced every idle tick in the original.
  */
 
+import { DUNGEON_STYLES, paintDungeonSheet, type DungeonStyle } from './dungeonArt.ts';
 import { Shape } from '../game/tiles.ts';
 
 export const TILE_COLUMNS = 12;
@@ -124,8 +125,10 @@ export class GraphicsSet {
      * side walls. Per set, so a wireframe set can have wireframe dungeons;
      * a set without its own falls back to Standard's.
      */
-    readonly dungeonShapes: HTMLImageElement | null,
+    readonly dungeonShapes: HTMLImageElement | HTMLCanvasElement | null,
     readonly dungeonMasks: HTMLImageElement | null,
+    /** The style the sheet was painted from at run time (null for a sheet loaded from a file). */
+    readonly dungeonStyle: DungeonStyle | null,
   ) {
     this.tileSize = tiles.width / TILE_COLUMNS;
     this.fontSize = font.width / FONT_GLYPHS;
@@ -138,8 +141,8 @@ export class GraphicsSet {
    * back to the Standard set's, as the original did.
    */
   static async load(name = 'Standard', baseUrl = 'graphics/'): Promise<GraphicsSet> {
-    const tryLoad = async (suffix: string, exts: string[]): Promise<HTMLImageElement | null> => {
-      for (const set of [name, 'Standard']) {
+    const tryLoad = async (suffix: string, exts: string[], fallback = true): Promise<HTMLImageElement | null> => {
+      for (const set of fallback ? [name, 'Standard'] : [name]) {
         for (const ext of exts) {
           try {
             return await loadImage(`${baseUrl}${encodeURIComponent(set)}-${suffix}.${ext}`);
@@ -156,9 +159,12 @@ export class GraphicsSet {
     const font = await tryLoad('Font', ['gif', 'png']);
     const ui = await tryLoad('UI', ['png', 'gif']);
     if (!font || !ui) throw new Error('Font or UI sheet missing');
-    const dungeonShapes = await tryLoad('DungeonShapes', ['png', 'jpg']);
+    // Dungeon art: the set's own sheet if it has one, else painted from its style, else Standard's sheet.
     const dungeonMasks = await tryLoad('DungeonMasks', ['png', 'gif']);
-    return new GraphicsSet(tiles, applyMask(tiles, mask), font, ui, dungeonShapes, dungeonMasks);
+    const ownShapes = await tryLoad('DungeonShapes', ['png', 'jpg'], false);
+    const style = ownShapes ? null : (DUNGEON_STYLES[name] ?? null);
+    const dungeonShapes = ownShapes ?? (style && dungeonMasks ? paintDungeonSheet(style, dungeonMasks) : await tryLoad('DungeonShapes', ['png', 'jpg']));
+    return new GraphicsSet(tiles, applyMask(tiles, mask), font, ui, dungeonShapes, dungeonMasks, style);
   }
 
   /** Source rectangle of a tile index, honouring the animation frame. (`GetTileRectForIndex`) */

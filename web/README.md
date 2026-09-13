@@ -214,6 +214,14 @@ save contains except the pooled gold and food.
   The party is drawn as its first living member's figure; there is no
   facing arrow, the wind line's compass keeps that job. Peer keeps its
   blinking diamond.
+- **Dungeon art per tile set** (`dungeonArt.ts`). LairWare's Mac version
+  drew the first-person dungeon from one photographic sheet whatever tiles
+  were chosen. Here Standard keeps that sheet and every other set paints
+  its own at run time in the spirit of its machine: wireframe corridors
+  for the Apple II, Commodore 64 and Macintosh sets, magenta and cyan for
+  CGA, flat bricks in each palette for the NES and the EGA, MCGA, VGA and
+  Ultima V sets. The pieces are painted into the Mac sheet's layout and
+  cut by its mask, so the drawing code is unchanged (`docs/dungeon-sheet.md`).
 - **Peer at gem** asks "whose" only when it matters: the controller menu
   lists just the members holding a gem, and with a single holder the
   answer is filled in.

@@ -8,11 +8,14 @@ tile set, next to its Tiles, Mask, Font and UI files in `public/graphics`:
 - `<Set>-DungeonMasks.png`: a 1200x512 mask for the angled side walls in
   the first two panels. Black is opaque, white transparent, grey partial.
 
-A set without its own falls back to Standard's, as the other files do.
-The LairWare Mac version had one photographic sheet for every set; this
-port lets each set carry art in its own style, drawn into the same
-layout, so the renderer (`src/ui/dungeonView.ts`, a port of the drawing
-half of `UltimaDngn.c`) needs no changes.
+Only Standard ships a sheet file. Every other set's sheet is painted at
+run time by `src/ui/dungeonArt.ts` from a small style record (wireframe
+or brick, a palette, a door treatment) into this same layout, so nothing
+is downloaded and the renderer (`src/ui/dungeonView.ts`, a port of the
+drawing half of `UltimaDngn.c`) needs no changes. A sheet file placed in
+`public/graphics` for a set overrides its painted one; a set with neither
+falls back to Standard's file. This document describes the layout both
+the painter and a hand-made sheet must follow.
 
 `dungeon-sheet-guide.png` shows the layout over the Standard sheet at
 half opacity: red boxes are masked side-wall pieces, blue are facing-wall

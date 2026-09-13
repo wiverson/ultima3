@@ -15,6 +15,7 @@
 
 import type { DungeonDrawOp } from '../game/dungeon.ts';
 import type { GraphicsSet } from './graphics.ts';
+import type { DungeonStyle } from './dungeonArt.ts';
 
 // Wall piece rectangles for the 32 view locations (plus 33-35: chest and ladder art).
 const DNG_L = [0, 0, 225, 0, 75, 225, 0, 75, 187, 225, 0, 75, 113, 187, 225, 0, 75, 113, 170, 188, 226, 0, 75, 112, 130, 170, 188, 225, 112, 130, 152, 168, 0, 300, 375, 377];
@@ -93,7 +94,7 @@ export function sheetRegions(): SheetRegion[] {
 }
 
 /** Combine the shapes sheet with its mask into an RGBA sheet (black in the mask = opaque). */
-function applyMask(shapes: HTMLImageElement, mask: HTMLImageElement): HTMLCanvasElement {
+function applyMask(shapes: HTMLImageElement | HTMLCanvasElement, mask: HTMLImageElement): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = shapes.width;
   canvas.height = shapes.height;
@@ -118,12 +119,14 @@ export class DungeonRenderer {
 
   /** The renderer for a tile set's dungeon art, or null when the set (and Standard) has none. */
   static forSet(gfx: GraphicsSet): DungeonRenderer | null {
-    return gfx.dungeonShapes && gfx.dungeonMasks ? new DungeonRenderer(gfx.dungeonShapes, gfx.dungeonMasks) : null;
+    return gfx.dungeonShapes && gfx.dungeonMasks ? new DungeonRenderer(gfx.dungeonShapes, gfx.dungeonMasks, gfx.dungeonStyle) : null;
   }
 
   constructor(
-    private readonly shapes: HTMLImageElement,
+    private readonly shapes: HTMLImageElement | HTMLCanvasElement,
     mask: HTMLImageElement,
+    /** Painted styles say how a doorway looks; the photographic sheet takes the original's black. */
+    private readonly style: DungeonStyle | null = null,
   ) {
     this.masked = applyMask(shapes, mask);
     this.canvas = document.createElement('canvas');
@@ -173,10 +176,10 @@ export class DungeonRenderer {
     this.ctx.drawImage(src, sx, sy, w, h, x, y, w, h);
   }
 
-  /** Mirrors `DrawDoor()`: a black trapezoid in the wall. */
+  /** Mirrors `DrawDoor()`: a black trapezoid in the wall (a painted style may fill and outline it its own way). */
   private door(location: number): void {
     const ctx = this.ctx;
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = this.style?.doorFill ?? '#000';
     ctx.beginPath();
     ctx.moveTo(DX1[location] * 2, DY1[location] * 2);
     ctx.lineTo(DX1[location] * 2, DY2[location] * 2);
@@ -184,6 +187,11 @@ export class DungeonRenderer {
     ctx.lineTo(DX2[location] * 2, DY4[location] * 2);
     ctx.closePath();
     ctx.fill();
+    if (this.style?.doorLine) {
+      ctx.strokeStyle = this.style.doorLine;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
   }
 
   /** Mirrors `DrawChest()`. */
