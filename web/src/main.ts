@@ -58,9 +58,22 @@ function savePrefs(prefs: Prefs): void {
   }
 }
 
+/** Text on the bare canvas before the game (or instead of it, on failure). */
+function canvasNotice(text: string): void {
+  const canvas = document.getElementById('screen') as HTMLCanvasElement | null;
+  const ctx = canvas?.getContext('2d');
+  if (!canvas || !ctx) return;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#c8c8c8';
+  ctx.font = `${canvas.height / 24}px monospace`;
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, canvas.width / 40, canvas.height / 2);
+}
+
 async function start(): Promise<void> {
-  const status = document.getElementById('status')!;
   const canvas = document.getElementById('screen') as HTMLCanvasElement;
+  canvasNotice('Loading...');
   const params = new URLSearchParams(location.search);
   const prefs = loadPrefs();
 
@@ -106,20 +119,8 @@ async function start(): Promise<void> {
     });
   };
   screen.onSettingsChange = remember;
-  // The game pauses its idle timers while the window is not focused; say so.
-  const idle = 'Escape opens Settings. Idle turns and combat timers pause while the window is not focused.';
-  status.textContent = '';
-  window.addEventListener('blur', () => {
-    status.textContent = 'Paused: the window is not focused.';
-  });
-  window.addEventListener('focus', () => {
-    status.textContent = idle;
-  });
-  screen.onPauseChange = null;
   screen.onModeChange = remember;
   world.onAutoCombatChange = remember;
-
-  status.textContent = '';
 
   const game = new Game(world, screen, { save: (w) => localSave.write(w), load: (w) => localSave.read(w) });
   // Debug hook: lets the console (and the browser tests) inspect and poke the game.
@@ -129,6 +130,5 @@ async function start(): Promise<void> {
 
 start().catch((err) => {
   console.error(err);
-  const status = document.getElementById('status');
-  if (status) status.textContent = `Failed to start: ${err instanceof Error ? err.message : String(err)}`;
+  canvasNotice(`Failed to start: ${err instanceof Error ? err.message : String(err)}`);
 });

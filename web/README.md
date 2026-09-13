@@ -110,7 +110,9 @@ hand (no gem to peer through, no torch to light, no caster left alive).
 Numbers use a spinner and names an on-screen keyboard.
 
 The game pauses its idle timers, including the combat turn timer, while
-the browser window is not focused.
+the browser window is not focused, and shows PAUSED in the middle of the
+screen until focus returns. Everything, loading and error messages
+included, is drawn on the canvas; the page has nothing else on it.
 
 ### Cheats
 

@@ -123,8 +123,8 @@ export class Screen implements GameIO {
   inputMode: 'keyboard' | 'controller' = 'keyboard';
   /** Called when a gamepad press switches the mode to 'controller'. */
   onModeChange: (() => void) | null = null;
-  /** Called when the game pauses (window unfocused) or resumes, for the page's status line. */
-  onPauseChange: ((paused: boolean) => void) | null = null;
+  /** What the PAUSED box covers, restored when the window regains focus. */
+  private underPaused: { image: ImageData; x: number; y: number } | null = null;
   /** Called when anything in the Settings menu changes, so the page can remember it. */
   onSettingsChange: (() => void) | null = null;
   /** Name of the tile set in use (see help.ts TILE_SETS). */
@@ -154,7 +154,6 @@ export class Screen implements GameIO {
     // A pause (window not focused) should not eat into a combat turn's timer.
     keyboard.onResume = (pausedMs) => {
       if (this.world.combat) this.world.combat.markedAt += pausedMs;
-      this.onPauseChange?.(false);
     };
     this.gamepads = new GamepadReader(keyboard, () => {
       if (this.inputMode !== 'controller') {
@@ -1079,6 +1078,15 @@ export class Screen implements GameIO {
 
   private frame(time: number): void {
     this.gamepads.poll();
+    // Unfocused: the keyboard stops its timers; the screen shows PAUSED and stops animating.
+    if (this.keyboard.paused !== (this.underPaused !== null)) {
+      if (this.keyboard.paused) this.showPaused();
+      else this.hidePaused();
+    }
+    if (this.underPaused) {
+      requestAnimationFrame((t) => this.frame(t));
+      return;
+    }
     if (time - this.lastFrame >= ANIMATION_INTERVAL_MS) {
       this.lastFrame = time;
       this.gfx.tick();
@@ -1090,6 +1098,28 @@ export class Screen implements GameIO {
       if (this.menu) drawMenu(this.ctx, this.gfx, this.cell, this.menu);
     }
     requestAnimationFrame((t) => this.frame(t));
+  }
+
+  /**
+   * A small black box reading PAUSED over whatever is there: the middle of
+   * the map window in play, the gap under the Options box on the title screen.
+   */
+  private showPaused(): void {
+    const { ctx, cell } = this;
+    const text = 'PAUSED';
+    const w = text.length + 4;
+    const h = 3;
+    const x = this.frameShown ? Math.floor((1 + VIEW_SIZE * 2) / 2 - w / 2) + 1 : Math.floor((COLUMNS - w) / 2);
+    const y = this.frameShown ? Math.floor((1 + VIEW_SIZE * 2) / 2 - h / 2) + 1 : 19;
+    this.underPaused = { image: ctx.getImageData(x * cell, y * cell, w * cell, h * cell), x: x * cell, y: y * cell };
+    this.black(x, y, w, h);
+    this.drawText(text, x + 2, y + 1);
+  }
+
+  private hidePaused(): void {
+    if (!this.underPaused) return;
+    this.ctx.putImageData(this.underPaused.image, this.underPaused.x, this.underPaused.y);
+    this.underPaused = null;
   }
 
   // -------------------------------------------------------------------------

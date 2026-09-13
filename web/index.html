@@ -9,8 +9,6 @@
       body {
         margin: 0;
         background: #000;
-        color: #c8c8c8;
-        font-family: system-ui, sans-serif;
       }
       body {
         display: flex;
@@ -28,33 +26,11 @@
         outline: none;
         display: block;
       }
-      #status {
-        width: 100%;
-        max-width: 1280px;
-        margin: 6px 0;
-        font-size: 13px;
-        color: #f0c060;
-        min-height: 1.2em;
-      }
-      #status a {
-        color: #8ec8ff;
-      }
     </style>
   </head>
   <body>
+    <!-- The game draws everything, loading and error text included, on this canvas. -->
     <canvas id="screen" width="1280" height="768" tabindex="0"></canvas>
-    <div id="status">Loading...</div>
-    <script type="module">
-      // Once the game is up, the status line points at the in-game Settings menu.
-      const status = document.getElementById('status');
-      const observer = new MutationObserver(() => {
-        if (status.textContent === '') {
-          status.innerHTML = 'Escape opens Settings. The game pauses while the window is not focused. <a href="https://github.com/wiverson/ultima3/blob/main/web/README.md">About this port</a>';
-          observer.disconnect();
-        }
-      });
-      observer.observe(status, { childList: true, characterData: true, subtree: true });
-    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
