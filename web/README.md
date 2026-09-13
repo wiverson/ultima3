@@ -195,6 +195,10 @@ save contains except the pooled gold and food.
   when yelled, and said "No effect" when typed at Other. EVOCARE now works
   from Other too, so the controller menus list Other alone; Y still works
   on the keyboard.
+- **Fountains and the Time Lord** speak only when the party steps onto
+  their cell. The Apple II asked "who will drink?" again on every turn
+  spent standing there, turning on the spot included, and the idle pass
+  timer made that a nag. Step off and back on to drink again.
 - **A dungeon auto-map** (`automap.ts`), the graph paper of old. With a
   lit torch the 3x3 of cells around the party is recorded as seen; L (Map
   in the controller menu) cycles between no map, a 5x5 overlay in the top

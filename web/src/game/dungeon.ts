@@ -185,7 +185,9 @@ export async function runDungeon(world: World, io: GameIO): Promise<void> {
       await io.showSettings(); // no turn passes
       continue;
     }
+    const before = `${d.level}:${world.x}:${world.y}`;
     await dispatch(world, io, key);
+    const arrived = `${d.level}:${world.x}:${world.y}` !== before;
     if (world.resurrecting || d.exit) return;
 
     // End of turn. (`dungeonmech`)
@@ -207,7 +209,7 @@ export async function runDungeon(world: World, io: GameIO): Promise<void> {
       io.clearTiles();
       continue;
     }
-    await encounter(world, io, cell);
+    await encounter(world, io, cell, arrived);
   }
 }
 
@@ -280,10 +282,19 @@ async function dispatch(world: World, io: GameIO, key: string): Promise<void> {
 }
 
 /** Special cells: the Time Lord, fountains, wind, traps, marks, gremlins, writing. (`dngnotcombat`) */
-async function encounter(world: World, io: GameIO, cell: number): Promise<void> {
+/**
+ * What the party's cell does at the end of a turn. The Apple II ran this
+ * every turn spent on the cell; here the Time Lord and the fountain speak
+ * only when the party has just `arrived` (stepped or climbed onto the
+ * cell), so turning on the spot or waiting does not bring the prompt
+ * back. Step off and on again to drink more. The rest (wind, traps,
+ * marks, gremlins, writing) keep the original's every-turn behaviour.
+ */
+async function encounter(world: World, io: GameIO, cell: number, arrived = true): Promise<void> {
   const d = world.dungeon;
   switch (cell) {
     case DungeonCell.TimeLord:
+      if (!arrived) return;
       io.showImage('TimeLord');
       io.music(Music.Shrine);
       io.printMessage(Msg.TimeLord);
@@ -294,6 +305,7 @@ async function encounter(world: World, io: GameIO, cell: number): Promise<void> 
       return;
 
     case DungeonCell.Fountain: {
+      if (!arrived) return;
       io.showImage('Fountain');
       io.music(Music.Shrine);
       for (;;) {

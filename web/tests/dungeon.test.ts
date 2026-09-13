@@ -132,3 +132,19 @@ describe('the dungeon loop', () => {
     expect(world.dungeon.exit).toBe(true);
   });
 });
+
+describe('fountain prompts', () => {
+  it('asks who drinks on arrival only, not while turning or waiting on the cell', async () => {
+    const { world, io } = dungeonWorld();
+    world.dungeon.tiles.fill(DungeonCell.Wall, 0, 256);
+    world.putXYDng(DungeonCell.LadderUp, 1, 1);
+    world.putXYDng(DungeonCell.Fountain, 2, 1);
+    world.member(0).torches = 1;
+    // Ignite, step onto the fountain (asked: cancel with 0), turn twice and pass (not asked), retreat, climb.
+    io.keys = ['I', '1', Key.Up, '0', Key.Left, Key.Right, ' ', Key.Down, 'K'];
+    await runDungeon(world, io);
+    const asks = io.output.split('who\nwill drink?').length - 1;
+    expect(asks).toBe(1);
+    expect(world.dungeon.exit).toBe(true);
+  });
+});
