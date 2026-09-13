@@ -242,3 +242,19 @@ export class Roster {
     return this.players[slot];
   }
 }
+
+/**
+ * Lord British's own test for raising a member: level at or above maximum
+ * hit points / 100, not yet 2500 maximum, and past level 5 only with the
+ * Mark of Kings. The character box turns the name blue when this holds.
+ */
+export function levelUpDue(p: PlayerRecord): boolean {
+  const level = p.level - 1;
+  let hpmax = p.maxHitPoints;
+  if (hpmax % 100 === 50) hpmax -= 50;
+  hpmax = Math.floor(hpmax / 100);
+  if (level < hpmax) return false;
+  if (hpmax >= 25) return false;
+  if (hpmax > 4 && !(p.marks & 0x80)) return false;
+  return true;
+}

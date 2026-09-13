@@ -29,7 +29,7 @@ import { SoundPlayer } from './sound.ts';
 import { MusicPlayer } from './music.ts';
 import { DungeonRenderer } from './dungeonView.ts';
 import { World, STARVATION_MODES } from '../game/world.ts';
-import { PlayerRecord } from '../game/player.ts';
+import { PlayerRecord, levelUpDue } from '../game/player.ts';
 import { commandMenu, hasMagic } from '../game/context.ts';
 import { memberShape } from '../game/combat.ts';
 import { TILE_SETS, KEYBOARD_HELP, CONTROLLER_HELP } from './help.ts';
@@ -1465,18 +1465,4 @@ function memberColour(p: PlayerRecord, due = false): string | undefined {
   return due ? '#60a0ff' : undefined;
 }
 
-/**
- * Lord British's own test for raising a member: level above max hit points
- * / 100, not yet 2500 max, and past level 5 only with the Mark of Kings.
- */
-function levelUpDue(p: PlayerRecord): boolean {
-  const level = p.level - 1;
-  let hpmax = p.maxHitPoints;
-  if (hpmax % 100 === 50) hpmax -= 50;
-  hpmax = Math.floor(hpmax / 100);
-  if (level < hpmax) return false;
-  if (hpmax >= 25) return false;
-  if (hpmax > 4 && !(p.marks & 0x80)) return false;
-  return true;
-}
 

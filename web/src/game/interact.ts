@@ -9,6 +9,7 @@
  * `SafeExodus()` from UltimaMisc.c.
  */
 
+import { levelUpDue } from './player.ts';
 import { World } from './world.ts';
 import { Location } from './party.ts';
 import { MapValue, Shape } from './tiles.ts';
@@ -101,6 +102,29 @@ export async function transact(world: World, io: GameIO): Promise<void> {
   await transactToward(world, io, dir.dx, dir.dy);
 }
 
+/**
+ * Who stands before Lord British: he only raises levels, so when exactly
+ * one member is due (the blue name) that member steps up without a
+ * prompt, and when several are due the prompt lists just them. With
+ * nobody due the ordinary prompt runs, so a member can still hear "seek
+ * ye the Mark of Kings" or "no more".
+ */
+export async function whoSeesLordBritish(world: World, io: GameIO): Promise<number> {
+  const due = [0, 1, 2, 3].filter((m) => world.memberAlive(m) && levelUpDue(world.member(m)));
+  io.printMessage(Msg.WhoTransacts);
+  if (due.length === 1) {
+    io.print(`${due[0] + 1}\n`);
+    return due[0];
+  }
+  const n = await io.chooseMember(due.length ? due : undefined);
+  if (n < 1 || n > 4) return -1;
+  if (!world.memberAlive(n - 1)) {
+    incapacitated(io);
+    return -1;
+  }
+  return n - 1;
+}
+
 /** The "Who will Transact-" prompt: a living member's index, or -1. */
 export async function whoTransacts(world: World, io: GameIO): Promise<number> {
   io.printMessage(Msg.WhoTransacts);
@@ -146,7 +170,7 @@ export async function transactToward(world: World, io: GameIO, dx: number, dy: n
   // Lord British judges one member; townspeople talk to whoever is in front.
   let member = firstLiving;
   if (world.monsters.type(mon) === MapValue.LordBritish) {
-    member = await whoTransacts(world, io);
+    member = await whoSeesLordBritish(world, io);
     if (member < 0) return;
   }
   await talkTo(world, io, mon, member);

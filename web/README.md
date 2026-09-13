@@ -134,7 +134,9 @@ save contains except the pooled gold and food.
   beside you asks whose key to use, and a monster, on the surface or in
   combat, is attacked.
 - **Transact** asks the direction first and "who" only when it matters:
-  Lord British, and the shops that hand something to a member.
+  the shops that hand something to a member, and Lord British when no
+  member, or more than one, is due a level; with exactly one blue name
+  that member steps up unasked, whether you Transact or walk into him.
 - **Gold and food are pooled** for the whole party (the Apple II kept them
   per member, 0..9999 each). The pool lives in spare bytes of the party
   record and shows on the top border either side of the moons. Join gold

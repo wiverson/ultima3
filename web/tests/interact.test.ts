@@ -409,3 +409,22 @@ describe('the weapons and armour shops', () => {
     expect(armour.world.party.armour(7)).toBe(0);
   });
 });
+
+describe('Lord British', () => {
+  it('raises the member who is due without asking, when only one is', async () => {
+    const { world, io } = townWorld();
+    const m = world.monsters;
+    m.setType(0, MapValue.LordBritish);
+    m.setTileUnder(0, MapValue.Floor);
+    m.setPosition(0, 21, 20);
+    world.putXYVal(MapValue.LordBritish, 21, 20);
+    const p = world.member(2); // the third member has earned a level: level index 1 with 100 max hit points
+    p.bytes[30] = 1;
+    io.keys = []; // no member typed
+    await transactToward(world, io, 1, 0);
+    expect(io.output).toContain('Transact-3');
+    expect(io.output.toUpperCase()).toContain('GREATER');
+    expect(p.maxHitPoints).toBe(200);
+    expect(world.member(0).maxHitPoints).toBe(100);
+  });
+});

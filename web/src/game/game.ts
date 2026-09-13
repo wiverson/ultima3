@@ -159,8 +159,12 @@ export class Game {
       // Walking into things does what a player would have typed next.
       switch (bump.kind) {
         case 'person': {
-          // Talk with the first living member.
-          const speaker = [0, 1, 2, 3].find((m) => world.memberAlive(m)) ?? 0;
+          // Talk with the first living member; Lord British sees whoever is due a level.
+          let speaker = [0, 1, 2, 3].find((m) => world.memberAlive(m)) ?? 0;
+          if (world.monsters.type(bump.index) === MapValue.LordBritish) {
+            speaker = await interact.whoSeesLordBritish(world, io);
+            if (speaker < 0) return;
+          }
           return interact.talkTo(world, io, bump.index, speaker);
         }
         case 'monster':
