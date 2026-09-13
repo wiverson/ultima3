@@ -73,16 +73,16 @@ export async function cast(world: World, io: GameIO, member?: number): Promise<b
     case 1: // Cleric
     case 4: // Paladin
     case 7: // Illusionist
-      spell = await chooseCleric(world, io);
+      spell = await chooseCleric(world, io, member);
       break;
     case 2: // Wizard
     case 6: // Lark
     case 9: // Alchemist
-      spell = await chooseWizard(world, io);
+      spell = await chooseWizard(world, io, member);
       break;
     case 8: // Druid
     case 10: // Ranger
-      spell = await chooseEither(world, io);
+      spell = await chooseEither(world, io, member);
       break;
     default:
       break;
@@ -145,14 +145,16 @@ const SPELL_INFO: { name: string; does: string }[] = [
 ];
 
 /** Menu option for a spell: its letter and plain name, with the book name, cost and effect as the hint. */
-function spellOption(world: World, spell: number, letter: string): MenuOption {
+function spellOption(world: World, spell: number, letter: string, member: number): MenuOption {
   const book = spell < 32 ? world.resources.strings.Spells[spell] : ['TERRAFORM', 'ARMAGEDDON', 'FLOTELLUM'][spell - 32];
   const cost = spell === 32 ? 10 : spell === 33 ? 85 : spell === 34 ? 90 : (spell & 0x0f) * 5;
   const info = SPELL_INFO[spell] ?? { name: book.trim() || '?', does: '' };
-  return { key: letter, label: `${letter} ${info.name}`, hint: `${book.trim() || 'Nameless'} (${cost} mana): ${info.does}` };
+  // Greyed when the caster cannot afford it, like other menu entries with nothing on hand.
+  const disabled = cost > world.member(member).mana;
+  return { key: letter, label: `${letter} ${info.name}`, hint: `${book.trim() || 'Nameless'} (${cost} mana): ${info.does}`, disabled };
 }
 
-async function chooseEither(world: World, io: GameIO): Promise<number> {
+async function chooseEither(world: World, io: GameIO, member: number): Promise<number> {
   io.printMessage(Msg.SpellType);
   const key = await io.chooseOption(
     [
@@ -162,27 +164,27 @@ async function chooseEither(world: World, io: GameIO): Promise<number> {
     'line',
   );
   if (world.done) return CANCELLED;
-  if (key === 'W') return chooseWizard(world, io);
-  if (key === 'C') return chooseCleric(world, io);
+  if (key === 'W') return chooseWizard(world, io, member);
+  if (key === 'C') return chooseCleric(world, io, member);
   return CANCELLED;
 }
 
-async function chooseCleric(world: World, io: GameIO): Promise<number> {
+async function chooseCleric(world: World, io: GameIO, member: number): Promise<number> {
   io.printMessage(Msg.ClericSpell);
   const key = await io.chooseOption(
-    Array.from('ABCDEFGHIJKLMNOP', (l) => spellOption(world, l.charCodeAt(0) - 65 + 16, l)),
+    Array.from('ABCDEFGHIJKLMNOP', (l) => spellOption(world, l.charCodeAt(0) - 65 + 16, l, member)),
     'line',
   );
   if (!key || world.done) return CANCELLED;
   return key.charCodeAt(0) - 'A'.charCodeAt(0) + 16;
 }
 
-async function chooseWizard(world: World, io: GameIO): Promise<number> {
+async function chooseWizard(world: World, io: GameIO, member: number): Promise<number> {
   io.printMessage(Msg.WizardSpell);
   const letters = world.party.exodusDestroyed ? 'ABCDEFGHIJKLMNOPQRS' : 'ABCDEFGHIJKLMNOP';
   const number = (l: string) => ({ Q: 32, R: 33, S: 34 })[l] ?? l.charCodeAt(0) - 65;
   const key = await io.chooseOption(
-    Array.from(letters, (l) => spellOption(world, number(l), l)),
+    Array.from(letters, (l) => spellOption(world, number(l), l, member)),
     'line',
   );
   if (!key || world.done) return CANCELLED;
@@ -271,7 +273,7 @@ async function spellEffect(world: World, io: GameIO, member: number, spell: numb
     case 9: {
       // Fal Divi: cast any cleric spell
       await flashriek(io, spell);
-      const chosen = await chooseCleric(world, io);
+      const chosen = await chooseCleric(world, io, member);
       if (chosen < 0) return;
       return processMagic(world, io, member, chosen);
     }

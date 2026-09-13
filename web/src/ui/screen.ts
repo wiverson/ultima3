@@ -733,7 +733,12 @@ export class Screen implements GameIO {
       }
       const k = (await this.waitKey()).toUpperCase();
       if (k === Key.Escape) break;
-      if (options.some((o) => o.key === k)) {
+      const hit = options.find((o) => o.key === k);
+      if (hit?.disabled) {
+        this.sound(Sound.Error1); // e.g. a spell the caster cannot afford
+        continue;
+      }
+      if (hit) {
         key = k;
         break;
       }
