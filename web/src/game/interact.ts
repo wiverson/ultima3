@@ -103,19 +103,15 @@ export async function transact(world: World, io: GameIO): Promise<void> {
 }
 
 /**
- * Who stands before Lord British: he only raises levels, so when exactly
- * one member is due (the blue name) that member steps up without a
- * prompt, and when several are due the prompt lists just them. With
- * nobody due the ordinary prompt runs, so a member can still hear "seek
- * ye the Mark of Kings" or "no more".
+ * Who stands before Lord British: he only raises levels, so the prompt
+ * lists just the members who are due (the blue names). With nobody due
+ * the ordinary prompt runs, so a member can still hear "seek ye the Mark
+ * of Kings" or "no more". The prompt is always asked, even for a single
+ * member: an audience with the king is a moment, not a formality.
  */
 export async function whoSeesLordBritish(world: World, io: GameIO): Promise<number> {
   const due = [0, 1, 2, 3].filter((m) => world.memberAlive(m) && levelUpDue(world.member(m)));
   io.printMessage(Msg.WhoTransacts);
-  if (due.length === 1) {
-    io.print(`${due[0] + 1}\n`);
-    return due[0];
-  }
   const n = await io.chooseMember(due.length ? due : undefined);
   if (n < 1 || n > 4) return -1;
   if (!world.memberAlive(n - 1)) {

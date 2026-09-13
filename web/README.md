@@ -134,9 +134,9 @@ save contains except the pooled gold and food.
   beside you asks whose key to use, and a monster, on the surface or in
   combat, is attacked.
 - **Transact** asks the direction first and "who" only when it matters:
-  the shops that hand something to a member, and Lord British when no
-  member, or more than one, is due a level; with exactly one blue name
-  that member steps up unasked, whether you Transact or walk into him.
+  the shops that hand something to a member, and Lord British, whose
+  prompt lists only the members due a level (the blue names) when any
+  are, whether you Transact or walk into him.
   The raise adds the hundred hit points as well as the room for them; the
   Apple II raised only the maximum.
 - **Gold and food are pooled** for the whole party (the Apple II kept them

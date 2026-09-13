@@ -416,7 +416,7 @@ describe('the weapons and armour shops', () => {
 });
 
 describe('Lord British', () => {
-  it('raises the member who is due without asking, when only one is', async () => {
+  it('raises the member who is due, asking who as always', async () => {
     const { world, io } = townWorld();
     const m = world.monsters;
     m.setType(0, MapValue.LordBritish);
@@ -425,7 +425,7 @@ describe('Lord British', () => {
     world.putXYVal(MapValue.LordBritish, 21, 20);
     const p = world.member(2); // the third member has earned a level: level index 1 with 100 max hit points
     p.bytes[30] = 1;
-    io.keys = []; // no member typed
+    io.keys = ['3']; // the prompt lists only the due member on a controller; a keyboard still types the number
     await transactToward(world, io, 1, 0);
     expect(io.output).toContain('Transact-3');
     expect(io.output.toUpperCase()).toContain('GREATER');
