@@ -148,7 +148,7 @@ save contains except the pooled gold and food.
   under a quarter and red under a tenth, and mana (none for fighters,
   thieves and barbarians). A dead member's or ashes' whole box takes the
   name's grey. The message area gained four rows.
-- **The party on foot**, with the Standard tiles, is drawn as its members.
+- **The party on foot**, with the Standard or Lairware tiles, is drawn as its members.
   On the overworld they are at half size in a 2x2 grid in marching order,
   to sell the scale of the map. In towns and castles the leader stands at
   full size and the others follow in a line on the squares the leader
@@ -157,7 +157,7 @@ save contains except the pooled gold and food.
   poisoned member is all green, a dead one or ashes is not drawn. On a
   horse or frigate, and in the other tile sets, the Apple II's single
   figure is used.
-- **Hits** with the Standard tiles show a three-frame red burst on the
+- **Hits** with the Standard or Lairware tiles show a three-frame red burst on the
   16-pixel grid (a small disc, a larger one, then a ring) instead of the
   "HIT" tile; the other tile sets keep their HIT tile.
 - **Combat marker**: the member whose turn it is gets a rounded outline,
@@ -216,12 +216,13 @@ save contains except the pooled gold and food.
   blinking diamond.
 - **Dungeon art per tile set** (`dungeonArt.ts`). LairWare's Mac version
   drew the first-person dungeon from one photographic sheet whatever tiles
-  were chosen. Here Standard keeps that sheet and every other set paints
-  its own at run time in the spirit of its machine: wireframe corridors
-  for the Apple II, Commodore 64 and Macintosh sets, magenta and cyan for
-  CGA, flat bricks in each palette for the NES and the EGA, MCGA, VGA and
-  Ultima V sets. The pieces are painted into the Mac sheet's layout and
-  cut by its mask, so the drawing code is unchanged (`docs/dungeon-sheet.md`).
+  were chosen. Here that pairing is the "Lairware" set, and every other
+  set paints its own dungeon at run time in the spirit of its machine:
+  wireframe corridors for the Apple II, Commodore 64 and Macintosh sets,
+  blue and cyan for CGA, flat bricks in each palette for the NES and the
+  EGA, MCGA, VGA and Ultima V sets. Standard, the Mac tiles, takes the
+  VGA stone. The pieces are painted into the Mac sheet's layout and cut
+  by its mask, so the drawing code is unchanged (`docs/dungeon-sheet.md`).
 - **Peer at gem** asks "whose" only when it matters: the controller menu
   lists just the members holding a gem, and with a single holder the
   answer is filled in.
@@ -243,7 +244,7 @@ save contains except the pooled gold and food.
   Apple II did. The C port tested for negative values first, which sent
   monsters the long way round when the party was far to their west.
 - **Appearance**: the classic bitmap-font layout is used throughout; any of
-  the twelve tile sets (with their fonts, borders and dungeon art) can be chosen in
+  the thirteen tile sets (with their fonts, borders and dungeon art) can be chosen in
   Settings, Standard by default.
 
 ## How the code is organised

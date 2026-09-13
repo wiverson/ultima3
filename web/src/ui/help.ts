@@ -14,6 +14,7 @@
  */
 export const TILE_SETS = [
   'Standard',
+  'Lairware',
   'PC VGA',
   'Nintendo',
   'PC Ultima V',

@@ -4,11 +4,12 @@ import { TILE_SETS } from '../src/ui/help.ts';
 import { sheetRegions, DUNGEON_SHEET_WIDTH, DUNGEON_SHEET_HEIGHT } from '../src/ui/dungeonView.ts';
 
 describe('dungeon art styles', () => {
-  it('covers every tile set but Standard, which keeps the photographic sheet', () => {
+  it('covers every tile set but Lairware, which keeps the photographic sheet', () => {
     for (const set of TILE_SETS) {
-      if (set === 'Standard') expect(DUNGEON_STYLES[set]).toBeUndefined();
+      if (set === 'Lairware') expect(DUNGEON_STYLES[set]).toBeUndefined();
       else expect(DUNGEON_STYLES[set], set).toBeDefined();
     }
+    expect(DUNGEON_STYLES.Standard).toBe(DUNGEON_STYLES['PC VGA']);
   });
 
   it('gives wireframe styles a visible doorway, since a black door would vanish on a black wall', () => {

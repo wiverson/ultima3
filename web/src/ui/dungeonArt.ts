@@ -3,7 +3,8 @@
  *
  * Paints a first-person dungeon sheet in the style of a tile set, at run
  * time, in the layout the renderer expects (see docs/dungeon-sheet.md).
- * LairWare's Mac version had one photographic sheet for every set; the
+ * LairWare's Mac version had one photographic sheet for every set (kept
+ * here as the "Lairware" set, the Mac tiles with the Mac dungeon); the
  * Apple II, Commodore and PC originals drew their dungeons with code, as
  * wireframes, and the NES and later PC versions with flat bricks. So here
  * each set gets a small style record, and the sheet is drawn from it when
@@ -47,18 +48,24 @@ export interface DungeonStyle {
   doorLine?: string;
 }
 
-/** A style for every tile set but Standard, which keeps LairWare's photographic sheet. */
+const VGA: DungeonStyle = { kind: 'brick', bg: '#0c0c10', line: '#2a2a30', face: '#7c7c84', side: '#5c5c64', variation: 0.22, floor: '#3a3a40', floorLine: '#4a4a50', ceiling: '#1a1a20', wood: '#9a6a3a' };
+
+/**
+ * A style for every tile set but Lairware, which keeps the Mac's
+ * photographic sheet. Standard (the Mac tiles) takes the VGA dungeon.
+ */
 export const DUNGEON_STYLES: Record<string, DungeonStyle> = {
+  Standard: VGA,
+  'PC VGA': VGA,
   'Apple II Mono': { kind: 'wire', bg: '#000', line: '#fff', wood: '#fff', doorFill: '#000', doorLine: '#fff' },
   'Apple II Color': { kind: 'wire', bg: '#000', line: '#fff', wood: '#ff8000', doorFill: '#000', doorLine: '#fff' },
   'Apple II Color TV': { kind: 'wire', bg: '#000', line: '#f0f0f0', fringe: ['#20d020', '#c040ff'], wood: '#ff8000', doorFill: '#000', doorLine: '#f0f0f0' },
   'Commodore 64': { kind: 'wire', bg: '#000', line: '#8e8dff', wood: '#a57a4c', doorFill: '#000', doorLine: '#8e8dff' },
   'Macintosh B&W': { kind: 'wire', bg: '#fff', line: '#000', wood: '#000', doorFill: '#000' },
-  'PC CGA': { kind: 'wire', bg: '#000', line: '#55ffff', fill: '#aa00aa', wood: '#ffffff', doorFill: '#000', doorLine: '#55ffff' },
+  'PC CGA': { kind: 'wire', bg: '#000', line: '#55ffff', fill: '#0000aa', wood: '#ffffff', doorFill: '#000', doorLine: '#55ffff' },
   'PC EGA': { kind: 'brick', bg: '#000', line: '#000', face: '#aa5500', side: '#aa5500', dither: true, floor: '#555555', floorLine: '#aaaaaa', ceiling: '#000', wood: '#ffff55' },
   Nintendo: { kind: 'brick', bg: '#000', line: '#301810', face: '#a84030', side: '#782c20', floor: '#404040', floorLine: '#585858', ceiling: '#000', wood: '#d09050' },
   'PC MCGA': { kind: 'brick', bg: '#101010', line: '#3a2a1a', face: '#8a6a4a', side: '#66503a', variation: 0.18, floor: '#484848', floorLine: '#585858', ceiling: '#202020', wood: '#b07a3a' },
-  'PC VGA': { kind: 'brick', bg: '#0c0c10', line: '#2a2a30', face: '#7c7c84', side: '#5c5c64', variation: 0.22, floor: '#3a3a40', floorLine: '#4a4a50', ceiling: '#1a1a20', wood: '#9a6a3a' },
   'PC Ultima V': { kind: 'brick', bg: '#0a0c10', line: '#1a2028', face: '#5c6c7c', side: '#44505c', variation: 0.2, floor: '#2c3038', floorLine: '#3c4048', ceiling: '#101418', wood: '#8a5a2a' },
 };
 

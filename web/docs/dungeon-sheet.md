@@ -8,16 +8,18 @@ tile set, next to its Tiles, Mask, Font and UI files in `public/graphics`:
 - `<Set>-DungeonMasks.png`: a 1200x512 mask for the angled side walls in
   the first two panels. Black is opaque, white transparent, grey partial.
 
-Only Standard ships a sheet file. Every other set's sheet is painted at
-run time by `src/ui/dungeonArt.ts` from a small style record (wireframe
-or brick, a palette, a door treatment) into this same layout, so nothing
-is downloaded and the renderer (`src/ui/dungeonView.ts`, a port of the
-drawing half of `UltimaDngn.c`) needs no changes. A sheet file placed in
-`public/graphics` for a set overrides its painted one; a set with neither
-falls back to Standard's file. This document describes the layout both
-the painter and a hand-made sheet must follow.
+Only Lairware ships a sheet file: the Mac's photographic dungeon, paired
+with the Mac tiles. Every other set's sheet (Standard included, which
+takes the PC VGA style) is painted at run time by `src/ui/dungeonArt.ts`
+from a small style record (wireframe or brick, a palette, a door
+treatment) into this same layout, so nothing is downloaded and the
+renderer (`src/ui/dungeonView.ts`, a port of the drawing half of
+`UltimaDngn.c`) needs no changes. A sheet file placed in `public/graphics`
+for a set overrides its painted one. The mask is shared: it lives as
+`Standard-DungeonMasks.png`, which every set falls back to. This document
+describes the layout both the painter and a hand-made sheet must follow.
 
-`dungeon-sheet-guide.png` shows the layout over the Standard sheet at
+`dungeon-sheet-guide.png` shows the layout over the Lairware sheet at
 half opacity: red boxes are masked side-wall pieces, blue are facing-wall
 pieces, yellow the chest and ladder art. It is generated from the
 renderer's tables by `sheetRegions()`.
@@ -89,7 +91,7 @@ view. Positions follow the original's numbering of the 32 visible cells.
 1. Start from `dungeon-sheet-guide.png` so the pieces line up.
 2. Keep the perspective: pieces in A and B are the *same* wall surface
    seen at an angle, so a brick course should run toward the vanishing
-   point at the sheet's centre line (y 256), as the Standard art does.
+   point at the sheet's centre line (y 256), as the Lairware art does.
 3. Draw the corridor background in D as a complete empty corridor. Panels
    C and E are flat facing walls; E's bands are the same wall smaller.
 4. Reuse `Standard-DungeonMasks.png` unless the side-wall silhouettes

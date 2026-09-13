@@ -164,6 +164,10 @@ export class Screen implements GameIO {
   onSettingsChange: (() => void) | null = null;
   /** Name of the tile set in use (see help.ts TILE_SETS). */
   tileSetName = 'Standard';
+  /** Standard and Lairware share the Mac tiles, whose member figures suit the party-as-figures drawing. */
+  private get macTiles(): boolean {
+    return this.tileSetName === 'Standard' || this.tileSetName === 'Lairware';
+  }
   private readonly gamepads: GamepadReader;
   /** The menu window being shown, drawn over the map every frame. */
   private menu: MenuWindow | null = null;
@@ -1021,13 +1025,13 @@ export class Screen implements GameIO {
       const dx = cell + (i % VIEW_SIZE) * tile;
       const dy = cell + Math.floor(i / VIEW_SIZE) * tile;
       gfx.drawShape(ctx, c.base, dx, dy, tile);
-      if (c.follower !== undefined && this.tileSetName === 'Standard') this.drawMember(c.follower, dx, dy, tile);
-      if (c.hit && this.tileSetName !== 'Standard') {
+      if (c.follower !== undefined && this.macTiles) this.drawMember(c.follower, dx, dy, tile);
+      if (c.hit && !this.macTiles) {
         // The Apple II way: the ball's "HIT" frame replaces whatever was hit.
         gfx.drawShape(ctx, c.hit.shape, dx, dy, tile, { masked: true, altFrame: true });
         continue;
       }
-      if (c.party && this.tileSetName === 'Standard') this.drawParty(dx, dy, tile);
+      if (c.party && this.macTiles) this.drawParty(dx, dy, tile);
       else if (c.overlay !== undefined) gfx.drawShape(ctx, c.overlay, dx, dy, tile, { masked: true, flip: c.flip, altFrame: c.altFrame });
       if (c.hit) this.drawBurst(dx, dy, tile, c.hit.frame);
     }
