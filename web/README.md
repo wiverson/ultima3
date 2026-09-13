@@ -75,6 +75,9 @@ the game. Every setting is remembered by the browser.
     S steal      T transact   U unlock    V volume    W wear armour
     X exit craft Y yell       Z ztats
 
+    O and Y are the same prompt: a member and a word (SEARCH, BRIBE,
+    PRAY, EVOCARE, INSERT, DIG, PAXUM, SCREAM).
+
     Combat:   arrows move (into a monster attacks), A attack in a
               direction, C N R Z, Escape turns auto combat off
     V toggles sound effects, as Settings does; the controller menus
@@ -183,6 +186,11 @@ save contains except the pooled gold and food.
   Terminate asks for confirmation.
 - **Controller mode** with pop-up menus, and a command menu ordered by
   what the surroundings call for (`context.ts`).
+- **Other and Yell are one command.** The Apple II's Yell was Other under
+  another name, with one difference: EVOCARE parted the great serpent only
+  when yelled, and said "No effect" when typed at Other. EVOCARE now works
+  from Other too, so the controller menus list Other alone; Y still works
+  on the keyboard.
 - **Daggers** are thrown only when the member has a spare; with a single
   dagger an attack at a distant foe just misses. The Apple II let a new
   character throw away their only weapon.

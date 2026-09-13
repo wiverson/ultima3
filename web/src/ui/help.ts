@@ -47,8 +47,8 @@ export const KEYBOARD_HELP: string[][] = [
     'S  steal from a shop chest',
     'G  get a chest',
     'P  peer at a gem (map)',
-    'Y  yell a word',
-    'O  other command: type a word',
+    'O  other command: say a word',
+    'Y  yell: the same as Other',
   ],
   [
     'KEYBOARD COMMANDS            page 2/3',

@@ -313,15 +313,19 @@ export async function unlockToward(world: World, io: GameIO, dx: number, dy: num
   io.redrawMap();
 }
 
-/** Y: yell. Only "EVOCARE", with the Mark of the Snake, does anything: it parts the great serpent. (`Yell`) */
+/**
+ * Y: yell. The Apple II's Yell was Other under another name: the same
+ * member prompt, the same words, except that EVOCARE parted the great
+ * serpent only when yelled. Here EVOCARE works from Other as well, so
+ * the controller menus offer Other alone; Y stays for keyboard habit. (`Yell`)
+ */
 export async function yell(world: World, io: GameIO): Promise<void> {
-  world.yellUsed = false;
   io.printMessage(Msg.Yell);
   await otherCommand(world, io, true);
 }
 
+/** EVOCARE with the Mark of the Snake, beside the serpent: the party crosses it. */
 async function evocare(world: World, io: GameIO, member: number): Promise<void> {
-  if (world.yellUsed) return io.printMessage(Msg.NoEffect);
   const p = world.member(member);
   if (!(p.marks & 0x40)) return io.printMessage(Msg.NoEffect);
   let oy = world.y;
@@ -349,10 +353,7 @@ export const OTHER_WORDS = ['SEARCH', 'BRIBE', 'PRAY', 'EVOCARE', 'INSERT', 'DIG
  * spot reveals a word, EVOCARE parts the serpent, and PISSOFF angers everyone.
  */
 export async function otherCommand(world: World, io: GameIO, fromYell = false): Promise<void> {
-  if (!fromYell) {
-    world.yellUsed = true;
-    io.printMessage(Msg.OtherCommand);
-  }
+  if (!fromYell) io.printMessage(Msg.OtherCommand);
   const n = await io.chooseMember();
   if (n < 1 || n > 4) return;
   const member = n - 1;

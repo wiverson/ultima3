@@ -216,8 +216,6 @@ export class World {
 
   /** Which card slot Exodus expects next (0x1E..0x21). (`lastCard`) */
   lastCard = 0x1e;
-  /** Set once EVOCARE has been yelled this visit, so it cannot be repeated. (`YellStat`) */
-  yellUsed = false;
   /** Set by Appar Unem / Steal so chests do not trigger traps. (`m5BDC`, inverted) */
   chestTrapsArmed = true;
 

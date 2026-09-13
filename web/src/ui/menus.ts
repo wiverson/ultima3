@@ -72,7 +72,6 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
     { key: 'N', label: 'Negate time' },
     { key: 'P', label: 'Peer at gem' },
     { key: 'O', label: 'Other command' },
-    { key: 'Y', label: 'Yell' },
     { key: 'Q', label: 'Quit and save' },
     { key: ' ', label: 'Pass' },
   ],
@@ -98,7 +97,6 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
     { key: 'M', label: 'Modify order' },
     { key: 'N', label: 'Negate time' },
     { key: 'O', label: 'Other command' },
-    { key: 'Y', label: 'Yell' },
     { key: ' ', label: 'Pass' },
   ],
 };
