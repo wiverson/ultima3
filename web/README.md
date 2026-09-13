@@ -187,8 +187,9 @@ save contains except the pooled gold and food.
   party move diagonally and walled Exodus' castle with mountains to
   compensate (`BlockExodus()`); that code remains, behind
   `World.setDiagonalMoves`, but is no longer offered in Settings.
-- **A new game asks "Choose Thine Adventure!"** at the first
-  Journey onward, and again after a new party is formed: Modern
+- **A new game asks "Choose Thine Adventure!"** when a party is formed,
+  and at Journey onward while the question is still unanswered (the
+  answer is kept with the party, so a reload does not lose it): Modern
   (recommended) sets poison to stop at one hit point, starvation to Mild
   and Balanced XP on; Classic (hardcore) sets poison and starvation to the
   Apple II's, to the death, and Balanced XP off. Any of them can be

@@ -96,7 +96,7 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
         await notice(io, mm(world, MM.NotFormed));
         continue;
       }
-      if (world.freshGame && !(await chooseRules(world, io))) continue;
+      if (world.party.rulesPending && !(await chooseRules(world, io))) continue;
       await play();
     } else if (key === 'O') {
       await organize(world, io);
@@ -106,8 +106,8 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
 }
 
 /**
- * A new game's first question (this port): how doth thine adventure
- * proceed? Modern sets the gentler rules, poison stopping at one hit
+ * A new game's first question (this port), asked when a party is formed
+ * and again at Journey onward while unanswered: Modern sets the gentler rules, poison stopping at one hit
  * point, starvation at half and experience shared; Classic sets the Apple
  * II's, poison and starvation to the death and the killer taking all the
  * experience. All can be changed later in Settings. Returns false if the
@@ -126,7 +126,7 @@ export async function chooseRules(world: World, io: GameIO): Promise<boolean> {
   world.starvation = key === 'C' ? 'classic' : 'mild';
   world.balancedXp = key === 'M';
   world.onRulesChange?.();
-  world.freshGame = false;
+  world.party.rulesPending = false;
   return true;
 }
 
@@ -413,7 +413,7 @@ export async function formParty(world: World, io: GameIO): Promise<void> {
   world.poolPurses();
   world.poolGear();
   world.poolSupplies();
-  world.freshGame = true; // a new party: the first journey asks Modern or Classic
+  world.party.rulesPending = true; // asked now, and again at Journey onward if backed out of here
   world.party.location = Location.Sosaria;
   world.party.shape = 0x7e;
   world.party.bytes[5] = 0xff;
@@ -425,6 +425,7 @@ export async function formParty(world: World, io: GameIO): Promise<void> {
   world.moonPhase = [4, 4];
   world.moonTimer = [12, 4];
   await notice(io, mm(world, MM.Formed));
+  await chooseRules(world, io);
 }
 
 /** Give the members their share of the pool, free every roster entry and clear the party record. */

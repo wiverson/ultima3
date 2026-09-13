@@ -100,7 +100,6 @@ async function start(): Promise<void> {
   if (params.has('new') || !localSave.read(world)) {
     world.newGame();
     world.autoMap.clear();
-    world.freshGame = true; // the first Journey onward asks Modern or Classic
   }
 
   const sounds = new SoundPlayer();

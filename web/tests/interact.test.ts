@@ -301,10 +301,12 @@ describe('menus', () => {
     expect(p.intelligence).toBe(15);
     expect(p.hitPoints).toBe(100);
 
-    // Pick entry 5, then Done.
-    io.keys = ['5', 'D', ' '];
+    // Pick entry 5, then Done, then Modern at "Choose Thine Adventure!".
+    io.keys = ['5', 'D', ' ', 'M'];
     await formParty(world, io);
     expect(world.party.formed).toBe(true);
+    expect(world.party.rulesPending).toBe(false);
+    expect(world.starvation).toBe('mild');
     expect(world.party.size).toBe(1);
     expect(world.party.memberSlot(0)).toBe(4);
     expect(p.inParty).toBe(true);
@@ -341,10 +343,11 @@ describe('party screens', () => {
     const world = newWorld(3); // the default party is formed
     const io = new FakeIO(world.resources);
     expect(world.party.formed).toBe(true);
-    // Form: a party exists -> disperse and form a new one; choose entry 2 then entry 1, Done.
-    io.keys = ['Y', '2', '1', 'D', ' '];
+    // Form: a party exists -> disperse and form a new one; choose entry 2 then entry 1, Done, then Classic.
+    io.keys = ['Y', '2', '1', 'D', ' ', 'C'];
     await formParty(world, io);
     expect(world.party.size).toBe(2);
+    expect(world.poisonKills).toBe(true);
     expect(world.party.memberSlot(0)).toBe(1);
     expect(world.party.memberSlot(1)).toBe(0);
     expect(world.roster.get(2).inParty).toBe(false);
@@ -439,22 +442,22 @@ describe('a new game\'s first question', () => {
   it('sets Classic or Modern rules at the first Journey onward, and can be backed out of', async () => {
     const { chooseRules } = await import('../src/game/menu.ts');
     const { world, io } = townWorld();
-    world.freshGame = true;
+    world.party.rulesPending = true;
     io.keys = ['C'];
     expect(await chooseRules(world, io)).toBe(true);
     expect(world.poisonKills).toBe(true);
     expect(world.starvation).toBe('classic');
     expect(world.balancedXp).toBe(false);
-    expect(world.freshGame).toBe(false);
-    world.freshGame = true;
+    expect(world.party.rulesPending).toBe(false);
+    world.party.rulesPending = true;
     io.keys = ['M'];
     await chooseRules(world, io);
     expect(world.poisonKills).toBe(false);
     expect(world.starvation).toBe('mild');
     expect(world.balancedXp).toBe(true);
-    world.freshGame = true;
+    world.party.rulesPending = true;
     io.keys = [Key.Escape];
     expect(await chooseRules(world, io)).toBe(false);
-    expect(world.freshGame).toBe(true);
+    expect(world.party.rulesPending).toBe(true);
   });
 });

@@ -24,6 +24,7 @@
  *   24-26   (port)     the party's food in hundredths, 0..9,999,999, low byte first
  *   32-46   (port)     weapons in the party's bag, by weapon index 1..15 (Dagger..Exotic)
  *   48-54   (port)     armour in the party's bag, by armour index 1..7 (Cloth..Exotic)
+ *   27      (port)     1 while the new game's Modern/Classic choice is still to be made
  *   56-59   (port)     gems, keys, powders, torches, 0..99 each
  *
  * Everything from byte 20 on is this port's addition: gold, food, weapons,
@@ -226,6 +227,14 @@ export class Party {
   }
   clearSupplies(): void {
     this.bytes.fill(0, 56, 60);
+  }
+
+  /** True until the new game's "Choose Thine Adventure!" question has been answered (this port). */
+  get rulesPending(): boolean {
+    return this.bytes[27] === 1;
+  }
+  set rulesPending(v: boolean) {
+    this.bytes[27] = v ? 1 : 0;
   }
 
   /** `Party[16]`: set once Exodus is destroyed. */

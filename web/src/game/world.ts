@@ -581,6 +581,7 @@ export class World {
     this.poolPurses();
     this.poolGear();
     this.poolSupplies();
+    this.party.rulesPending = true; // "Choose Thine Adventure!" at the first Journey onward
     this.party.location = Location.Sosaria;
     this.party.shape = 0x7e;
     this.x = this.party.surfaceX;
@@ -633,12 +634,6 @@ export class World {
    */
   trail: { x: number; y: number }[] = [];
 
-  /**
-   * Set when a game has just begun (a new game, or a party just formed) and
-   * the journey has not yet started: the first Journey onward then asks how
-   * the adventure should proceed, Modern or Classic (this port).
-   */
-  freshGame = false;
   /** Called when the game changes a rule setting itself (the Modern/Classic choice), so the page can remember it. */
   onRulesChange: (() => void) | null = null;
 
