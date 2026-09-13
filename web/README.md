@@ -83,7 +83,7 @@ the game. Every setting is remembered by the browser.
     V toggles sound effects, as Settings does; the controller menus
     leave it to Settings
     Dungeons: up/down advance or retreat, left/right turn, I K D
-              ignite, klimb, descend
+              ignite, klimb, descend, L cycle the auto-map
 
 Prompts for "whom" take a member number 1-4; a direction is an arrow key.
 Q on the surface saves the game in this browser; it resumes on the next
@@ -195,6 +195,20 @@ save contains except the pooled gold and food.
   when yelled, and said "No effect" when typed at Other. EVOCARE now works
   from Other too, so the controller menus list Other alone; Y still works
   on the keyboard.
+- **A dungeon auto-map** (`automap.ts`), the graph paper of old. With a
+  lit torch the 3x3 of cells around the party is recorded as seen; L (Map
+  in the controller menu) cycles between no map, a 5x5 overlay in the top
+  right of the message area with the party centred, and the whole level
+  in place of the first-person view, which turns the dungeon into a
+  top-down crawl. Only seen cells are drawn, with Peer's map pieces from
+  the live level data, so an opened chest shows as opened; a secret door
+  is drawn as a wall with one pixel out of place where Peer shows it
+  plainly. In the dark nothing is recorded, but the 3x3 around the party
+  is still shown so a party without torches can feel its way out. The
+  seen cells live in their own browser store, not the save file: "try
+  again from last save" keeps what was learned, a new game starts blank.
+  The party's cell blinks; there is no facing arrow, the wind line's
+  compass keeps that job.
 - **Peer at gem** asks "whose" only when it matters: the controller menu
   lists just the members holding a gem, and with a single holder the
   answer is filled in.

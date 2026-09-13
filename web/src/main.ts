@@ -13,6 +13,7 @@ import { loadResources } from './data/resources.ts';
 import { World } from './game/world.ts';
 import { Game } from './game/game.ts';
 import { localSave } from './game/save.ts';
+import { AutoMap, MAP_MODES, type MapMode } from './game/automap.ts';
 import { mainMenu } from './game/menu.ts';
 import { GraphicsSet, loadImages } from './ui/graphics.ts';
 import { Keyboard } from './ui/input.ts';
@@ -22,6 +23,7 @@ import { Screen } from './ui/screen.ts';
 import { TILE_SETS } from './ui/help.ts';
 
 const PREFS_KEY = 'ultima3.settings';
+const AUTOMAP_KEY = 'ultima3.automap';
 
 /** What the Settings menu can change, as remembered between visits. */
 interface Prefs {
@@ -31,9 +33,10 @@ interface Prefs {
   autoCombat: boolean;
   sound: boolean;
   music: boolean;
+  dungeonMap: MapMode;
 }
 
-const DEFAULT_PREFS: Prefs = { inputMode: 'keyboard', tiles: 'Standard', diagonalMoves: false, autoCombat: false, sound: true, music: true };
+const DEFAULT_PREFS: Prefs = { inputMode: 'keyboard', tiles: 'Standard', diagonalMoves: false, autoCombat: false, sound: true, music: true, dungeonMap: 'off' };
 
 function loadPrefs(): Prefs {
   try {
@@ -44,6 +47,7 @@ function loadPrefs(): Prefs {
     if (saved.classicMoves !== undefined && saved.diagonalMoves === undefined) prefs.diagonalMoves = !saved.classicMoves;
     if (!TILE_SETS.includes(prefs.tiles)) prefs.tiles = DEFAULT_PREFS.tiles;
     if (prefs.inputMode !== 'controller') prefs.inputMode = 'keyboard';
+    if (!MAP_MODES.includes(prefs.dungeonMap)) prefs.dungeonMap = 'off';
     return prefs;
   } catch {
     return { ...DEFAULT_PREFS };
@@ -84,9 +88,15 @@ async function start(): Promise<void> {
   world.setDiagonalMoves(prefs.diagonalMoves);
   world.autoCombat = prefs.autoCombat;
   world.soundEnabled = prefs.sound;
+  world.mapMode = prefs.dungeonMap;
+  // The dungeon auto-map keeps its own store; a new game starts it blank.
+  world.autoMap = new AutoMap({ read: () => localStorage.getItem(AUTOMAP_KEY), write: (text) => localStorage.setItem(AUTOMAP_KEY, text) });
 
   // Resume the saved game unless the URL asks for a new one (?new).
-  if (params.has('new') || !localSave.read(world)) world.newGame();
+  if (params.has('new') || !localSave.read(world)) {
+    world.newGame();
+    world.autoMap.clear();
+  }
 
   const sounds = new SoundPlayer();
   const music = new MusicPlayer();
@@ -116,9 +126,11 @@ async function start(): Promise<void> {
       autoCombat: world.autoCombat,
       sound: world.soundEnabled,
       music: music.enabled,
+      dungeonMap: world.mapMode,
     });
   };
   screen.onSettingsChange = remember;
+  world.onMapModeChange = remember;
   screen.onModeChange = remember;
   world.onAutoCombatChange = remember;
 

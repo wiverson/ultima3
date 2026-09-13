@@ -85,6 +85,7 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
   ],
   dungeon: [
     { key: 'I', label: 'Ignite torch' },
+    { key: 'L', label: 'Map (off/small/full)' },
     { key: 'K', label: 'Klimb ladder' },
     { key: 'D', label: 'Descend ladder' },
     { key: 'G', label: 'Get chest' },

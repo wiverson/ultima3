@@ -12,6 +12,7 @@
  * `surface`. The effect is the same and there is nothing to push or pull.
  */
 
+import { AutoMap, type MapMode } from './automap.ts';
 import { type GameResources, MapId, BASERES } from '../data/resources.ts';
 import { MonsterTable } from './monsterTable.ts';
 import { Party, Location, PARTY_RECORD_SIZE } from './party.ts';
@@ -126,6 +127,7 @@ export const DungeonCell = {
   LadderDown: 0x20,
   Chest: 0x40,
   Wall: 0x80,
+  SecretDoor: 0xa0,
   Door: 0xc0,
 } as const;
 
@@ -216,6 +218,12 @@ export class World {
 
   /** Which card slot Exodus expects next (0x1E..0x21). (`lastCard`) */
   lastCard = 0x1e;
+  /** The dungeon auto-map: cells seen so far. Replaced by `main.ts` with one that persists. */
+  autoMap: AutoMap = new AutoMap();
+  /** How the auto-map shows in dungeons (a display setting, remembered with the others). */
+  mapMode: MapMode = 'off';
+  /** Called when the map mode changes, so the page can remember it. */
+  onMapModeChange: (() => void) | null = null;
   /** Set by Appar Unem / Steal so chests do not trigger traps. (`m5BDC`, inverted) */
   chestTrapsArmed = true;
 

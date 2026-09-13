@@ -14,6 +14,7 @@
  */
 
 import { World, DungeonCell } from './world.ts';
+import { nextMapMode } from './automap.ts';
 import { type GameIO, Key, Sound, Music, deathSound } from './io.ts';
 import { what2, noGo } from './commands.ts';
 import { combat } from './combat.ts';
@@ -170,6 +171,9 @@ export async function runDungeon(world: World, io: GameIO): Promise<void> {
     if (d.torch === 0) {
       io.printMessage(Msg.Dark);
       io.clearTiles();
+    } else {
+      // With light, the auto-map learns the 3x3 around the party.
+      world.autoMap.mark(world.current.id, d.level, world.x, world.y);
     }
     io.redrawMap();
     io.print(' ');
@@ -207,6 +211,18 @@ export async function runDungeon(world: World, io: GameIO): Promise<void> {
   }
 }
 
+/**
+ * L: cycle the auto-map between off, a 5x5 overlay beside the text and the
+ * whole level in place of the first-person view. A display change, not a
+ * turn: the loop passes a turn anyway, as any dungeon command does.
+ */
+export function toggleMap(world: World, io: GameIO): void {
+  world.mapMode = nextMapMode(world.mapMode);
+  io.print(`Map: ${world.mapMode}\n`);
+  world.onMapModeChange?.();
+  io.redrawMap();
+}
+
 /** The dungeon key switch. Letters not usable underground say so. */
 async function dispatch(world: World, io: GameIO, key: string): Promise<void> {
   switch (key.toUpperCase()) {
@@ -237,6 +253,8 @@ async function dispatch(world: World, io: GameIO, key: string): Promise<void> {
       return igniteTorch(world, io);
     case 'K':
       return klimb(world, io);
+    case 'L':
+      return toggleMap(world, io);
     case 'M':
       return modifyOrder(world, io);
     case 'N':

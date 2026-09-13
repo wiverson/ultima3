@@ -37,6 +37,7 @@ import { CHEATS } from '../game/cheats.ts';
 import { Location } from '../game/party.ts';
 import { buildViewport, VIEW_SIZE, type Viewport } from '../game/viewport.ts';
 import { buildDungeonView, secretMessage } from '../game/dungeon.ts';
+import { cellVisible } from '../game/automap.ts';
 import { Key, Sound, type GameIO, type MenuOption, type CommandScope, type MenuPlacement } from '../game/io.ts';
 import {
   controllerKeyFor,
@@ -89,6 +90,36 @@ const ANIMATION_INTERVAL_MS = 1000 / 12;
 
 /** The 4 x 6 grid of small tiles used for the dungeon map, in row 1 of the UI sheet. */
 const DUNGEON_MAP_PIECE_COLUMN = 7;
+/** The auto-map's 5x5 overlay: the top-right corner of the message area, under the fourth box. */
+const MAP_OVERLAY_SIZE = 5;
+const MAP_OVERLAY_LEFT = 35;
+const MAP_OVERLAY_TOP = 13;
+
+/**
+ * Which of the nine map pieces (UI sheet row 1 from column 7) draws a
+ * dungeon cell: door, secret door, wall, both ladders, up, down, open,
+ * anything else; piece 8 is the party marker.
+ */
+function dungeonMapPiece(value: number): number {
+  switch (value) {
+    case DungeonCell.Door:
+      return 0;
+    case DungeonCell.SecretDoor:
+      return 1;
+    case DungeonCell.Wall:
+      return 2;
+    case DungeonCell.LadderUp | DungeonCell.LadderDown:
+      return 3;
+    case DungeonCell.LadderUp:
+      return 4;
+    case DungeonCell.LadderDown:
+      return 5;
+    case DungeonCell.Open:
+      return 6;
+    default:
+      return 7;
+  }
+}
 
 export class Screen implements GameIO {
   private readonly ctx: CanvasRenderingContext2D;
@@ -104,6 +135,12 @@ export class Screen implements GameIO {
   /** Text drawn on the current title screen, replayed when the graphics set changes. */
   private titleText: { x: number; y: number; text: string }[] = [];
   private lastFrame = 0;
+  /** Auto-map: the party marker blinks on the animation tick. */
+  private mapBlink = false;
+  /** Auto-map: the 5x5 overlay is on screen, so text under it is held back. */
+  private overlayShown = false;
+  /** Auto-map: the secret-door piece (a wall with one pixel out of place), per tile set. */
+  private secretDoorPiece: HTMLCanvasElement | null = null;
   private readonly dungeonRenderer: DungeonRenderer | null;
 
   /** Text cursor in the message area. (`wx`, `wy`) */
@@ -252,6 +289,7 @@ export class Screen implements GameIO {
   setGraphics(gfx: GraphicsSet): void {
     this.gfx = gfx;
     this.greenFigures.clear();
+    this.secretDoorPiece = null;
     this.redrawAll();
   }
 
@@ -283,6 +321,12 @@ export class Screen implements GameIO {
   /** Draw a string with the bitmap font at cell (x, y), no wrapping. */
   drawText(text: string, x: number, y: number, colour?: string): void {
     const { ctx, cell } = this;
+    if (this.overlayShown && y >= MAP_OVERLAY_TOP && y < MAP_OVERLAY_TOP + MAP_OVERLAY_SIZE && x + text.length > MAP_OVERLAY_LEFT) {
+      // Only the part left of the overlay is drawn; the overlay repaints itself.
+      const keep = Math.max(0, MAP_OVERLAY_LEFT - x);
+      if (keep === 0) return;
+      text = text.slice(0, keep);
+    }
     for (let i = 0; i < text.length; i++) {
       ctx.fillStyle = '#000';
       ctx.fillRect((x + i) * cell, y * cell, cell, cell);
@@ -945,7 +989,23 @@ export class Screen implements GameIO {
 
   private paintViewport(): void {
     const { ctx, cell, gfx, world } = this;
-    if (world.party.location === Location.Dungeon && !world.combat) {
+    const inDungeon = world.party.location === Location.Dungeon && !world.combat;
+    const overlay = inDungeon && world.mapMode === 'small';
+    if (this.overlayShown && !overlay) {
+      // The overlay has gone: bring back the text it was covering.
+      this.overlayShown = false;
+      this.redrawTextArea();
+    }
+    if (inDungeon) {
+      if (world.mapMode === 'full') {
+        this.black(1, 1, 22, 22);
+        this.paintAutoMap(0, 0, 16, 16, 4, 4); // where Peer draws the level
+        return;
+      }
+      if (overlay) {
+        this.overlayShown = true;
+        this.paintAutoMap(world.x - 2, world.y - 2, MAP_OVERLAY_SIZE, MAP_OVERLAY_SIZE, MAP_OVERLAY_LEFT, MAP_OVERLAY_TOP);
+      }
       if (world.dungeon.torch < 1 || !this.dungeonRenderer) {
         this.black(1, 1, 22, 22);
         return;
@@ -1090,6 +1150,7 @@ export class Screen implements GameIO {
     if (time - this.lastFrame >= ANIMATION_INTERVAL_MS) {
       this.lastFrame = time;
       this.gfx.tick();
+      this.mapBlink = !this.mapBlink;
       if (!this.viewCovered) this.viewDirty = true;
     }
     if (this.viewDirty && !this.viewCovered) {
@@ -1134,6 +1195,52 @@ export class Screen implements GameIO {
     if (img) this.ctx.drawImage(img, this.cell, this.cell, 22 * this.cell, 22 * this.cell);
   }
 
+  /**
+   * The dungeon auto-map: `w` x `h` cells of the current level from (x0, y0),
+   * wrapping as the dungeon does, drawn at text cell (left, top) with the
+   * pieces Peer at gem uses. Only cells the party has seen (or, in the
+   * dark, the 3x3 around it) are drawn; the rest stay black. Secret doors
+   * are drawn as a wall with one pixel out of place, so a sharp eye can
+   * spot them where Peer shows them plainly. The party's cell blinks.
+   */
+  private paintAutoMap(x0: number, y0: number, w: number, h: number, left: number, top: number): void {
+    const { ctx, cell, world } = this;
+    this.black(left, top, w, h);
+    for (let row = 0; row < h; row++) {
+      for (let col = 0; col < w; col++) {
+        const xs = (x0 + col) & 0x0f;
+        const ys = (y0 + row) & 0x0f;
+        if (!cellVisible(world, xs, ys)) continue;
+        const dx = (left + col) * cell;
+        const dy = (top + row) * cell;
+        const here = xs === world.x && ys === world.y;
+        if (here && this.mapBlink) {
+          this.gfx.drawUiPiece(ctx, DUNGEON_MAP_PIECE_COLUMN + 8, 1, dx, dy, cell);
+          continue;
+        }
+        const value = world.getXYDng(xs, ys);
+        if (value === DungeonCell.SecretDoor) ctx.drawImage(this.secretDoor(), dx, dy, cell, cell);
+        else this.gfx.drawUiPiece(ctx, DUNGEON_MAP_PIECE_COLUMN + dungeonMapPiece(value), 1, dx, dy, cell);
+      }
+    }
+  }
+
+  /** The wall piece with one pixel (one Apple-scale pixel, whatever the sheet's size) turned black. */
+  private secretDoor(): HTMLCanvasElement {
+    if (this.secretDoorPiece) return this.secretDoorPiece;
+    const size = this.gfx.uiSize;
+    const off = document.createElement('canvas');
+    off.width = size;
+    off.height = size;
+    const octx = off.getContext('2d')!;
+    this.gfx.drawUiPiece(octx, DUNGEON_MAP_PIECE_COLUMN + 2, 1, 0, 0, size);
+    const dot = Math.max(1, Math.floor(size / 32));
+    octx.fillStyle = '#000';
+    octx.fillRect(Math.floor(size * 0.6), Math.floor(size * 0.35), dot, dot);
+    this.secretDoorPiece = off;
+    return off;
+  }
+
   /** Mirrors `DrawMiniMap()`: the whole map in miniature, the party's square blinking. */
   async showMiniMap(): Promise<void> {
     const { ctx, cell, world } = this;
@@ -1166,32 +1273,12 @@ export class Screen implements GameIO {
     this.viewCovered = true;
     this.view = null;
     this.black(1, 1, 22, 22);
-    const pieceFor = (value: number): number => {
-      switch (value) {
-        case DungeonCell.Door:
-          return 0;
-        case 0xa0:
-          return 1;
-        case DungeonCell.Wall:
-          return 2;
-        case 0x30:
-          return 3;
-        case DungeonCell.LadderUp:
-          return 4;
-        case DungeonCell.LadderDown:
-          return 5;
-        case DungeonCell.Open:
-          return 6;
-        default:
-          return 7;
-      }
-    };
     const draw = (xs: number, ys: number, piece: number) =>
       this.gfx.drawUiPiece(ctx, piece + DUNGEON_MAP_PIECE_COLUMN, 1, (xs + 4) * cell, (ys + 4) * cell, cell);
     let under = 6;
     for (let ys = 0; ys < 16; ys++) {
       for (let xs = 0; xs < 16; xs++) {
-        const piece = pieceFor(world.getXYDng(xs, ys));
+        const piece = dungeonMapPiece(world.getXYDng(xs, ys));
         draw(xs, ys, piece);
         if (xs === world.x && ys === world.y) under = piece;
       }
