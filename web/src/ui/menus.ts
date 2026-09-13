@@ -224,13 +224,35 @@ export function drawMenu(ctx: CanvasRenderingContext2D, gfx: GraphicsSet, cell: 
   if (menu.top > 0) text('^', x + width - 2, y + 1);
   if ((menu.top + menu.visibleRows) * menu.columns < menu.items.length) text('v', x + width - 2, y + height - 2);
 
-  // The highlighted item's hint on the row under the window.
+  // The highlighted item's hint on the rows under the window, word-wrapped.
   const hint = menu.hints?.[menu.cursor];
   if (menu.hints) {
     ctx.fillStyle = '#000';
-    ctx.fillRect(cell, (y + height) * cell, 38 * cell, cell);
-    if (hint) text(hint.slice(0, 38), Math.max(1, 20 - Math.floor(hint.length / 2)), y + height);
+    ctx.fillRect(cell, (y + height) * cell, 38 * cell, HINT_ROWS * cell);
+    if (hint) {
+      wrapText(hint, 38, HINT_ROWS).forEach((line, i) => text(line, Math.max(1, 20 - Math.floor(line.length / 2)), y + height + i));
+    }
   }
+}
+
+/** Rows kept under a menu window for its hint. */
+export const HINT_ROWS = 2;
+
+/** Break text into at most `rows` lines of `width` characters, at spaces where possible. */
+export function wrapText(s: string, width: number, rows: number): string[] {
+  const lines: string[] = [];
+  let rest = s.trim();
+  while (rest && lines.length < rows) {
+    if (rest.length <= width) {
+      lines.push(rest);
+      break;
+    }
+    let cut = rest.lastIndexOf(' ', width);
+    if (cut <= 0) cut = width;
+    lines.push(rest.slice(0, cut).trimEnd());
+    rest = rest.slice(cut).trimStart();
+  }
+  return lines;
 }
 
 /** Move the cursor for a d-pad key and keep it visible. Returns true if the key was a movement. */

@@ -51,6 +51,7 @@ import {
   moveCursor,
   GamepadReader,
   type MenuWindow,
+  HINT_ROWS,
 } from './menus.ts';
 import { DungeonCell } from '../game/world.ts';
 
@@ -454,13 +455,13 @@ export class Screen implements GameIO {
     menu.y = place.row;
     menu.x = Math.floor((COLUMNS - menu.width) / 2);
     // Keep the window (and its hint row) inside the frame; long lists scroll.
-    const available = ROWS - 1 - place.row - 2 - (menu.hints ? 1 : 0);
+    const available = ROWS - 1 - place.row - 2 - (menu.hints ? HINT_ROWS : 0);
     menu.visibleRows = Math.max(1, Math.min(menu.visibleRows, available));
     if (place.cursor !== undefined && place.cursor >= 0 && place.cursor < menu.items.length) {
       menu.cursor = place.cursor;
       if (menu.cursor >= menu.visibleRows) menu.top = menu.cursor - menu.visibleRows + 1;
     }
-    if (!this.frameShown) this.black(1, place.row, COLUMNS - 2, menu.visibleRows + 2 + (menu.hints ? 1 : 0));
+    if (!this.frameShown) this.black(1, place.row, COLUMNS - 2, menu.visibleRows + 2 + (menu.hints ? HINT_ROWS : 0));
   }
 
   /**
@@ -638,7 +639,7 @@ export class Screen implements GameIO {
     // The hint line runs across the whole screen under the window, so save that too.
     const x = menu.hints ? 1 : menu.x;
     const w = menu.hints ? COLUMNS - 2 : menu.width;
-    const h = menu.visibleRows + 2 + (menu.hints ? 1 : 0);
+    const h = menu.visibleRows + 2 + (menu.hints ? HINT_ROWS : 0);
     this.underMenu = { image: this.ctx.getImageData(x * cell, menu.y * cell, w * cell, Math.min(h, ROWS - menu.y) * cell), x: x * cell, y: menu.y * cell };
     this.menu = menu;
     this.showMenuNow();
