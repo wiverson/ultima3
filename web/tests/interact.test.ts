@@ -333,3 +333,46 @@ describe('whose key', () => {
     expect(world.getXYVal(21, 20)).toBe(MapValue.Floor);
   });
 });
+
+describe('the weapons and armour shops', () => {
+  function shopWorld(counter: number, y: number): { world: World; io: FakeIO } {
+    const { world, io } = townWorld();
+    world.y = y;
+    world.putXYVal(counter, 21, y);
+    world.putXYVal(MapValue.Merchant, 22, y);
+    world.party.gold = 20000;
+    return { world, io };
+  }
+
+  it('an ordinary weapons shop sells the dagger through the 2-H sword and nothing dearer', async () => {
+    const { world, io } = shopWorld(MapValue.LetterA, 19); // 19 & 7 = 3: weapons
+    io.keys = ['1', 'N', 'B', 'H', 'I', ' ']; // I is not offered; space is Nothing
+    await transactToward(world, io, 1, 0);
+    expect(world.member(0).bytes[48 + 7]).toBe(1); // a 2-H sword
+    expect(world.member(0).bytes[48 + 8]).toBe(0); // no +2 axe
+    expect(io.output).toContain('maybe\nnext time');
+  });
+
+  it('an ordinary armour shop sells cloth through plate and nothing dearer', async () => {
+    const { world, io } = shopWorld(MapValue.LetterA, 20); // 20 & 7 = 4: armour
+    io.keys = ['1', 'N', 'B', 'E', 'F', ' '];
+    await transactToward(world, io, 1, 0);
+    expect(world.member(0).bytes[40 + 4]).toBe(1); // plate
+    expect(world.member(0).bytes[40 + 5]).toBe(0); // no +2 chain
+  });
+
+  it('Dawn sells up to the +4 sword and +2 plate, never exotics', async () => {
+    const { world, io } = shopWorld(MapValue.LetterA, 19);
+    world.party.surfaceX = 37;
+    io.keys = ['1', 'N', 'B', 'O', 'P', ' '];
+    await transactToward(world, io, 1, 0);
+    expect(world.member(0).bytes[48 + 14]).toBe(1); // +4 sword
+    expect(world.member(0).bytes[48 + 15]).toBe(0); // exotic refused
+    const armour = shopWorld(MapValue.LetterA, 20);
+    armour.world.party.surfaceX = 37;
+    armour.io.keys = ['1', 'N', 'B', 'G', 'H', ' '];
+    await transactToward(armour.world, armour.io, 1, 0);
+    expect(armour.world.member(0).bytes[40 + 6]).toBe(1); // +2 plate
+    expect(armour.world.member(0).bytes[40 + 7]).toBe(0);
+  });
+});

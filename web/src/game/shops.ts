@@ -244,9 +244,10 @@ async function equipmentShop(world: World, io: GameIO, p: PlayerRecord, isWeapon
   const nameBase = isWeapon ? 0 : 16;
   const priceBase = isWeapon ? 24 : 40;
   const countBase = isWeapon ? 48 : 40;
-  // The best shops (in the town at surface X = 37) stock everything.
+  // Ordinary shops stop at the 2-H sword and plate; Dawn (surface X = 37) sells
+  // up to the +4 weapons and +2 plate. Exotics are never for sale. (`opnum`)
   const fullStock = world.party.surfaceX === 37;
-  const last = isWeapon ? (fullStock ? 16 : 9) : fullStock ? 8 : 6; // exclusive letter index
+  const last = isWeapon ? (fullStock ? 15 : 8) : fullStock ? 7 : 5; // exclusive letter index
 
   // Menu of what the shop stocks (letters B..), with prices.
   const stock: MenuOption[] = [];
