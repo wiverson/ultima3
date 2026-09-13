@@ -14,6 +14,7 @@
  */
 
 import type { DungeonDrawOp } from '../game/dungeon.ts';
+import type { GraphicsSet } from './graphics.ts';
 
 // Wall piece rectangles for the 32 view locations (plus 33-35: chest and ladder art).
 const DNG_L = [0, 0, 225, 0, 75, 225, 0, 75, 187, 225, 0, 75, 113, 187, 225, 0, 75, 113, 170, 188, 226, 0, 75, 112, 130, 170, 188, 225, 112, 130, 152, 168, 0, 300, 375, 377];
@@ -44,6 +45,52 @@ const DY4 = [256, 220, 220, 191, 191, 191, 170, 168, 168, 170, 159, 159, 159, 15
 
 export const DUNGEON_VIEW_WIDTH = 600;
 export const DUNGEON_VIEW_HEIGHT = 512;
+export const DUNGEON_SHEET_WIDTH = 3000;
+export const DUNGEON_SHEET_HEIGHT = 512;
+
+/** One rectangle of the sheet that the renderer samples, for documenting the sheet's layout. */
+export interface SheetRegion {
+  name: string;
+  /** Source rectangle in sheet pixels. */
+  sx: number;
+  sy: number;
+  w: number;
+  h: number;
+  /** Where it lands in the 600x512 view (undefined for pieces that are stretched). */
+  dx?: number;
+  dy?: number;
+  /** Whether the mask sheet cuts it (angled side walls). */
+  masked: boolean;
+}
+
+/**
+ * Every rectangle of the shapes sheet the renderer reads, derived from the
+ * tables above: the 32 wall positions, the chest, the two ladder pieces
+ * and the empty corridor background. A new sheet for another tile set
+ * must carry its art in these same places (`docs/dungeon-sheet.md`).
+ */
+export function sheetRegions(): SheetRegion[] {
+  const out: SheetRegion[] = [];
+  for (let i = 0; i < 32; i++) {
+    const x = DNG_L[i] * 2;
+    const y = DNG_T[i] * 2;
+    out.push({
+      name: `wall ${i}`,
+      sx: x + OF_X[i] * 2,
+      sy: y + OF_Y[i] * 2,
+      w: (DNG_R[i] - DNG_L[i]) * 2,
+      h: (DNG_B[i] - DNG_T[i]) * 2,
+      dx: x,
+      dy: y,
+      masked: USE_MASK[i] === 1,
+    });
+  }
+  for (const [i, name] of [[33, 'chest'], [34, 'ladder rung'], [35, 'ladder rail']] as const) {
+    out.push({ name, sx: DNG_L[i] * 2, sy: DNG_T[i] * 2, w: (DNG_R[i] - DNG_L[i]) * 2, h: (DNG_B[i] - DNG_T[i]) * 2, masked: false });
+  }
+  out.push({ name: 'corridor background', sx: 1800, sy: 0, w: 600, h: 512, dx: 0, dy: 0, masked: false });
+  return out;
+}
 
 /** Combine the shapes sheet with its mask into an RGBA sheet (black in the mask = opaque). */
 function applyMask(shapes: HTMLImageElement, mask: HTMLImageElement): HTMLCanvasElement {
@@ -68,6 +115,11 @@ export class DungeonRenderer {
   readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
   private readonly masked: HTMLCanvasElement;
+
+  /** The renderer for a tile set's dungeon art, or null when the set (and Standard) has none. */
+  static forSet(gfx: GraphicsSet): DungeonRenderer | null {
+    return gfx.dungeonShapes && gfx.dungeonMasks ? new DungeonRenderer(gfx.dungeonShapes, gfx.dungeonMasks) : null;
+  }
 
   constructor(
     private readonly shapes: HTMLImageElement,

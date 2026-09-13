@@ -235,7 +235,7 @@ save contains except the pooled gold and food.
   Apple II did. The C port tested for negative values first, which sent
   monsters the long way round when the party was far to their west.
 - **Appearance**: the classic bitmap-font layout is used throughout; any of
-  the twelve tile sets (with their fonts and borders) can be chosen in
+  the twelve tile sets (with their fonts, borders and dungeon art) can be chosen in
   Settings, Standard by default.
 
 ## How the code is organised

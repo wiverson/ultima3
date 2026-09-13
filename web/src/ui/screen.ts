@@ -139,7 +139,7 @@ export class Screen implements GameIO {
   private overlayShown = false;
   /** Auto-map: the secret-door piece (a wall with one pixel out of place), per tile set. */
   private secretDoorPiece: HTMLCanvasElement | null = null;
-  private readonly dungeonRenderer: DungeonRenderer | null;
+  private dungeonRenderer: DungeonRenderer | null;
 
   /** Text cursor in the message area. (`wx`, `wy`) */
   private cursorX = TEXT_LEFT + 1;
@@ -183,9 +183,7 @@ export class Screen implements GameIO {
     this.ctx.imageSmoothingEnabled = false;
     this.cell = Math.floor(canvas.width / COLUMNS);
     for (let r = 0; r < TEXT_BOTTOM - TEXT_TOP; r++) this.textRows.push(new Array(TEXT_RIGHT - TEXT_LEFT).fill(' '));
-    const shapes = images.get('DungeonShapes');
-    const masks = images.get('DungeonMasks');
-    this.dungeonRenderer = shapes && masks ? new DungeonRenderer(shapes, masks) : null;
+    this.dungeonRenderer = DungeonRenderer.forSet(gfx);
     // A pause (window not focused) should not eat into a combat turn's timer.
     keyboard.onResume = (pausedMs) => {
       if (this.world.combat) this.world.combat.markedAt += pausedMs;
@@ -288,6 +286,7 @@ export class Screen implements GameIO {
     this.gfx = gfx;
     this.greenFigures.clear();
     this.secretDoorPiece = null;
+    this.dungeonRenderer = DungeonRenderer.forSet(gfx);
     this.redrawAll();
   }
 

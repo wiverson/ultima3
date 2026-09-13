@@ -48,8 +48,6 @@ export type ImageMap = Map<string, HTMLImageElement>;
 /** Load the pictures used in play (title, dungeon walls, shrines, fountains ...). */
 export async function loadImages(baseUrl = 'images/'): Promise<ImageMap> {
   const files = [
-    'DungeonShapes.jpg',
-    'DungeonMasks.png',
     'Exodus.png',
     'Fountain.jpg',
     'Rod.jpg',
@@ -120,6 +118,14 @@ export class GraphicsSet {
     readonly maskedTiles: HTMLCanvasElement,
     readonly font: HTMLImageElement,
     readonly ui: HTMLImageElement,
+    /**
+     * The first-person dungeon art: a 3000x512 sheet of wall pieces and
+     * corridor background (see dungeonView.ts) and the mask for its angled
+     * side walls. Per set, so a wireframe set can have wireframe dungeons;
+     * a set without its own falls back to Standard's.
+     */
+    readonly dungeonShapes: HTMLImageElement | null,
+    readonly dungeonMasks: HTMLImageElement | null,
   ) {
     this.tileSize = tiles.width / TILE_COLUMNS;
     this.fontSize = font.width / FONT_GLYPHS;
@@ -150,7 +156,9 @@ export class GraphicsSet {
     const font = await tryLoad('Font', ['gif', 'png']);
     const ui = await tryLoad('UI', ['png', 'gif']);
     if (!font || !ui) throw new Error('Font or UI sheet missing');
-    return new GraphicsSet(tiles, applyMask(tiles, mask), font, ui);
+    const dungeonShapes = await tryLoad('DungeonShapes', ['png', 'jpg']);
+    const dungeonMasks = await tryLoad('DungeonMasks', ['png', 'gif']);
+    return new GraphicsSet(tiles, applyMask(tiles, mask), font, ui, dungeonShapes, dungeonMasks);
   }
 
   /** Source rectangle of a tile index, honouring the animation frame. (`GetTileRectForIndex`) */
