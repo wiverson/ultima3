@@ -103,7 +103,7 @@ controller mode. The command menu lists the commands the surroundings call
 for first (Enter on a town, Board on a horse, Get on a chest, Attack
 beside a monster), leaves out commands that make no sense where you stand
 (no craft to board, no chest to get), and greys out ones with nothing on
-hand (no gem to peer through, no torch to light, no mana to cast).
+hand (no gem to peer through, no torch to light, no caster left alive).
 Numbers use a spinner and names an on-screen keyboard.
 
 The game pauses its idle timers, including the combat turn timer, while
@@ -177,6 +177,9 @@ save contains except the pooled gold and food.
   Terminate asks for confirmation.
 - **Controller mode** with pop-up menus, and a command menu ordered by
   what the surroundings call for (`context.ts`).
+- **Spell menus** name spells by what they do (Magic bolt, Heal, Up a
+  level) with the spell-book name, cost and effect on the hint line
+  beneath; the Apple II showed only the book names the manual explained.
 - **Member pickers** ("Who?") colour each name by state the same way. A
   member brought back to life during a fight is placed on the nearest open
   square to where they fell.

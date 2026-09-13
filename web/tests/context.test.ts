@@ -111,9 +111,12 @@ describe('command menu availability', () => {
     expect(key('Q')).toBeDefined();
     expect(key('P')?.disabled).toBe(true);
     expect(key('N')?.disabled).toBe(true);
-    expect(key('C')?.disabled).toBe(true); // nobody has any mana yet
-    world.member(2).mana = 10; // Norric the cleric
+    expect(key('C')?.disabled).toBe(false); // Norric is a cleric; Pontori costs nothing
+    world.member(2).status = 'D';
+    world.member(3).status = 'D'; // the wizard too: only the thief and ranger... the ranger casts
     expect(keys('field').find((o) => o.key === 'C')?.disabled).toBe(false);
+    world.member(1).status = 'D';
+    expect(keys('field').find((o) => o.key === 'C')?.disabled).toBe(true); // only the thief is left
     // A gem makes Peer usable; a horse underfoot makes Board appear.
     world.member(0).bytes[37] = 1;
     world.putXYVal(MapValue.Horse, world.x, world.y);

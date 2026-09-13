@@ -13,7 +13,7 @@
 import { World } from './world.ts';
 import { Location } from './party.ts';
 import { MapValue, Shape } from './tiles.ts';
-import { type GameIO, Sound, inputNumber, letterOptions } from './io.ts';
+import { type GameIO, Sound, inputNumber, type MenuOption } from './io.ts';
 import { getDirection } from './commands.ts';
 import { shoot, showBall, damageMonster } from './combat.ts';
 import { getChest, incapacitated } from './actions.ts';
@@ -99,11 +99,57 @@ export async function cast(world: World, io: GameIO, member?: number): Promise<b
   return true;
 }
 
-/** Menu label for a spell: its letter, name and cost. */
-function spellLabel(world: World, spell: number, letter: string): string {
-  const name = spell < 32 ? world.resources.strings.Spells[spell] : ['TERRAFORM', 'ARMAGEDDON', 'FLOTELLUM'][spell - 32];
+/**
+ * What each spell is called in plain words, for the menus, and what it
+ * does, for the hint line. The Apple II showed only the spell-book names
+ * (Mittar, Sanctu ...), which the manual explained; the hint keeps those
+ * names alongside. Indexed by spell number; labels stay under 16
+ * characters so they fit a menu over the map.
+ */
+const SPELL_INFO: { name: string; does: string }[] = [
+  { name: 'Repel orcs', does: 'may destroy an orc pack, once a fight' },
+  { name: 'Magic bolt', does: 'a bolt at one foe' },
+  { name: 'Light', does: 'lights a dungeon for a while' },
+  { name: 'Down a level', does: 'sink to the level below' },
+  { name: 'Up a level', does: 'rise to the level above' },
+  { name: 'Fireball', does: 'a strong bolt at one foe' },
+  { name: 'Far teleport', does: 'a random spot on Sosaria' },
+  { name: 'Mind bolt', does: 'a bolt as strong as your mind' },
+  { name: 'Long light', does: 'lights a dungeon for a long time' },
+  { name: 'Cleric spell', does: 'cast any cleric spell' },
+  { name: 'Blast all foes', does: 'hurts every foe on the field' },
+  { name: 'Death bolt', does: 'slays one foe' },
+  { name: 'Stop time', does: 'foes stand still for twenty turns' },
+  { name: 'Mind storm', does: 'hurts every foe, twice your mind' },
+  { name: 'Weaken all', does: 'every foe drops to 5 hit points' },
+  { name: 'Slay all foes', does: 'may slay every foe on the field' },
+  { name: 'Repel undead', does: 'may destroy the undead, once a fight' },
+  { name: 'Safe chest', does: 'opens a chest without its trap' },
+  { name: 'Heal', does: 'heals one member a little' },
+  { name: 'Light', does: 'lights a dungeon for a while' },
+  { name: 'Up a level', does: 'rise to the level above' },
+  { name: 'Down a level', does: 'sink to the level below' },
+  { name: 'Near teleport', does: 'a random spot on this level' },
+  { name: 'Cure poison', does: 'cures one member' },
+  { name: 'Leave dungeon', does: 'straight out to the surface' },
+  { name: 'Long light', does: 'lights a dungeon for a long time' },
+  { name: 'Great heal', does: 'heals one member a lot' },
+  { name: 'Show the map', does: 'a map, as a gem would show' },
+  { name: 'Death bolt', does: 'slays one foe' },
+  { name: 'Resurrect', does: 'raises the dead; may leave ashes' },
+  { name: 'Slay all foes', does: 'may slay every foe on the field' },
+  { name: 'Recall ashes', does: 'restores ashes, for 5 wisdom' },
+  { name: 'Terraform', does: 'sets the square ahead to any tile' },
+  { name: 'Armageddon', does: 'every creature becomes a chest' },
+  { name: 'Conjure frigate', does: 'a frigate on the nearest water' },
+];
+
+/** Menu option for a spell: its letter and plain name, with the book name, cost and effect as the hint. */
+function spellOption(world: World, spell: number, letter: string): MenuOption {
+  const book = spell < 32 ? world.resources.strings.Spells[spell] : ['TERRAFORM', 'ARMAGEDDON', 'FLOTELLUM'][spell - 32];
   const cost = spell === 32 ? 10 : spell === 33 ? 85 : spell === 34 ? 90 : (spell & 0x0f) * 5;
-  return `${letter} ${name.trim() || '?'} (${cost})`;
+  const info = SPELL_INFO[spell] ?? { name: book.trim() || '?', does: '' };
+  return { key: letter, label: `${letter} ${info.name}`, hint: `${book.trim() || 'Nameless'} (${cost} mana): ${info.does}` };
 }
 
 async function chooseEither(world: World, io: GameIO): Promise<number> {
@@ -124,7 +170,7 @@ async function chooseEither(world: World, io: GameIO): Promise<number> {
 async function chooseCleric(world: World, io: GameIO): Promise<number> {
   io.printMessage(Msg.ClericSpell);
   const key = await io.chooseOption(
-    letterOptions('ABCDEFGHIJKLMNOP', (l) => spellLabel(world, l.charCodeAt(0) - 65 + 16, l)),
+    Array.from('ABCDEFGHIJKLMNOP', (l) => spellOption(world, l.charCodeAt(0) - 65 + 16, l)),
     'line',
   );
   if (!key || world.done) return CANCELLED;
@@ -136,7 +182,7 @@ async function chooseWizard(world: World, io: GameIO): Promise<number> {
   const letters = world.party.exodusDestroyed ? 'ABCDEFGHIJKLMNOPQRS' : 'ABCDEFGHIJKLMNOP';
   const number = (l: string) => ({ Q: 32, R: 33, S: 34 })[l] ?? l.charCodeAt(0) - 65;
   const key = await io.chooseOption(
-    letterOptions(letters, (l) => spellLabel(world, number(l), l)),
+    Array.from(letters, (l) => spellOption(world, number(l), l)),
     'line',
   );
   if (!key || world.done) return CANCELLED;

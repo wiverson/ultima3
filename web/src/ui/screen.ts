@@ -635,8 +635,11 @@ export class Screen implements GameIO {
   /** Open a menu window: remember what is under it, then draw it. */
   private openMenu(menu: MenuWindow): void {
     const { cell } = this;
-    const h = menu.visibleRows + 2;
-    this.underMenu = { image: this.ctx.getImageData(menu.x * cell, menu.y * cell, menu.width * cell, h * cell), x: menu.x * cell, y: menu.y * cell };
+    // The hint line runs across the whole screen under the window, so save that too.
+    const x = menu.hints ? 1 : menu.x;
+    const w = menu.hints ? COLUMNS - 2 : menu.width;
+    const h = menu.visibleRows + 2 + (menu.hints ? 1 : 0);
+    this.underMenu = { image: this.ctx.getImageData(x * cell, menu.y * cell, w * cell, Math.min(h, ROWS - menu.y) * cell), x: x * cell, y: menu.y * cell };
     this.menu = menu;
     this.showMenuNow();
   }

@@ -28,10 +28,10 @@ function living(world: World): PlayerRecord[] {
   return [0, 1, 2, 3].filter((m) => world.party.memberSlot(m) >= 0 && world.memberAlive(m)).map((m) => world.member(m));
 }
 
-/** Can anyone (or the given member) cast the cheapest spell, 5 mana? */
+/** Is anyone (or the given member) a caster? The first spell of each book costs nothing, so mana is no bar. */
 function canCast(world: World, member?: number): boolean {
   const members = member === undefined ? living(world) : [world.member(member)];
-  return members.some((p) => hasMagic(world, p) && p.mana >= 5);
+  return members.some((p) => hasMagic(world, p));
 }
 
 /**
