@@ -15,7 +15,7 @@ import { MapValue } from './tiles.ts';
 import type { CommandScope, MenuOption } from './io.ts';
 import { PartyShape, counterWithMerchant } from './commands.ts';
 import { monsterAt } from './combat.ts';
-import { quickSpell, spellName, spellCost } from './spells.ts';
+import { quickSpell, spellName, spellCost, healPlan } from './spells.ts';
 import type { PlayerRecord } from './player.ts';
 
 /** Fighters, thieves and barbarians have no magic. */
@@ -130,7 +130,11 @@ export function commandMenu(world: World, scope: CommandScope, template: MenuOpt
   const availability = commandAvailability(world, scope);
   const shown = template.filter((o) => availability.get(o.key) !== 'hidden').map((o) => ({ ...o, disabled: availability.get(o.key) === 'disabled' }));
   if (scope === 'combat' && world.combat) return combatMenu(world, shown);
-  return prioritise(shown, suggestedCommands(world, scope));
+  // Outside combat, a wounded member a caster can help puts "Cast (Heal)" first (see healPlan).
+  const plan = healPlan(world);
+  if (!plan) return prioritise(shown, suggestedCommands(world, scope));
+  const heal: MenuOption = { key: QUICK_CAST_KEY, label: `Cast (${spellName(plan.spell)})` };
+  return prioritise([heal, ...shown], [QUICK_CAST_KEY, ...suggestedCommands(world, scope)]);
 }
 
 /** The ranged weapons: sling and the bows. A dagger counts only with a spare in the bag, so the last one is never thrown. */

@@ -237,16 +237,13 @@ async function chooseWizard(world: World, io: GameIO, member: number): Promise<n
   return number(key);
 }
 
-/** Mirrors `ProcessMagic()`: pay for the spell, announce it, cast it. */
-export async function processMagic(world: World, io: GameIO, member: number, spell: number): Promise<void> {
+/** The first half of `ProcessMagic()`: pay for the spell and announce it. False (with "MP too low") when the caster cannot. */
+function payForSpell(world: World, io: GameIO, member: number, spell: number): boolean {
   const p = world.member(member);
-  let cost = (spell & 0x0f) * 5;
-  if (spell === 32) cost = 10;
-  if (spell === 33) cost = 85;
-  if (spell === 34) cost = 90;
+  const cost = spellCost(spell);
   if (cost > p.mana) {
     io.printMessage(Msg.MpTooLow);
-    return;
+    return false;
   }
   p.mana -= cost;
   io.updateStats();
@@ -254,7 +251,62 @@ export async function processMagic(world: World, io: GameIO, member: number, spe
   if (spell < 32) io.print(world.resources.strings.Spells[spell]);
   else io.print(['TERRAFORM', 'ARMAGEDDON', 'FLOTELLUM'][spell - 32]);
   io.print('\n\n');
+  return true;
+}
+
+/** Mirrors `ProcessMagic()`: pay for the spell, announce it, cast it. */
+export async function processMagic(world: World, io: GameIO, member: number, spell: number): Promise<void> {
+  if (!payForSpell(world, io, member, spell)) return;
   await spellEffect(world, io, member, spell);
+}
+
+export const HEAL = 18; // Sanctu: 10..30 hit points
+export const GREAT_HEAL = 26; // Sanctu Mani: 20..100 hit points
+/** A Heal's typical yield; a wound larger than this calls for Great heal. */
+const HEAL_TYPICAL = 20;
+/** Classes with cleric spells: Cleric, Paladin, Illusionist, Druid, Ranger. */
+const CLERIC_CASTERS = [1, 4, 7, 8, 10];
+
+export interface HealPlan {
+  caster: number;
+  spell: number;
+  target: number;
+}
+
+/**
+ * The healing the party most needs right now, for the menu's "Cast (Heal)"
+ * shortcut outside combat (this port): the living member missing the most
+ * hit points is the target; Heal serves a wound up to a Heal's typical
+ * yield and Great heal a larger one, the other standing in when only it
+ * can be afforded; the caster is the living member with cleric spells and
+ * the most mana who can pay. Null when nobody is hurt or nobody can help.
+ */
+export function healPlan(world: World): HealPlan | null {
+  const living = [0, 1, 2, 3].filter((m) => world.memberAlive(m));
+  const gap = (m: number) => world.member(m).maxHitPoints - world.member(m).hitPoints;
+  const wounded = living.filter((m) => gap(m) > 0).sort((a, b) => gap(b) - gap(a));
+  if (wounded.length === 0) return null;
+  const target = wounded[0];
+  const careers = String.fromCharCode(...world.resources.misc.careerTable);
+  const casters = living.filter((m) => CLERIC_CASTERS.includes(careers.indexOf(world.member(m).classLetter))).sort((a, b) => world.member(b).mana - world.member(a).mana);
+  const order = gap(target) > HEAL_TYPICAL ? [GREAT_HEAL, HEAL] : [HEAL, GREAT_HEAL];
+  for (const spell of order) {
+    const caster = casters.find((m) => world.member(m).mana >= spellCost(spell));
+    if (caster !== undefined) return { caster, spell, target };
+  }
+  return null;
+}
+
+/** Cast the planned heal straight away: no "who casts", no spell menu, no "heal whom". False when there is no plan. */
+export async function quickHeal(world: World, io: GameIO): Promise<boolean> {
+  const plan = healPlan(world);
+  if (!plan) return false;
+  io.print(`${spellName(plan.spell)} for ${world.member(plan.target).name}\n`);
+  if (!payForSpell(world, io, plan.caster, plan.spell)) return true;
+  const amount = plan.spell === GREAT_HEAL ? world.rng.range(0, 80) + 20 : world.rng.range(0, 20) + 10;
+  await healMember(world, io, plan.spell, amount, plan.target);
+  world.lastSpell[plan.caster] = plan.spell;
+  return true;
 }
 
 /** Mirrors `Failed()`. */
@@ -522,13 +574,17 @@ async function necorp(world: World, io: GameIO, spell: number): Promise<void> {
   }
 }
 
-/** Mirrors `Heal()`. */
+/** Mirrors `Heal()`: ask whom, then heal them. */
 async function heal(world: World, io: GameIO, spell: number, amount: number): Promise<void> {
   io.printMessage(Msg.HealWhom);
   const n = await io.chooseMember();
   if (n < 1 || n > 4) return failed(io);
-  world.member(n - 1).addHitPoints(amount);
-  await io.flashMember(n - 1);
+  await healMember(world, io, spell, amount, n - 1);
+}
+
+async function healMember(world: World, io: GameIO, spell: number, amount: number, target: number): Promise<void> {
+  world.member(target).addHitPoints(amount);
+  await io.flashMember(target);
   await flashriek(io, spell);
   io.updateStats();
 }

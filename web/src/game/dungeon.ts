@@ -18,7 +18,8 @@ import { nextMapMode } from './automap.ts';
 import { type GameIO, Key, Sound, Music, deathSound } from './io.ts';
 import { what2, noGo } from './commands.ts';
 import { combat } from './combat.ts';
-import { cast } from './spells.ts';
+import { cast, quickHeal } from './spells.ts';
+import { QUICK_CAST_KEY } from './context.ts';
 import { ageChars } from './turn.ts';
 import { checkAllDead } from './death.ts';
 import { speech, otherCommand, yell } from './interact.ts';
@@ -259,6 +260,9 @@ async function dispatch(world: World, io: GameIO, key: string): Promise<void> {
       return world.mapMode === 'full' ? stepCompass(world, io, 2) : retreat(world, io);
     case 'C':
       await cast(world, io);
+      return;
+    case QUICK_CAST_KEY:
+      if (!(await quickHeal(world, io))) what2(io);
       return;
     case 'D':
       return descend(world, io);

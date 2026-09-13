@@ -235,6 +235,13 @@ save contains except the pooled gold and food.
   (spell)", their last spell or Magic bolt (Heal for the cleric classes),
   ahead of the plain Cast: first of all without a ranged weapon, second
   with one. Melee needs no entry, since walking into a foe attacks it.
+  Outside combat, when a member is hurt and a cleric-spell caster can pay
+  for it, "Cast (Heal)" or "Cast (Great heal)" leads the menu and casts
+  at once, no prompts: the member missing the most hit points is the
+  target, a wound over twenty calls for Great heal and a smaller one for
+  Heal, the other standing in when it alone can be afforded, and the
+  caster is whoever with cleric spells has the most mana. Once nobody
+  can pay, the entry goes.
 - **Other and Yell are one command.** The Apple II's Yell was Other under
   another name, with one difference: EVOCARE parted the great serpent only
   when yelled, and said "No effect" when typed at Other. EVOCARE now works

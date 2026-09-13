@@ -18,7 +18,8 @@ import * as cmd from './commands.ts';
 import * as act from './actions.ts';
 import * as interact from './interact.ts';
 import { attackMonster, showBall } from './combat.ts';
-import { cast } from './spells.ts';
+import { cast, quickHeal } from './spells.ts';
+import { QUICK_CAST_KEY } from './context.ts';
 import { runDungeon } from './dungeon.ts';
 import { checkAllDead } from './death.ts';
 import { MapId } from '../data/resources.ts';
@@ -186,6 +187,9 @@ export class Game {
         return cmd.board(world, io);
       case 'C':
         await cast(world, io);
+        return;
+      case QUICK_CAST_KEY:
+        if (!(await quickHeal(world, io))) cmd.what2(io);
         return;
       case 'D':
         io.printMessage(Msg.Descend);
