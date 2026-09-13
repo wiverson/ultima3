@@ -20,6 +20,9 @@ describe('cheats', () => {
     const gold = world.party.gold;
     cheat('G').apply(world, io);
     expect(world.party.gold).toBe(gold + 100);
+    const food = world.party.food;
+    cheat('F').apply(world, io);
+    expect(world.party.food).toBe(food + 100);
     cheat('T').apply(world, io);
     expect(world.member(0).torches).toBe(5);
     cheat('M').apply(world, io);

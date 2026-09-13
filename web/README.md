@@ -119,8 +119,9 @@ included, is drawn on the canvas; the page has nothing else on it.
 On the Help screen, Y (V on the keyboard in controller mode) opens a
 cheat menu: full restore (everyone healed and alive), go home (back to
 Lord British's gate, leaving any town, castle or dungeon), exit dungeon,
-100 gold, and ten gems, five keys or five torches for the leader. None of it existed in the
-original; it is there for testing and for anyone who wants it.
+100 gold or 100 food for the party, and ten gems, five keys or five
+torches for the leader. None of it existed in the original; it is there
+for testing and for anyone who wants it.
 
 ## Differences from the original
 

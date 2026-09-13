@@ -89,6 +89,15 @@ export const CHEATS: Cheat[] = [
     },
   },
   {
+    key: 'F',
+    label: 'Get 100 food',
+    available: () => true,
+    apply(world) {
+      world.addFood(100);
+      return `Food: ${world.party.food}.`;
+    },
+  },
+  {
     key: 'M',
     label: 'Get 10 gems',
     available: () => true,
