@@ -96,7 +96,7 @@ export async function shop(world: World, io: GameIO, shopNumber: number, member:
     case 4:
       return armourShop(world, io, p);
     case 5:
-      return guild(world, io, p);
+      return guild(world, io);
     case 6:
       return oracle(world, io);
     default:
@@ -343,8 +343,8 @@ async function armourShop(world: World, io: GameIO, p: PlayerRecord): Promise<vo
   return equipmentShop(world, io, p, false);
 }
 
-/** The guild: keys, torches (five at a time), powders and gems. */
-async function guild(world: World, io: GameIO, p: PlayerRecord): Promise<void> {
+/** The guild: keys, torches (five at a time), powders and gems, into the party's supply (this port). */
+async function guild(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Guild);
   for (;;) {
     io.printMessage(Msg.GuildPrices);
@@ -359,15 +359,15 @@ async function guild(world: World, io: GameIO, p: PlayerRecord): Promise<void> {
       ],
       'none',
     );
-    const item = { T: [30, 15, 5], K: [50, 38, 1], P: [90, 39, 1], G: [75, 37, 1] }[key];
+    const item = { T: [30, 'torches', 5], K: [50, 'keys', 1], P: [90, 'powders', 1], G: [75, 'gems', 1] }[key] as [number, 'torches' | 'keys' | 'powders' | 'gems', number] | undefined;
     if (!item) {
       io.print('N\n\n');
       io.printMessage(Msg.GuildThanks);
       return;
     }
-    const [cost, offset, quantity] = item;
+    const [cost, what, quantity] = item;
     io.print(`${key}\n`);
-    if (p.bytes[offset] + quantity > 99) {
+    if (world.party[what] + quantity > 99) {
       io.printMessage(Msg.NotEnoughRoom);
       error(io);
       continue;
@@ -377,7 +377,7 @@ async function guild(world: World, io: GameIO, p: PlayerRecord): Promise<void> {
       return;
     }
     world.party.gold -= cost;
-    p.bytes[offset] = Math.min(99, p.bytes[offset] + quantity);
+    world.party[what] += quantity;
     io.printMessage(Msg.GuildAnythingElse);
     if (!(await yesNo(io))) {
       io.print('N\n\n');
@@ -385,7 +385,6 @@ async function guild(world: World, io: GameIO, p: PlayerRecord): Promise<void> {
       return;
     }
   }
-  void world;
 }
 
 /** Radrion the prophet: offerings of hundreds of gold buy verses of his rhyme. */

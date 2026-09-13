@@ -34,7 +34,6 @@ const Msg = {
   PlayerTurnPrefix: 134, // "----PLAYER-"
   PlayerTurnSuffix: 135, // "----\n "
   CastSpell: 136,
-  NegateTime: 137,
   ReadyWeapon: 138,
   Ztats: 139,
   NotUsable: 140,
@@ -510,8 +509,7 @@ async function memberTurn(world: World, io: GameIO, member: number): Promise<voi
         io.print(' ');
         continue; // cancelled: ask again
       case 'N':
-        io.printMessage(Msg.NegateTime);
-        await negateTime(world, io, member);
+        await negateTime(world, io);
         return;
       case 'R':
         io.printMessage(Msg.ReadyWeapon);

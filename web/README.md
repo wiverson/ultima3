@@ -155,8 +155,7 @@ save contains except the pooled gold and food.
   come and go from the bag; a pilfering thief empties one kind from it.
   Forming a party pools the members' bags (each keeps what is in hand);
   dispersing deals the bag out, to members who can use each item first.
-  The Hand command, which moved gear between members, is gone: gems, keys,
-  torches and powders are found by their "whose" prompts.
+  The Hand command, which moved gear between members, is gone.
 - **Character boxes** are two rows: the name, coloured by state (green
   poisoned, light grey dead, dark grey ashes, blue when Lord British would
   raise the member, white otherwise), then hit points over max, yellow
@@ -238,9 +237,11 @@ save contains except the pooled gold and food.
   EGA, MCGA, VGA and Ultima V sets. Standard, the Mac tiles, takes the
   VGA stone. The pieces are painted into the Mac sheet's layout and cut
   by its mask, so the drawing code is unchanged (`docs/dungeon-sheet.md`).
-- **Peer at gem, Ignite torch and Unlock** ask "whose" only when it
-  matters: the controller menu lists just the members holding a gem, torch
-  or key, and with a single holder the answer is filled in.
+- **Gems, keys, powders and torches are the party's** too (bytes 56-59
+  of the party record), so Peer, Unlock, Negate time and Ignite never ask
+  whose, the guild sells to the party without asking who is buying, and
+  Ztats shows the same four counts on every page. Forming a party pools
+  them, dispersing deals them out.
 - **Daggers** are thrown only when the member has a spare; with a single
   dagger an attack at a distant foe just misses. The Apple II let a new
   character throw away their only weapon.

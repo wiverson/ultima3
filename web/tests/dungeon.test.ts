@@ -120,11 +120,10 @@ describe('the dungeon loop', () => {
     world.dungeon.tiles.fill(DungeonCell.Wall, 0, 256);
     world.putXYDng(DungeonCell.LadderUp, 1, 1);
     world.putXYDng(DungeonCell.Fountain, 2, 1); // x=2: 2 & 3 = damage fountain
-    world.member(0).torches = 1;
+    world.party.torches = 1;
     const hp = world.member(0).hitPoints;
-    io.keys = ['I', '1', Key.Up, '1', '0', 'K'];
-    // The fountain asks who drinks until a non-member key; then we retreat... use Down instead of K after.
-    io.keys = ['I', '1', Key.Up, '1', '0', Key.Down, 'K'];
+    // Ignite (no "whose" prompt: torches are the party's), advance to the fountain, drink, retreat, climb.
+    io.keys = ['I', Key.Up, '1', '0', Key.Down, 'K'];
     await runDungeon(world, io);
     expect(world.dungeon.torch).toBeGreaterThan(0);
     expect(io.images).toContain('Fountain');
@@ -140,9 +139,9 @@ describe('fountain prompts', () => {
     world.dungeon.tiles.fill(DungeonCell.Wall, 0, 256);
     world.putXYDng(DungeonCell.LadderUp, 1, 1);
     world.putXYDng(DungeonCell.Fountain, 2, 1);
-    world.member(0).torches = 1;
+    world.party.torches = 1;
     // Ignite, step onto the fountain (asked: cancel with 0), turn twice and pass (not asked), retreat, climb.
-    io.keys = ['I', '1', Key.Up, '0', Key.Left, Key.Right, ' ', Key.Down, 'K'];
+    io.keys = ['I', Key.Up, '0', Key.Left, Key.Right, ' ', Key.Down, 'K'];
     await runDungeon(world, io);
     const asks = io.output.split('who\nwill drink?').length - 1;
     expect(asks).toBe(1);
@@ -150,14 +149,14 @@ describe('fountain prompts', () => {
   });
 });
 
-describe('whose torch', () => {
-  it('fills in the only torch holder without asking', async () => {
+describe('party torches', () => {
+  it('ignites one of the party\'s torches without asking whose', async () => {
     const { world, io } = dungeonWorld();
-    world.member(2).torches = 3;
+    world.party.torches = 3;
     io.keys = [];
     await igniteTorch(world, io);
-    expect(io.output).toContain('Whose torch-3\n');
-    expect(world.member(2).torches).toBe(2);
+    expect(io.output).not.toContain('Whose torch');
+    expect(world.party.torches).toBe(2);
     expect(world.dungeon.torch).toBe(255);
   });
 });

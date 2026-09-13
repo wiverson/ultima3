@@ -471,6 +471,37 @@ export class World {
     this.party.clearGear();
   }
 
+  /** Gems, keys, powders and torches belong to the party (this port): gather the members' into the party record. */
+  poolSupplies(): void {
+    for (let m = 0; m < 4; m++) {
+      if (this.party.memberSlot(m) < 0) continue;
+      const p = this.member(m);
+      this.party.gems += p.gems;
+      this.party.keys += p.keys;
+      this.party.powders += p.powders;
+      this.party.torches += p.torches;
+      p.bytes[37] = p.bytes[38] = p.bytes[39] = 0;
+      p.torches = 0;
+    }
+  }
+
+  /** The reverse of `poolSupplies()`, for dispersing: dealt out one at a time round the members. */
+  splitSupplies(): void {
+    const members = [0, 1, 2, 3].filter((m) => this.party.memberSlot(m) >= 0);
+    if (members.length === 0) return;
+    const deal = (total: number, offset: number) => {
+      for (let i = 0; i < total; i++) {
+        const p = this.member(members[i % members.length]);
+        p.bytes[offset] = Math.min(99, p.bytes[offset] + 1);
+      }
+    };
+    deal(this.party.gems, 37);
+    deal(this.party.keys, 38);
+    deal(this.party.powders, 39);
+    deal(this.party.torches, 15);
+    this.party.clearSupplies();
+  }
+
   /** Whether a member's class may ready the weapon / wear the armour. Exotics suit everyone. (`weaponUseTable`) */
   canUse(p: PlayerRecord, isWeapon: boolean, index: number): boolean {
     if (index === 0) return true;
@@ -545,6 +576,7 @@ export class World {
     for (let m = 0; m < this.party.size; m++) this.member(m).inParty = true;
     this.poolPurses();
     this.poolGear();
+    this.poolSupplies();
     this.party.location = Location.Sosaria;
     this.party.shape = 0x7e;
     this.x = this.party.surfaceX;

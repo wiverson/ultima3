@@ -47,14 +47,12 @@ export function commandAvailability(world: World, scope: CommandScope): Map<stri
   const set = (key: string, ok: boolean, disabledNotHidden = false) => {
     if (!ok) out.set(key, disabledNotHidden ? 'disabled' : 'hidden');
   };
-  const anyone = living(world);
-  const has = (f: (p: PlayerRecord) => number) => anyone.some((p) => f(p) > 0);
 
   if (scope === 'combat') {
     const c = world.combat;
     const me = c ? c.activeMember : 0;
     set('C', canCast(world, me), true);
-    set('N', world.member(me).powders > 0, true);
+    set('N', world.party.powders > 0, true);
     return out;
   }
 
@@ -64,9 +62,9 @@ export function commandAvailability(world: World, scope: CommandScope): Map<stri
     set('K', open && (cell & DungeonCell.LadderUp) !== 0);
     set('D', open && (cell & DungeonCell.LadderDown) !== 0);
     set('G', open && (cell & DungeonCell.Chest) !== 0);
-    set('I', has((p) => p.torches), true);
-    set('P', has((p) => p.gems), true);
-    set('N', has((p) => p.powders), true);
+    set('I', world.party.torches > 0, true);
+    set('P', world.party.gems > 0, true);
+    set('N', world.party.powders > 0, true);
     set('C', canCast(world), true);
     set('M', world.party.size > 1);
     return out;
@@ -112,13 +110,13 @@ export function commandAvailability(world: World, scope: CommandScope): Map<stri
   set('F', shape === PartyShape.Frigate);
   set('G', here >= MapValue.Chest && here <= MapValue.Chest + 3);
   set('U', door);
-  if (door) set('U', has((p) => p.keys), true);
+  if (door) set('U', world.party.keys > 0, true);
   set('S', counter);
   set('Q', loc === Location.Sosaria);
   set('M', world.party.size > 1);
   set('C', canCast(world), true);
-  set('N', has((p) => p.powders), true);
-  set('P', has((p) => p.gems), true);
+  set('N', world.party.powders > 0, true);
+  set('P', world.party.gems > 0, true);
   return out;
 }
 
@@ -197,14 +195,7 @@ function dungeonSuggestions(world: World): string[] {
     if (cell & DungeonCell.LadderDown) out.push('D');
     if (cell & DungeonCell.Chest) out.push('G');
   }
-  if (world.dungeon.torch === 0) {
-    for (let m = 0; m < world.party.size; m++) {
-      if (world.memberAlive(m) && world.member(m).torches > 0) {
-        out.push('I');
-        break;
-      }
-    }
-  }
+  if (world.dungeon.torch === 0 && world.party.torches > 0) out.push('I');
   return out;
 }
 

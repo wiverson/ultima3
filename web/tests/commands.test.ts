@@ -331,30 +331,18 @@ describe('walking into a monster on the surface', () => {
 });
 
 describe('peer at gem', () => {
-  const gems = (world: World, m: number, n: number) => (world.member(m).bytes[37] = n);
-
-  it('skips the "whose" prompt when exactly one member has a gem', async () => {
+  it('spends one of the party\'s gems without asking whose', async () => {
     const { world, io } = flatWorld();
-    gems(world, 2, 1);
+    world.party.gems = 2;
+    io.keys = [];
     await peerGem(world, io);
-    expect(io.output).toContain('Whose gem-3\n');
-    expect(world.member(2).gems).toBe(0);
-    expect(io.keys).toEqual([]);
+    expect(io.output).not.toContain('Whose gem');
+    expect(world.party.gems).toBe(1);
   });
 
-  it('asks when more than one member has a gem', async () => {
+  it('says none left when the party has no gem', async () => {
     const { world, io } = flatWorld();
-    gems(world, 0, 1);
-    gems(world, 1, 2);
-    io.keys = ['2'];
-    await peerGem(world, io);
-    expect(world.member(1).gems).toBe(1);
-    expect(world.member(0).gems).toBe(1);
-  });
-
-  it('asks as before and says none left when nobody has one', async () => {
-    const { world, io } = flatWorld();
-    io.keys = ['1'];
+    world.party.gems = 0;
     await peerGem(world, io);
     expect(io.output).toContain('None left');
   });

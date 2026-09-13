@@ -37,7 +37,6 @@ import {
 
 const Msg = {
   Pass: 23,
-  PeerAtGem: 75,
   NoneLeft: 67,
   Dark: 150,
   TimeLord: 151,
@@ -137,12 +136,9 @@ export function klimb(world: World, io: GameIO): void {
 
 /** Mirrors `dPeer()`: a gem shows the level map. */
 async function peer(world: World, io: GameIO): Promise<void> {
-  io.printMessage(Msg.PeerAtGem);
-  const n = await io.chooseMember();
-  if (n < 1 || n > 4) return;
-  const p = world.member(n - 1);
-  if (p.gems < 1) return io.printMessage(Msg.NoneLeft);
-  p.bytes[37]--;
+  io.print('Peer at gem!\n'); // the party's gems (this port): no "whose gem" prompt
+  if (world.party.gems < 1) return io.printMessage(Msg.NoneLeft);
+  world.party.gems--;
   await io.showMiniDungeon();
   io.clearTiles();
 }

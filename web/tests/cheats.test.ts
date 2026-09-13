@@ -24,11 +24,11 @@ describe('cheats', () => {
     cheat('F').apply(world, io);
     expect(world.party.food).toBe(food + 100);
     cheat('T').apply(world, io);
-    expect(world.member(0).torches).toBe(5);
+    expect(world.party.torches).toBe(5);
     cheat('M').apply(world, io);
-    expect(world.member(0).gems).toBe(10);
+    expect(world.party.gems).toBe(10);
     cheat('K').apply(world, io);
-    expect(world.member(0).keys).toBe(5);
+    expect(world.party.keys).toBe(5);
   });
 
   it('goes home from a town, and asks a dungeon to end', () => {

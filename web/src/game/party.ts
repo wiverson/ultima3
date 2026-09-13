@@ -24,12 +24,13 @@
  *   24-26   (port)     the party's food in hundredths, 0..9,999,999, low byte first
  *   32-46   (port)     weapons in the party's bag, by weapon index 1..15 (Dagger..Exotic)
  *   48-54   (port)     armour in the party's bag, by armour index 1..7 (Cloth..Exotic)
+ *   56-59   (port)     gems, keys, powders, torches, 0..99 each
  *
- * The last four are this port's additions: gold, food, weapons and armour
- * belong to the party as a whole rather than to each member (see
- * World.poolPurses and World.poolGear). The bag holds what nobody has
- * readied or worn; a member's record keeps only the item in hand (byte 48)
- * and the armour worn (byte 40).
+ * Everything from byte 20 on is this port's addition: gold, food, weapons,
+ * armour, gems, keys, powders and torches belong to the party as a whole
+ * rather than to each member (see World.poolPurses, poolGear and
+ * poolSupplies). The bag holds what nobody has readied or worn; a member's
+ * record keeps only the item in hand (byte 48) and the armour worn (byte 40).
  */
 
 export const PARTY_RECORD_SIZE = 64;
@@ -196,6 +197,35 @@ export class Party {
   clearGear(): void {
     this.bytes.fill(0, 32, 47);
     this.bytes.fill(0, 48, 55);
+  }
+
+  // Supplies: gems, keys, powders and torches, the party's rather than a member's.
+  get gems(): number {
+    return this.bytes[56];
+  }
+  set gems(v: number) {
+    this.bytes[56] = Math.max(0, Math.min(99, v));
+  }
+  get keys(): number {
+    return this.bytes[57];
+  }
+  set keys(v: number) {
+    this.bytes[57] = Math.max(0, Math.min(99, v));
+  }
+  get powders(): number {
+    return this.bytes[58];
+  }
+  set powders(v: number) {
+    this.bytes[58] = Math.max(0, Math.min(99, v));
+  }
+  get torches(): number {
+    return this.bytes[59];
+  }
+  set torches(v: number) {
+    this.bytes[59] = Math.max(0, Math.min(99, v));
+  }
+  clearSupplies(): void {
+    this.bytes.fill(0, 56, 60);
   }
 
   /** `Party[16]`: set once Exodus is destroyed. */

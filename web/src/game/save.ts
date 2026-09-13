@@ -16,9 +16,10 @@ import { MapId } from '../data/resources.ts';
 
 /**
  * Version 2 pools gold and food in the party record, version 3 weapons and
- * armour too; older saves are migrated on load.
+ * armour, version 4 gems, keys, powders and torches; older saves are
+ * migrated on load.
  */
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export const SAVE_KEY = 'ultima3.save';
 
 export interface SaveData {
@@ -94,6 +95,7 @@ export function restore(world: World, data: SaveData): boolean {
     world.windDirection = data.windDirection;
     if (data.version < 2) world.poolPurses(); // members' purses become the party's
     if (data.version < 3) world.poolGear(); // members' bags become the party's
+    if (data.version < 4) world.poolSupplies(); // and their gems, keys, powders and torches
     return true;
   } catch {
     return false;

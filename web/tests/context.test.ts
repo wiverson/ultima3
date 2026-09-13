@@ -69,7 +69,7 @@ describe('contextual commands', () => {
     world.putXYDng(DungeonCell.LadderDown | DungeonCell.Chest, 3, 3);
     expect(suggestedCommands(world, 'dungeon')).toEqual(['D', 'G']);
     world.dungeon.torch = 0;
-    world.member(0).torches = 2;
+    world.party.torches = 2;
     expect(suggestedCommands(world, 'dungeon')).toEqual(['D', 'G', 'I']);
   });
 
@@ -118,7 +118,7 @@ describe('command menu availability', () => {
     world.member(1).status = 'D';
     expect(keys('field').find((o) => o.key === 'C')?.disabled).toBe(true); // only the thief is left
     // A gem makes Peer usable; a horse underfoot makes Board appear.
-    world.member(0).bytes[37] = 1;
+    world.party.gems = 1;
     world.putXYVal(MapValue.Horse, world.x, world.y);
     const again = keys('field');
     expect(again.find((o) => o.key === 'P')?.disabled).toBe(false);
@@ -136,7 +136,7 @@ describe('command menu availability', () => {
     expect(menu().find((o) => o.key === 'K')).toBeUndefined();
     expect(menu().find((o) => o.key === 'I')?.disabled).toBe(true);
     world.putXYDng(DungeonCell.LadderUp, 3, 3);
-    world.member(0).torches = 1;
+    world.party.torches = 1;
     expect(menu().find((o) => o.key === 'K')).toBeDefined();
     expect(menu().find((o) => o.key === 'I')?.disabled).toBe(false);
   });

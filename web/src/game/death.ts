@@ -72,6 +72,7 @@ export async function checkAllDead(world: World, io: GameIO): Promise<void> {
     p.hitPoints = 100;
   }
   world.party.clearGear(); // the bag is lost too
+  world.party.clearSupplies();
   world.combat = null;
   world.party.location = Location.Sosaria;
   world.party.shape = 0x7e;

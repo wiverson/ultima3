@@ -123,11 +123,11 @@ describe('doors, chests and stealing', () => {
   it('unlocks a door the party walked into', async () => {
     const { world, io } = townWorld();
     world.putXYVal(MapValue.LetterI, 21, 20);
-    world.member(0).bytes[38] = 1;
-    io.keys = ['1'];
+    world.party.keys = 1;
+    io.keys = [];
     await unlockToward(world, io, 1, 0);
     expect(world.getXYVal(21, 20)).toBe(MapValue.Floor);
-    expect(world.member(0).keys).toBe(0);
+    expect(world.party.keys).toBe(0);
   });
 
   it('shops at a counter the party walked into', async () => {
@@ -149,11 +149,11 @@ describe('doors, chests and stealing', () => {
   it('unlocks a door with a key', async () => {
     const { world, io } = townWorld();
     world.putXYVal(MapValue.LetterI, 21, 20);
-    world.member(0).bytes[38] = 1;
-    io.keys = [Key.Right, '1'];
+    world.party.keys = 1;
+    io.keys = [Key.Right];
     await unlock(world, io);
     expect(world.getXYVal(21, 20)).toBe(MapValue.Floor);
-    expect(world.member(0).keys).toBe(0);
+    expect(world.party.keys).toBe(0);
     expect(io.sounds).toContain('Creak');
   });
 
@@ -354,16 +354,16 @@ describe('party screens', () => {
   });
 });
 
-describe('whose key', () => {
-  it('fills in the only key holder without asking', async () => {
+describe('party keys', () => {
+  it('says none left when the party has no key, without asking whose', async () => {
     const { world, io } = townWorld();
     world.putXYVal(MapValue.LetterI, 21, 20);
-    world.member(1).bytes[38] = 2;
-    io.keys = []; // nothing typed: the holder is known
+    world.party.keys = 0;
+    io.keys = [];
     await unlockToward(world, io, 1, 0);
-    expect(io.output).toContain('Whose key-2\n');
-    expect(world.member(1).keys).toBe(1);
-    expect(world.getXYVal(21, 20)).toBe(MapValue.Floor);
+    expect(io.output).not.toContain('Whose key');
+    expect(io.output).toContain('None left');
+    expect(world.getXYVal(21, 20)).toBe(MapValue.LetterI);
   });
 });
 

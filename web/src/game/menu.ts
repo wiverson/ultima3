@@ -386,6 +386,7 @@ export async function formParty(world: World, io: GameIO): Promise<void> {
   });
   world.poolPurses();
   world.poolGear();
+  world.poolSupplies();
   world.party.location = Location.Sosaria;
   world.party.shape = 0x7e;
   world.party.bytes[5] = 0xff;
@@ -403,6 +404,7 @@ export async function formParty(world: World, io: GameIO): Promise<void> {
 function disperse(world: World): void {
   world.splitPool();
   world.splitGear();
+  world.splitSupplies();
   for (let i = 0; i < ROSTER_SIZE; i++) world.roster.get(i).inParty = false;
   world.party.bytes.fill(0);
 }

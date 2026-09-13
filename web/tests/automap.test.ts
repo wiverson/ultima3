@@ -75,8 +75,8 @@ describe('the auto-map in play', () => {
 
   it('records the 3x3 around each step taken with a torch lit', async () => {
     const { world, io } = dungeonWorld();
-    world.member(0).torches = 1;
-    io.keys = ['I', '1', Key.Up, Key.Up, Key.Down, Key.Down, 'K'];
+    world.party.torches = 1;
+    io.keys = ['I', Key.Up, Key.Up, Key.Down, Key.Down, 'K'];
     await runDungeon(world, io);
     const id = world.current.id;
     // Stood at x=1, 2 and 3 on row 1: columns 0..4 of rows 0..2.

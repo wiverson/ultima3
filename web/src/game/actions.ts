@@ -40,15 +40,12 @@ const Msg = {
   WhichArmour: 62,
   InUse: 63,
   IgniteTorch: 64,
-  WhoseTorch: 65,
   JoinGoldTo: 66,
   NoneLeft: 67,
   ModifyOrder: 70,
   Aborted: 71,
   Plr: 72,
   Exchanged: 73,
-  NegateTime: 74,
-  PeerAtGem: 75,
   ReadyFor: 79,
   Weapon: 80,
   NotOwned: 81,
@@ -263,12 +260,9 @@ export async function getChest(world: World, io: GameIO, member: number, how: 'c
 export async function igniteTorch(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.IgniteTorch);
   if (world.party.location !== Location.Dungeon) return notHere(io);
-  io.printMessage(Msg.WhoseTorch);
-  const n = await chooseHolder(world, io, (p) => p.torches);
-  if (n < 1 || n > 4) return;
-  const p = world.member(n - 1);
-  if (p.torches < 1) return io.printMessage(Msg.NoneLeft);
-  p.torches--;
+  // Torches are the party's (this port): no "whose torch" prompt.
+  if (world.party.torches < 1) return io.printMessage(Msg.NoneLeft);
+  world.party.torches--;
   io.sound(Sound.TorchIgnite);
   world.dungeon.torch = 255;
 }
@@ -288,48 +282,21 @@ export async function modifyOrder(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Exchanged);
 }
 
-/** Mirrors `NegateTime()`: a powder stops time for ten turns. In combat the member is preset. */
-export async function negateTime(world: World, io: GameIO, member?: number): Promise<void> {
-  if (member === undefined) {
-    io.printMessage(Msg.NegateTime);
-    const n = await chooseHolder(world, io, (p) => p.powders);
-    if (n < 1 || n > 4) return io.print('\n');
-    member = n - 1;
-  }
-  const p = world.member(member);
-  if (p.powders < 1) return io.printMessage(Msg.NoneLeft);
-  p.bytes[39]--;
+/** Mirrors `NegateTime()`: a powder from the party's supply stops time for ten turns. */
+export async function negateTime(world: World, io: GameIO): Promise<void> {
+  io.print('Negate time!\n'); // the original's message went on to ask whose powder
+  if (world.party.powders < 1) return io.printMessage(Msg.NoneLeft);
+  world.party.powders--;
   world.timeNegate = 10;
 }
 
-/** Mirrors `PeerGem()`. */
+/** Mirrors `PeerGem()`, with a gem from the party's supply. */
 export async function peerGem(world: World, io: GameIO): Promise<void> {
-  io.printMessage(Msg.PeerAtGem);
-  const n = await chooseHolder(world, io, (p) => p.gems);
-  if (n < 1 || n > 4) return io.print('\n');
-  const p = world.member(n - 1);
-  io.print('\n');
-  if (p.gems < 1) return io.printMessage(Msg.NoneLeft);
-  p.bytes[37]--;
+  io.print('Peer at gem!\n'); // the original's message went on to ask whose gem
+  if (world.party.gems < 1) return io.printMessage(Msg.NoneLeft);
+  world.party.gems--;
   if (world.party.location === Location.Dungeon) await io.showMiniDungeon();
   else await io.showMiniMap();
-}
-
-/**
- * "Whose gem-", "Whose torch-", "Whose key-", "Whose powder-", answered by the inventory: the controller menu
- * lists only the members who have one, and when exactly one member has any
- * the answer is echoed without asking. With nobody holding one (a keyboard
- * can still get here) the ordinary prompt runs and the command says "None
- * left!" as before. Returns 1..4 like `chooseMember`, 0 when cancelled.
- */
-export async function chooseHolder(world: World, io: GameIO, count: (p: PlayerRecord) => number): Promise<number> {
-  const holders: number[] = [];
-  for (let m = 0; m < 4; m++) if (world.party.memberSlot(m) >= 0 && count(world.member(m)) > 0) holders.push(m);
-  if (holders.length === 1) {
-    io.print(`${holders[0] + 1}\n`);
-    return holders[0] + 1;
-  }
-  return io.chooseMember(holders.length ? holders : undefined);
 }
 
 // ---------------------------------------------------------------------------
@@ -455,10 +422,11 @@ export async function stats(world: World, io: GameIO, member?: number): Promise<
     `\nH.P...${pad(p.hitPoints, 4)}`,
     `\nH.M...${pad(p.maxHitPoints, 4)}`,
     `\nEXP...${pad(p.bytes[30] * 100 + p.bytes[31], 4)}`,
-    `\nGEMS..${pad(p.gems, 2)}`,
-    `\nKEYS..${pad(p.keys, 2)}`,
-    `\nPOWD..${pad(p.powders, 2)}`,
-    `\nTRCH..${pad(p.torches, 2)}`,
+    // The party's supplies (this port pools them): the same on every page.
+    `\nGEMS..${pad(world.party.gems, 2)}`,
+    `\nKEYS..${pad(world.party.keys, 2)}`,
+    `\nPOWD..${pad(world.party.powders, 2)}`,
+    `\nTRCH..${pad(world.party.torches, 2)}`,
   ];
   for (const line of lines) {
     io.print(line);

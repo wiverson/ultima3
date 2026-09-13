@@ -68,4 +68,19 @@ describe('save migration', () => {
     expect(b.member(0).bytes[48 + 6]).toBe(0);
     expect(b.party.armour(3)).toBe(1);
   });
+
+  it('pools a version 3 save\'s gems, keys, powders and torches', () => {
+    const a = newWorld();
+    a.member(0).bytes[37] = 2; // gems
+    a.member(1).bytes[38] = 1; // a key
+    a.member(2).torches = 4;
+    const data = JSON.parse(JSON.stringify(serialize(a)));
+    data.version = 3;
+    const b = new World(a.resources);
+    expect(restore(b, data)).toBe(true);
+    expect(b.party.gems).toBe(2);
+    expect(b.party.keys).toBe(1);
+    expect(b.party.torches).toBe(4);
+    expect(b.member(2).torches).toBe(0);
+  });
 });

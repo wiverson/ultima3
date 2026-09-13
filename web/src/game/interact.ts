@@ -14,7 +14,7 @@ import { Location } from './party.ts';
 import { MapValue, Shape } from './tiles.ts';
 import { type GameIO, Sound, Music, deathSound, letterOptions } from './io.ts';
 import { getDirection, notHere, what2, counterWithMerchant, Msg as CmdMsg, PartyShape } from './commands.ts';
-import { getChest, incapacitated, stealDisarmFails, chooseHolder } from './actions.ts';
+import { getChest, incapacitated, stealDisarmFails } from './actions.ts';
 import { shop } from './shops.ts';
 import { attackMonster, monsterName } from './combat.ts';
 import { showBall } from './combat.ts';
@@ -35,7 +35,6 @@ const Msg = {
   SeekMarkOfKings: 93,
   ThouArtGreater: 94,
   Unlock: 95,
-  WhoseKey: 96,
   NoSuchPlayer: 41,
   NoneLeft: 67,
   Destroyed: 117,
@@ -127,15 +126,16 @@ export async function transactToward(world: World, io: GameIO, dx: number, dy: n
     if (!counterWithMerchant(world, xs, ys, dx, dy)) return notHere(io);
     const shopNumber = world.y & 0x07;
     let member = firstLiving;
-    if (shopNumber !== 1) {
-      // Not the grocer: the goods or the cure go to a named member.
+    const partyGoods = shopNumber === 1 || shopNumber === 5; // grocer and guild sell to the party
+    if (!partyGoods) {
+      // The goods or the cure go to a named member.
       member = await whoTransacts(world, io);
       if (member < 0) return;
     }
     const previousMusic = world.music;
     world.music = Music.Shop;
     io.music(Music.Shop);
-    if (shopNumber !== 1) io.highlightMember(member, true);
+    if (!partyGoods) io.highlightMember(member, true);
     await shop(world, io, shopNumber, member);
     io.highlightMember(member, false);
     world.music = previousMusic;
@@ -293,17 +293,9 @@ export async function unlockToward(world: World, io: GameIO, dx: number, dy: num
   const dir = { xs: world.x + dx, ys: world.y + dy, dx, dy };
   if (dir.dx === 0 && dir.dy !== 0) return notHere(io);
   if (world.getXYVal(dir.xs, dir.ys) !== MapValue.LetterI) return notHere(io);
-  io.printMessage(Msg.WhoseKey);
-  const n = await chooseHolder(world, io, (p) => p.keys);
-  if (n < 1) return;
-  if (n > 4) {
-    io.printMessage(Msg.NoSuchPlayer);
-    io.sound(Sound.Error1);
-    return;
-  }
-  const p = world.member(n - 1);
-  if (p.keys < 1) return io.printMessage(Msg.NoneLeft);
-  p.bytes[38]--;
+  // Keys are the party's (this port): no "whose key" prompt.
+  if (world.party.keys < 1) return io.printMessage(Msg.NoneLeft);
+  world.party.keys--;
   io.sound(Sound.Creak);
   // The doorway becomes whatever is to its left (or grass if that is not terrain).
   const mon = world.monsters.at(dir.xs - 1, dir.ys);

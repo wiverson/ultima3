@@ -102,10 +102,8 @@ export const CHEATS: Cheat[] = [
     label: 'Get 10 gems',
     available: () => true,
     apply(world) {
-      const m = [0, 1, 2, 3].find((i) => world.party.memberSlot(i) >= 0 && world.memberAlive(i)) ?? 0;
-      const p = world.member(m);
-      p.bytes[37] = Math.min(99, p.bytes[37] + 10);
-      return `${p.name} has ${p.bytes[37]} gems.`;
+      world.party.gems += 10;
+      return `Gems: ${world.party.gems}.`;
     },
   },
   {
@@ -113,10 +111,8 @@ export const CHEATS: Cheat[] = [
     label: 'Get 5 keys',
     available: () => true,
     apply(world) {
-      const m = [0, 1, 2, 3].find((i) => world.party.memberSlot(i) >= 0 && world.memberAlive(i)) ?? 0;
-      const p = world.member(m);
-      p.bytes[38] = Math.min(99, p.bytes[38] + 5);
-      return `${p.name} has ${p.bytes[38]} keys.`;
+      world.party.keys += 5;
+      return `Keys: ${world.party.keys}.`;
     },
   },
   {
@@ -124,10 +120,8 @@ export const CHEATS: Cheat[] = [
     label: 'Get 5 torches',
     available: () => true,
     apply(world) {
-      const m = [0, 1, 2, 3].find((i) => world.party.memberSlot(i) >= 0 && world.memberAlive(i)) ?? 0;
-      const p = world.member(m);
-      p.torches = Math.min(99, p.torches + 5);
-      return `${p.name} has ${p.torches} torches.`;
+      world.party.torches += 5;
+      return `Torches: ${world.party.torches}.`;
     },
   },
 ];
