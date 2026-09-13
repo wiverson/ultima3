@@ -119,7 +119,7 @@ export async function chooseRules(world: World, io: GameIO): Promise<boolean> {
       { key: 'M', label: 'Modern (Recommended)' },
       { key: 'C', label: 'Classic (Hardcore)' },
     ],
-    { row: 15, title: 'How Doth Thine Adventure Proceed?' }, // where the Options box sits, clear of the verse
+    { row: 15, title: 'Choose Thine Adventure!' }, // where the Options box sits, clear of the verse
   );
   if (key !== 'M' && key !== 'C') return false;
   world.poisonKills = key === 'C';
