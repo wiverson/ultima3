@@ -177,6 +177,9 @@ save contains except the pooled gold and food.
   Terminate asks for confirmation.
 - **Controller mode** with pop-up menus, and a command menu ordered by
   what the surroundings call for (`context.ts`).
+- **Daggers** are thrown only when the member has a spare; with a single
+  dagger an attack at a distant foe just misses. The Apple II let a new
+  character throw away their only weapon.
 - **Spell menus** name spells by what they do (Magic bolt, Heal, Up a
   level) with the spell-book name, cost and effect on the hint line
   beneath; the Apple II showed only the book names the manual explained.

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { newWorld, FakeIO } from './helpers.ts';
-import { combat, chooseArena, loadArena, planMonster, handleMove, memberShape, monsterName, attackMonster, placeRevived } from '../src/game/combat.ts';
+import { combat, chooseArena, loadArena, planMonster, handleMove, memberShape, monsterName, attackMonster, placeRevived, combatAttackForTest } from '../src/game/combat.ts';
 import { MapValue, Shape } from '../src/game/tiles.ts';
 import { Location } from '../src/game/party.ts';
 import { Key } from '../src/game/io.ts';
@@ -236,5 +236,32 @@ describe('revival during a fight', () => {
     placeRevived(world, io);
     expect(Math.max(Math.abs(me.x - 5), Math.abs(me.y - 5))).toBe(1);
     expect(io.redraws).toBeGreaterThan(0);
+  });
+});
+
+describe('throwing daggers', () => {
+  it('keeps a lone dagger, but throws a spare', async () => {
+    const { world, io } = flatWorld();
+    const c = loadArena(world, BASERES + 4);
+    c.tiles.fill(Shape.Grass);
+    world.combat = c;
+    for (const m of c.monsters) m.hp = 0;
+    c.members[0].x = 5;
+    c.members[0].y = 9;
+    c.monsters[0].x = 5;
+    c.monsters[0].y = 5;
+    c.monsters[0].hp = 10;
+    const p = world.member(0);
+    p.bytes[48] = 1; // dagger readied
+    p.bytes[49] = 1; // just the one
+    io.keys = [Key.Up];
+    await combatAttackForTest(world, io, 0);
+    expect(p.bytes[49]).toBe(1);
+    expect(io.output).toContain('Missed');
+    p.bytes[49] = 2;
+    io.keys = [Key.Up];
+    await combatAttackForTest(world, io, 0);
+    expect(p.bytes[49]).toBe(1);
+    expect(p.bytes[48]).toBe(1);
   });
 });

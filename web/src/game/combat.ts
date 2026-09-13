@@ -594,6 +594,9 @@ export function handleMove(world: World, io: GameIO, member: number, dx: number,
   p.tileUnder = arenaTile(c, xs, ys);
 }
 
+/** The attack routine, for tests. */
+export const combatAttackForTest = (world: World, io: GameIO, member: number) => combatAttack(world, io, member);
+
 /**
  * Mirrors `CombatAttack()`. With `preset` the direction is already known
  * (the member walked into a monster) and is echoed instead of asked for.
@@ -632,9 +635,11 @@ async function combatAttack(
     if (target < 0) return missed();
   } else {
     target = monsterAt(c, me.x + dir.dx, me.y + dir.dy);
-    if (target < 0 && weapon !== 1) return missed();
+    // A dagger can be thrown at a distant foe, and is used up. This port
+    // only throws a spare: the Apple II let a new character throw their
+    // only dagger and fight bare-handed after.
+    if (target < 0 && (weapon !== 1 || p.bytes[49] <= 1)) return missed();
     if (target < 0) {
-      // A dagger can be thrown; it is used up.
       p.bytes[49]--;
       if (p.bytes[49] < 1 || p.bytes[49] > 250) {
         p.bytes[48] = 0;
