@@ -164,8 +164,16 @@ export class Screen implements GameIO {
   onSettingsChange: (() => void) | null = null;
   /** Name of the tile set in use (see help.ts TILE_SETS). */
   tileSetName = 'Standard';
-  /** Standard and Lairware share the Mac tiles, whose member figures suit the party-as-figures drawing. */
-  private get macTiles(): boolean {
+  /** Standard alone draws the overworld party as a 2x2 grid of its members. */
+  private get gridTiles(): boolean {
+    return this.tileSetName === 'Standard';
+  }
+  /** Standard and Nintendo draw the party in towns as the leader with the others following in a line. */
+  private get trailTiles(): boolean {
+    return this.tileSetName === 'Standard' || this.tileSetName === 'Nintendo';
+  }
+  /** Standard and Lairware (the Mac tiles) show the red burst on a hit instead of the HIT tile. */
+  private get burstTiles(): boolean {
     return this.tileSetName === 'Standard' || this.tileSetName === 'Lairware';
   }
   private readonly gamepads: GamepadReader;
@@ -1039,13 +1047,13 @@ export class Screen implements GameIO {
       const dx = cell + (i % VIEW_SIZE) * tile;
       const dy = cell + Math.floor(i / VIEW_SIZE) * tile;
       gfx.drawShape(ctx, c.base, dx, dy, tile);
-      if (c.follower !== undefined && this.macTiles) this.drawMember(c.follower, dx, dy, tile);
-      if (c.hit && !this.macTiles) {
+      if (c.follower !== undefined && this.trailTiles) this.drawMember(c.follower, dx, dy, tile);
+      if (c.hit && !this.burstTiles) {
         // The Apple II way: the ball's "HIT" frame replaces whatever was hit.
         gfx.drawShape(ctx, c.hit.shape, dx, dy, tile, { masked: true, altFrame: true });
         continue;
       }
-      if (c.party && this.macTiles) this.drawParty(dx, dy, tile);
+      if (c.party && (this.world.inTownOrCastle ? this.trailTiles : this.gridTiles)) this.drawParty(dx, dy, tile);
       else if (c.overlay !== undefined) gfx.drawShape(ctx, c.overlay, dx, dy, tile, { masked: true, flip: c.flip, altFrame: c.altFrame });
       if (c.hit) this.drawBurst(dx, dy, tile, c.hit.frame);
     }

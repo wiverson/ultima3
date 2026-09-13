@@ -167,15 +167,15 @@ save contains except the pooled gold and food.
   under a quarter and red under a tenth, and mana (none for fighters,
   thieves and barbarians). A dead member's or ashes' whole box takes the
   name's grey. The message area gained four rows.
-- **The party on foot**, with the Standard or Lairware tiles, is drawn as its members.
-  On the overworld they are at half size in a 2x2 grid in marching order,
-  to sell the scale of the map. In towns and castles the leader stands at
-  full size and the others follow in a line on the squares the leader
-  walked through, as the NES version did; the line is only a drawing, the
-  party's position is still one square, and townspeople walk over it. A
-  poisoned member is all green, a dead one or ashes is not drawn. On a
-  horse or frigate, and in the other tile sets, the Apple II's single
-  figure is used.
+- **The party on foot** is drawn as its members in two ways. With the
+  Standard tiles, on the overworld they are at half size in a 2x2 grid in
+  marching order, to sell the scale of the map. With the Standard or
+  Nintendo tiles, in towns and castles the leader stands at full size and
+  the others follow in a line on the squares the leader walked through,
+  as the NES version did; the line is only a drawing, the party's
+  position is still one square, and townspeople walk over it. A poisoned
+  member is all green, a dead one or ashes is not drawn. On a horse or
+  frigate, and otherwise, the Apple II's single figure is used.
 - **Hits** with the Standard or Lairware tiles show a three-frame red burst on the
   16-pixel grid (a small disc, a larger one, then a ring) instead of the
   "HIT" tile; the other tile sets keep their HIT tile.
@@ -275,12 +275,11 @@ save contains except the pooled gold and food.
 - **`heading()`** in `monsters.ts` uses true 8-bit wrap-around, as the
   Apple II did. The C port tested for negative values first, which sent
   monsters the long way round when the party was far to their west.
-- **The Ranger's figure** in the Standard and Lairware tiles has a second
-  animation frame of its own now, the sword arm raised, made by turning
-  the arm of the Mac's single frame about the shoulder; the Mac sheet's
-  two frames were the same picture, so the Ranger alone stood still. Any
-  member figure whose two frames match in another set turns about on the
-  alternate frame instead.
+- **The Ranger's figure** in the Standard tiles has a second animation
+  frame of its own, the sword arm raised, made by turning the arm of the
+  Mac's single frame about the shoulder; the Mac sheet's two frames were
+  the same picture, so the Ranger alone stood still. Lairware keeps the
+  Mac sheet untouched, still Ranger and all.
 - **Appearance**: the classic bitmap-font layout is used throughout; any of
   the thirteen tile sets (with their fonts, borders and dungeon art) can be chosen in
   Settings, Standard by default.

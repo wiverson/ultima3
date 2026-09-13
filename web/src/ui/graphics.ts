@@ -25,9 +25,6 @@ export const TILE_COLUMNS = 12;
 export const TILE_ROWS = 16;
 export const FONT_GLYPHS = 96;
 export const UI_COLUMNS = 16;
-
-/** The party members' figures (see memberShape in combat.ts): the party symbol and the four class figures, and the Lark's. */
-const FIGURE_SHAPES = new Set([0x7e, 0x80, 0x82, 0x84, 0x86, 0x22]);
 export const UI_ROWS = 3;
 
 export interface SourceRect {
@@ -170,35 +167,6 @@ export class GraphicsSet {
     return new GraphicsSet(tiles, applyMask(tiles, mask), font, ui, dungeonShapes, dungeonMasks, style);
   }
 
-  /** Per shape, whether its two animation frames are the same picture (computed once, on first use). */
-  private sameFrames = new Map<number, boolean>();
-
-  private framesIdentical(shape: number): boolean {
-    const known = this.sameFrames.get(shape);
-    if (known !== undefined) return known;
-    let same = false;
-    try {
-      const s = this.tileSize;
-      const canvas = document.createElement('canvas');
-      canvas.width = s * 2;
-      canvas.height = s;
-      const ctx = canvas.getContext('2d')!;
-      const a = this.tileRect(shape >> 1, false);
-      const b = this.tileRect(shape >> 1, true);
-      ctx.drawImage(this.tiles, a.x, a.y, a.w, a.h, 0, 0, s, s);
-      ctx.drawImage(this.tiles, b.x, b.y, b.w, b.h, s, 0, s, s);
-      const left = ctx.getImageData(0, 0, s, s).data;
-      const right = ctx.getImageData(s, 0, s, s).data;
-      let differing = 0;
-      for (let i = 0; i < left.length && differing < 64; i++) if (left[i] !== right[i]) differing++;
-      same = differing < 64; // a handful of stray pixels is not an animation
-    } catch {
-      same = false;
-    }
-    this.sameFrames.set(shape, same);
-    return same;
-  }
-
   /** Source rectangle of a tile index, honouring the animation frame. (`GetTileRectForIndex`) */
   tileRect(index: number, frameOverride?: boolean): SourceRect {
     const s = this.tileSize;
@@ -230,11 +198,7 @@ export class GraphicsSet {
     const rect =
       shape === Shape.Door ? this.tileRect(Shape.Door >> 1, true) : this.tileRect(shape >> 1, opts.altFrame ? true : undefined);
     const scrollPx = this.scroll.get(shape) ?? 0;
-    // A figure whose two frames are the same picture (the Mac sheet's Ranger, which
-    // doubles as the party symbol) still gets its animation: it turns about instead.
-    let flip = opts.flip ?? false;
-    if (FIGURE_SHAPES.has(shape) && this.swapped[shape >> 1] === 1 && !opts.altFrame && this.framesIdentical(shape)) flip = !flip;
-
+    const flip = opts.flip ?? false;
     if (flip) {
       ctx.save();
       ctx.translate(dx + size, dy);
