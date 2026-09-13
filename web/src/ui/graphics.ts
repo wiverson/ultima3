@@ -2,14 +2,17 @@
  * graphics.ts
  *
  * Loads a tile set and knows how to find any tile in it. A tile set is a
- * family of images in public/graphics named "<Set>-Tiles", "-Mask", "-Font"
- * and "-UI" (see `Resources/Graphics/_About This Folder_.rtf`):
+ * family of images in public/graphics named "<Set>-Tiles", "-Font" and
+ * "-UI" (after LairWare's layout, `Resources/Graphics/_About This Folder_.rtf`):
  *
  *   Tiles  12 columns x 16 rows. Column pairs hold the two animation frames
  *          of a tile: tile index i is at row i % 16, column (i / 16) * 2, and
- *          its alternate frame is one column to the right.
- *   Mask   same grid; black = opaque, white = transparent. Used when drawing
- *          creatures and objects over terrain.
+ *          its alternate frame is one column to the right. The sheet's own
+ *          alpha channel is the transparency used when drawing creatures and
+ *          objects over terrain; the Mac kept it in a separate "-Mask" image
+ *          (black opaque, white clear), which this port baked into the sheets
+ *          that had one. A "-Mask" file is still honoured if a set ships one.
+ *          Sets with neither draw creatures opaque, as their machines did.
  *   Font   96 glyphs in one row, starting at ASCII 0x20 (space).
  *   UI     16 columns x 3 rows of border pieces, cursor frames, moon phases.
  *
@@ -76,7 +79,7 @@ function applyMask(tiles: HTMLImageElement, mask: HTMLImageElement | null): HTML
   canvas.height = tiles.height;
   const ctx = canvas.getContext('2d')!;
   ctx.drawImage(tiles, 0, 0);
-  if (!mask) return canvas;
+  if (!mask) return canvas; // the sheet's own alpha (if any) is the mask
 
   const maskCanvas = document.createElement('canvas');
   maskCanvas.width = tiles.width;
@@ -114,6 +117,9 @@ export class GraphicsSet {
   private animPhase = 16;
   private animSkip = 5;
 
+  /** The sheet over black: what terrain is drawn from, so a transparent pixel never shows the last frame. */
+  private readonly opaqueTiles: HTMLCanvasElement;
+
   private constructor(
     readonly tiles: HTMLImageElement,
     readonly maskedTiles: HTMLCanvasElement,
@@ -131,6 +137,13 @@ export class GraphicsSet {
     readonly dungeonStyle: DungeonStyle | null,
   ) {
     this.tileSize = tiles.width / TILE_COLUMNS;
+    this.opaqueTiles = document.createElement('canvas');
+    this.opaqueTiles.width = tiles.width;
+    this.opaqueTiles.height = tiles.height;
+    const octx = this.opaqueTiles.getContext('2d')!;
+    octx.fillStyle = '#000';
+    octx.fillRect(0, 0, tiles.width, tiles.height);
+    octx.drawImage(tiles, 0, 0);
     this.fontSize = font.width / FONT_GLYPHS;
     this.fontHeight = font.height;
     this.uiSize = ui.width / UI_COLUMNS;
@@ -155,7 +168,7 @@ export class GraphicsSet {
     };
     const tiles = await tryLoad('Tiles', ['png', 'gif']);
     if (!tiles) throw new Error('No tile sheet could be loaded');
-    const mask = await tryLoad('Mask', ['gif', 'png']);
+    const mask = await tryLoad('Mask', ['gif', 'png'], false); // only a set's own: Standard's would not fit another sheet
     const font = await tryLoad('Font', ['gif', 'png']);
     const ui = await tryLoad('UI', ['png', 'gif']);
     if (!font || !ui) throw new Error('Font or UI sheet missing');
@@ -192,7 +205,7 @@ export class GraphicsSet {
     size: number,
     opts: { masked?: boolean; flip?: boolean; altFrame?: boolean } = {},
   ): void {
-    const src: CanvasImageSource = opts.masked ? this.maskedTiles : this.tiles;
+    const src: CanvasImageSource = opts.masked ? this.maskedTiles : this.opaqueTiles;
     // Doors are the alternate frame of the letter "I"; `altFrame` forces the
     // second frame (used for the "HIT" balls).
     const rect =

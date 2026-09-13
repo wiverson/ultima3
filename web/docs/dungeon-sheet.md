@@ -1,7 +1,7 @@
 # Dungeon art sheets
 
 The first-person dungeon view is drawn from two images that belong to a
-tile set, next to its Tiles, Mask, Font and UI files in `public/graphics`:
+tile set, next to its Tiles, Font and UI files in `public/graphics`:
 
 - `<Set>-DungeonShapes.png` (or `.jpg`): a 3000x512 sheet of wall pieces
   and corridor background.

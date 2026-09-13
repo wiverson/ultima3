@@ -280,6 +280,13 @@ save contains except the pooled gold and food.
   Mac's single frame about the shoulder; the Mac sheet's two frames were
   the same picture, so the Ranger alone stood still. Lairware keeps the
   Mac sheet untouched, still Ranger and all.
+- **Tile sheets carry their own transparency.** The Mac shipped a
+  separate grey "Mask" image per set for creature transparency, since
+  QuickDraw had no alpha channel; those masks are baked into the alpha of
+  the five sheets that had one, and the loader reads a sheet's alpha
+  directly. A set that ships a Mask file is still honoured; a set with
+  neither draws creatures opaque, as its machine did. LairWare's original
+  files remain in `Resources/Graphics` at the root of the repository.
 - **Appearance**: the classic bitmap-font layout is used throughout; any of
   the thirteen tile sets (with their fonts, borders and dungeon art) can be chosen in
   Settings, Standard by default.
