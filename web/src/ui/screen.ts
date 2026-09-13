@@ -172,9 +172,9 @@ export class Screen implements GameIO {
   private get trailTiles(): boolean {
     return this.tileSetName === 'Standard' || this.tileSetName === 'Nintendo';
   }
-  /** Standard and Lairware (the Mac tiles) show the red burst on a hit instead of the HIT tile. */
+  /** Standard alone shows the red burst on a hit instead of the HIT tile. */
   private get burstTiles(): boolean {
-    return this.tileSetName === 'Standard' || this.tileSetName === 'Lairware';
+    return this.tileSetName === 'Standard';
   }
   private readonly gamepads: GamepadReader;
   /** The menu window being shown, drawn over the map every frame. */

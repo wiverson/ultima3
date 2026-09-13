@@ -176,7 +176,7 @@ save contains except the pooled gold and food.
   position is still one square, and townspeople walk over it. A poisoned
   member is all green, a dead one or ashes is not drawn. On a horse or
   frigate, and otherwise, the Apple II's single figure is used.
-- **Hits** with the Standard or Lairware tiles show a three-frame red burst on the
+- **Hits** with the Standard tiles show a three-frame red burst on the
   16-pixel grid (a small disc, a larger one, then a ring) instead of the
   "HIT" tile; the other tile sets keep their HIT tile.
 - **Combat marker**: the member whose turn it is gets a rounded outline,
