@@ -613,7 +613,7 @@ export class Screen implements GameIO {
    */
   private placeMenu(menu: MenuWindow, place: MenuPlacement): void {
     const longest = Math.max(menu.title.length, ...menu.items.map((s) => s.length));
-    menu.width = Math.min(COLUMNS - 4, longest + 4);
+    menu.width = Math.min(COLUMNS - 2, longest + 4); // up to the frame's inner edge, for a long title
     menu.y = place.row;
     menu.x = Math.floor((COLUMNS - menu.width) / 2);
     // Keep the window (and its hint row) inside the frame; long lists scroll.
