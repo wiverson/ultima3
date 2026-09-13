@@ -115,9 +115,8 @@ describe('auto-combat planning', () => {
     monster(c, 0, 6, 8); // diagonally adjacent: a step, not an attack
     expect(autoCombatKeys(world, 0)).not.toContain('A');
     fighter(world, 5);
-    // The bow needs a row or column: the orc is expected to step to (6, 9),
-    // so the fighter steps west along that row rather than firing diagonally.
-    expect(autoCombatKeys(world, 0)).toEqual(['4']);
+    // The bow needs a row or column: a step east puts the orc straight north.
+    expect(autoCombatKeys(world, 0)).toEqual(['6']);
     c.monsters[0].x = 5;
     c.monsters[0].y = 3;
     expect(autoCombatKeys(world, 0)).toEqual(['A', '8']);
@@ -131,10 +130,10 @@ describe('auto-combat planning', () => {
     monster(c, 1, 6, 10);
     // South, west and east are all within reach; southwest is not.
     expect(autoCombatKeys(world, 0)).toEqual(['1']);
-    // In classic mode there is nowhere safe to go; a wounded member in the
-    // top half of the arena then holds still rather than advancing.
+    // Without diagonals there is nowhere safe to go, so the member fights back
+    // (the Mac passed the turn and took the hit).
     world.setDiagonalMoves(false);
-    expect(autoCombatKeys(world, 0)).toEqual([Key.Space]);
+    expect(autoCombatKeys(world, 0)).toEqual(['A', '8']);
   });
 
   it('passes when boxed in', () => {

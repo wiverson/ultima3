@@ -165,10 +165,16 @@ save contains except the pooled gold and food.
   by itself. As in the Mac version the AI decides a member's turn and
   "types" it: it queues the keys a player would press (`GameIO.queueKeys`)
   and the ordinary combat prompts read them. Escape during a fight turns
-  it off, as Cmd-. did. With diagonals on, lining up a ranged attacker
-  steps onto the diagonal square checked; the C code stepped toward the
-  monster instead. A monster's square counts as occupied, which the
-  original did not check.
+  it off, as Cmd-. did. Four departures from the Mac's planner: a member
+  closing to melee follows a breadth-first path to the nearest square
+  they can strike from, round comrades and walls (the Mac headed at a
+  guess of the monster's next step and sidestepped blindly when blocked,
+  which left members milling about); "nearly dead" is a quarter of
+  maximum hit points, at most 50, not a flat 50; a wounded member who
+  cannot get away fights back instead of passing; and Sanctu is cast only
+  when someone is under 60% and down at least 20, not at a flat 75. With diagonals on, lining up a ranged attacker steps onto the
+  diagonal square checked; the C code stepped toward the monster instead.
+  A monster's square counts as occupied, which the original did not check.
 - **Menus for the title and party screens** in both input modes (the
   Apple II typed entry numbers and attribute values): the roster is a
   pick list, the party a multi-select list in marching order, attributes a

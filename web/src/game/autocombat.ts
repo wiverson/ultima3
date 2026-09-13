@@ -32,10 +32,17 @@ import { Shape } from './tiles.ts';
 import { Key } from './io.ts';
 import { monsterAt } from './combat.ts';
 
-/** Hit points below which a member is "nearly dead". */
-const NEARLY_DEAD_HP = 50;
-/** Hit points below which a cleric casts Sanctu on a member. */
-const SANCTU_HP = 75;
+/**
+ * "Nearly dead": under a quarter of maximum hit points, at most 50. The
+ * Mac used a flat 50, written for parties with hundreds of hit points; a
+ * new character has 100, and would have spent half the fight running.
+ */
+function nearlyDeadAt(maxHitPoints: number): number {
+  return Math.min(50, Math.max(15, Math.floor(maxHitPoints / 4)));
+}
+/** Sanctu is worth a turn when someone is under this share of their maximum and down by at least 20. */
+const SANCTU_SHARE = 0.6;
+const SANCTU_MIN_LOSS = 20;
 
 /** Monster shapes that poison, and so count double as a threat. */
 const POISONOUS = [0x1c, 0x3c, 0x38];
@@ -133,37 +140,38 @@ class Planner {
     if (magic >= 75 && isWizard && this.threatValue() > 60) return wizardCast('P');
     if (magic >= 70 && isCleric && this.threatValue() > 80) return clericCast('O');
 
-    // Sanctu for whoever needs it most.
+    // Sanctu for whoever needs it most, if anyone really does.
     if (magic >= 10 && isCleric) {
-      let lowestHp = 9999;
+      let worst = 1;
       let lowest = -1;
       for (let m = 0; m < 4; m++) {
         if (!world.memberAlive(m)) continue;
-        const hp = world.member(m).hitPoints;
-        if (hp < lowestHp) {
-          lowestHp = hp;
+        const q = world.member(m);
+        const share = q.hitPoints / Math.max(1, q.maxHitPoints);
+        if (share < worst && q.maxHitPoints - q.hitPoints >= SANCTU_MIN_LOSS) {
+          worst = share;
           lowest = m;
         }
       }
-      if (lowestHp < SANCTU_HP) return [...clericCast('C'), String(lowest + 1)];
+      if (lowest >= 0 && worst < SANCTU_SHARE) return [...clericCast('C'), String(lowest + 1)];
     }
 
     // Ranged attacks: a missile weapon, or Mittar for a wizard without a magic bow.
     const weapon = p.bytes[48];
     const castMittar = magic >= 5 && isWizard && !MAGIC_BOWS.includes(weapon);
     if (RANGED_WEAPONS.includes(weapon) || castMittar) {
-      this.setupNow();
       const dir = this.monsterLinedUp(x, y);
       if (dir !== null) return castMittar ? [...wizardCast('B'), dir] : ['A', dir];
-      this.setupFuture();
+      if (this.nearlyDead(member)) return [Key.Space];
       return [this.lineUpToMonster()];
     }
 
-    // Hand to hand: a wounded member in the top half does not advance.
-    if (this.nearlyDead(member) && y < 10) return [Key.Space];
+    // Hand to hand: strike whatever is adjacent; a wounded member who could
+    // not get away fights back rather than standing there (the Mac passed).
     const adjacent = this.monsterNearby(x, y);
     if (adjacent !== null) return ['A', adjacent];
-    this.setupFuture();
+    // A wounded member does not go looking for trouble.
+    if (this.nearlyDead(member)) return [Key.Space];
     return [this.dirToNearestMonster()];
   }
 
@@ -208,9 +216,10 @@ class Planner {
     return false;
   }
 
-  /** Mirrors `NearlyDead(who)` for one member. */
+  /** Mirrors `NearlyDead(who)` for one member, scaled to their maximum (see `nearlyDeadAt`). */
   nearlyDead(member: number): boolean {
-    return this.world.member(member).hitPoints < NEARLY_DEAD_HP;
+    const p = this.world.member(member);
+    return p.hitPoints < nearlyDeadAt(p.maxHitPoints);
   }
 
   /** Mirrors `SetupNow()`: predict no movement. */
@@ -222,46 +231,13 @@ class Planner {
   }
 
   /**
-   * Mirrors `SetupFuture()`: predict each monster's next step toward its
-   * nearest member (diagonal, else vertical, else horizontal, else stay).
+   * `SetupFuture()` on the Mac guessed where each monster would step next
+   * and steered members at the guess. The guess assumed each monster went
+   * for its nearest member, so members chased squares that kept moving and
+   * wandered round the pack. This port steers at where monsters are.
    */
   setupFuture(): void {
-    const { c, world } = this;
     this.setupNow();
-    for (let i = 0; i < 8; i++) {
-      if (c.monsters[i].hp === 0) continue;
-      let closest = -1;
-      let closestDistance = 128;
-      for (let m = 0; m < 4; m++) {
-        if (!world.memberAlive(m)) continue;
-        const d = Math.abs(this.futureX[i] - c.members[m].x) + Math.abs(this.futureY[i] - c.members[m].y);
-        if (d < closestDistance) {
-          closestDistance = d;
-          closest = m;
-        }
-      }
-      if (closest < 0) continue;
-      const dx = Math.sign(c.members[closest].x - this.futureX[i]);
-      const dy = Math.sign(c.members[closest].y - this.futureY[i]);
-      const fx = this.futureX[i];
-      const fy = this.futureY[i];
-      let nx = fx + dx;
-      let ny = fy + dy;
-      if (this.futureOccupied(nx, ny)) {
-        nx = fx;
-        ny = fy + dy;
-        if (this.futureOccupied(nx, ny)) {
-          nx = fx + dx;
-          ny = fy;
-          if (this.futureOccupied(nx, ny)) {
-            nx = fx;
-            ny = fy;
-          }
-        }
-      }
-      this.futureX[i] = nx;
-      this.futureY[i] = ny;
-    }
   }
 
   /** Mirrors `FutureMonsterHere()`: a predicted monster, or a living member, at (x, y). */
@@ -286,22 +262,38 @@ class Planner {
     return monsterAt(c, x, y) >= 0;
   }
 
-  /** Mirrors `DirToNearestMonster()`: the key that heads toward the closest (predicted) monster. */
+  /**
+   * Mirrors `DirToNearestMonster()`, done properly: a breadth-first search
+   * over the arena to the nearest square from which this member could
+   * strike a monster (orthogonally adjacent, or diagonally too when
+   * diagonals are allowed), stepping round comrades and walls. The Mac
+   * headed straight at a guess of the monster's next square and sidestepped
+   * blindly when blocked, which left members milling behind each other.
+   * Returns a pass when no such square can be reached.
+   */
   dirToNearestMonster(): string {
     const { c } = this;
     const me = c.members[this.member];
-    let closest = -1;
-    let closestDistance = 128;
-    for (let i = 0; i < 8; i++) {
-      if (c.monsters[i].hp === 0) continue;
-      const d = Math.abs(this.futureX[i] - me.x) + Math.abs(this.futureY[i] - me.y);
-      if (d < closestDistance) {
-        closestDistance = d;
-        closest = i;
+    const steps = NEIGHBOURS.filter(([dx, dy]) => this.allowed(dx, dy));
+    const isGoal = (x: number, y: number) => steps.some(([dx, dy]) => monsterAt(c, x + dx, y + dy) >= 0);
+    // Breadth-first search; `first` remembers the first step of the path to each square.
+    const first = new Map<number, string>();
+    const queue: [number, number][] = [];
+    first.set(me.y * 11 + me.x, '');
+    queue.push([me.x, me.y]);
+    while (queue.length) {
+      const [x, y] = queue.shift()!;
+      const via = first.get(y * 11 + x)!;
+      if (via && isGoal(x, y)) return via;
+      for (const [dx, dy] of steps) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || nx > 10 || ny < 0 || ny > 10 || this.occupied(nx, ny) || first.has(ny * 11 + nx)) continue;
+        first.set(ny * 11 + nx, via || directionKey(dx, dy)!);
+        queue.push([nx, ny]);
       }
     }
-    if (closest < 0) return Key.Space;
-    return this.autoMove(Math.sign(this.futureX[closest] - me.x), Math.sign(this.futureY[closest] - me.y));
+    return Key.Space;
   }
 
   /**
@@ -325,8 +317,8 @@ class Planner {
       [-inward, 1],
     ];
     for (const [dx, dy] of candidates) {
-      if (!this.allowed(dx, dy)) continue;
-      if (this.monsterLinedUp(me.x + dx, me.y + dy) !== null) return this.autoMove(dx, dy);
+      if (!this.allowed(dx, dy) || this.occupied(me.x + dx, me.y + dy)) continue;
+      if (this.monsterLinedUp(me.x + dx, me.y + dy) !== null) return directionKey(dx, dy)!;
     }
     return this.dirToNearestMonster();
   }
@@ -356,44 +348,7 @@ class Planner {
     return directionKey(Math.sign(this.futureX[closest] - x), Math.sign(this.futureY[closest] - y));
   }
 
-  /**
-   * Mirrors `AutoMoveChar()`: the key for a step of (dx, dy), or the best
-   * free alternative beside it, or a pass when boxed in.
-   */
-  autoMove(dx: number, dy: number): string {
-    const me = this.c.members[this.member];
-    const free = (ddx: number, ddy: number) => !this.occupied(me.x + ddx, me.y + ddy);
-    const key = (ddx: number, ddy: number) => directionKey(ddx, ddy) ?? Key.Space;
-    // Without diagonals a diagonal wish becomes a vertical step.
-    if (!this.diagonals && dx !== 0 && dy !== 0) dx = 0;
-    if (free(dx, dy)) return key(dx, dy);
-    let alternatives: [number, number][];
-    if (dx === 0) {
-      // Vertical blocked: try the diagonals beside it, then sideways.
-      alternatives = [
-        [1, dy],
-        [-1, dy],
-        [1, 0],
-        [-1, 0],
-      ];
-    } else if (dy === 0) {
-      // Horizontal blocked: try the diagonals beside it, then up and down.
-      alternatives = [
-        [dx, -1],
-        [dx, 1],
-        [0, -1],
-        [0, 1],
-      ];
-    } else {
-      // Diagonal blocked: try its two components.
-      alternatives = [
-        [0, dy],
-        [dx, 0],
-      ];
-    }
-    for (const [ax, ay] of alternatives) if (this.allowed(ax, ay) && free(ax, ay)) return key(ax, ay);
-    return Key.Space;
-  }
+
 }
 
 /**
