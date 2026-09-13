@@ -763,7 +763,7 @@ export class Screen implements GameIO {
     const width = Math.max(...labels.map((l) => l.length));
     const items = () => [...labels.map((l, i) => `${l.padEnd(width)}  < ${String(values[i]).padStart(2)} >`), 'O.K.'];
     const hints = () => {
-      const hint = left() > 0 ? `${left()} points left to spend` : left() < 0 ? 'Too many points' : 'All points spent';
+      const hint = left() > 0 ? `${left()} points left to spend` : 'All points spent';
       return [...labels.map(() => hint), left() === 0 ? 'Press A or Enter to accept' : hint];
     };
     const menu = layoutMenu(place.title, items(), 1);
@@ -777,7 +777,10 @@ export class Screen implements GameIO {
         if (key === Key.Left || key === Key.Right) {
           if (menu.cursor < n) {
             const delta = key === Key.Right ? 1 : -1;
-            values[menu.cursor] = Math.max(min, Math.min(max, values[menu.cursor] + delta));
+            const next = Math.max(min, Math.min(max, values[menu.cursor] + delta));
+            // Right stops at the last point: the pool can be spent, never overspent.
+            if (delta > 0 && left() <= 0) this.sound(Sound.Error1);
+            else values[menu.cursor] = next;
             menu.items = items();
             menu.hints = hints();
             this.showMenuNow();
