@@ -640,7 +640,6 @@ export class Screen implements GameIO {
       const options: MenuOption[] = [
         { key: 'I', label: `Input: ${this.inputMode === 'controller' ? 'Controller' : 'Keyboard'}` },
         { key: 'T', label: `Tiles: ${this.tileSetName}` },
-        { key: 'D', label: `Diagonal move: ${onOff(w.diagonalMoves)}` },
         { key: 'A', label: `Auto combat: ${onOff(w.autoCombat)}` },
         { key: 'P', label: `Poison kills: ${onOff(w.poisonKills)}` },
         { key: 'V', label: `Starving: ${w.starvation[0].toUpperCase()}${w.starvation.slice(1)}` },
@@ -660,9 +659,6 @@ export class Screen implements GameIO {
           break;
         case 'T':
           await this.chooseTiles();
-          break;
-        case 'D':
-          w.setDiagonalMoves(!w.diagonalMoves);
           break;
         case 'A':
           w.autoCombat = !w.autoCombat;

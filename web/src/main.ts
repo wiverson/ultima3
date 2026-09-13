@@ -29,7 +29,6 @@ const AUTOMAP_KEY = 'ultima3.automap';
 interface Prefs {
   inputMode: 'keyboard' | 'controller';
   tiles: string;
-  diagonalMoves: boolean;
   autoCombat: boolean;
   poisonKills: boolean;
   starvation: Starvation;
@@ -39,15 +38,13 @@ interface Prefs {
   dungeonMap: MapMode;
 }
 
-const DEFAULT_PREFS: Prefs = { inputMode: 'keyboard', tiles: 'Standard', diagonalMoves: false, autoCombat: false, poisonKills: false, starvation: 'mild', balancedXp: true, sound: true, music: true, dungeonMap: 'off' };
+const DEFAULT_PREFS: Prefs = { inputMode: 'keyboard', tiles: 'Standard', autoCombat: false, poisonKills: false, starvation: 'mild', balancedXp: true, sound: true, music: true, dungeonMap: 'off' };
 
 function loadPrefs(): Prefs {
   try {
     const raw = localStorage.getItem(PREFS_KEY);
-    const saved = raw ? (JSON.parse(raw) as Partial<Prefs> & { classicMoves?: boolean }) : {};
+    const saved = raw ? (JSON.parse(raw) as Partial<Prefs>) : {};
     const prefs = { ...DEFAULT_PREFS, ...saved };
-    // The setting was "classic moves" (the inverse) until September 2026.
-    if (saved.classicMoves !== undefined && saved.diagonalMoves === undefined) prefs.diagonalMoves = !saved.classicMoves;
     if (!TILE_SETS.includes(prefs.tiles)) prefs.tiles = DEFAULT_PREFS.tiles;
     if (prefs.inputMode !== 'controller') prefs.inputMode = 'keyboard';
     if (!MAP_MODES.includes(prefs.dungeonMap)) prefs.dungeonMap = 'off';
@@ -87,9 +84,9 @@ async function start(): Promise<void> {
 
   const [resources, gfx, images] = await Promise.all([loadResources(), GraphicsSet.load(prefs.tiles), loadImages()]);
 
-  // Diagonal moves must be known before the map loads (it shapes the land by Exodus' castle).
+  // The party never moves diagonally, as on the Apple II (the Mac's option stays in the code, unexposed).
   const world = new World(resources);
-  world.setDiagonalMoves(prefs.diagonalMoves);
+  world.setDiagonalMoves(false);
   world.autoCombat = prefs.autoCombat;
   world.poisonKills = prefs.poisonKills;
   world.starvation = prefs.starvation;
@@ -130,7 +127,6 @@ async function start(): Promise<void> {
     savePrefs({
       inputMode: screen.inputMode,
       tiles: screen.tileSetName,
-      diagonalMoves: world.diagonalMoves,
       autoCombat: world.autoCombat,
       poisonKills: world.poisonKills,
       starvation: world.starvation,

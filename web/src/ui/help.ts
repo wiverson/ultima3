@@ -33,7 +33,6 @@ export const KEYBOARD_HELP: string[][] = [
     'KEYBOARD COMMANDS            page 1/3',
     '',
     'Arrows     walk / move in combat',
-    '1 3 7 9    walk diagonally (if enabled)',
     'Space      pass a turn',
     'Escape     settings (this menu)',
     '',

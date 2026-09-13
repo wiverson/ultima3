@@ -60,14 +60,13 @@ is used instead).
 
 Escape opens the Settings menu anywhere (on the title screen it is the
 third entry under Options; in controller mode it is the last entry of the
-command menu). Settings holds the input mode, the tile set, diagonal moves,
+command menu). Settings holds the input mode, the tile set,
 auto combat, poison kills, starvation, balanced XP, sound effects, music, and
 Help, which shows these controls in the game. Every setting is remembered by the browser.
 
 ### Keyboard mode (the Apple II commands)
 
     Arrows       walk; move in combat      Space   pass a turn
-    1 3 7 9      walk diagonally (only with diagonal moves on)
 
     A attack     B board      C cast      E enter     F fire
     G get chest  I ignite     L look      M modify    N negate
@@ -183,11 +182,11 @@ save contains except the pooled gold and food.
 - **Combat marker**: the member whose turn it is gets a rounded outline,
   two game pixels wide, fading from white to grey over the four seconds
   before the turn passes by itself. The Apple II blinked the figure.
-- **Diagonal moves** (off by default): as on the Apple II, the party cannot
-  move, attack or fire diagonally while monsters always could. On gives
-  the Mac version's party diagonals; the lava either side of Exodus'
-  castle then becomes mountains as the Mac's `BlockExodus()` did, so the
-  castle is reached by sea only.
+- **No diagonal moves**: as on the Apple II, the party cannot move, attack
+  or fire diagonally while monsters always could. The Mac version let the
+  party move diagonally and walled Exodus' castle with mountains to
+  compensate (`BlockExodus()`); that code remains, behind
+  `World.setDiagonalMoves`, but is no longer offered in Settings.
 - **A new game asks "How Doth Thine Adventure Proceed?"** at the first
   Journey onward, and again after a new party is formed: Modern
   (recommended) sets poison to stop at one hit point, starvation to Mild
@@ -219,8 +218,7 @@ save contains except the pooled gold and food.
   which left members milling about); "nearly dead" is a quarter of
   maximum hit points, at most 50, not a flat 50; a wounded member who
   cannot get away fights back instead of passing; and Sanctu is cast only
-  when someone is under 60% and down at least 20, not at a flat 75. With diagonals on, lining up a ranged attacker steps onto the
-  diagonal square checked; the C code stepped toward the monster instead.
+  when someone is under 60% and down at least 20, not at a flat 75.
   A monster's square counts as occupied, which the original did not check.
 - **Menus for the title and party screens** in both input modes (the
   Apple II typed entry numbers and attribute values): the roster is a
