@@ -132,6 +132,7 @@ export async function ageChars(world: World, io: GameIO): Promise<void> {
     (_, i) => classAt(i),
   );
 
+  let starving = false;
   for (let m = 3; m >= 0; m--) {
     if (world.party.memberSlot(m) < 0) continue;
     const p = world.member(m);
@@ -147,10 +148,11 @@ export async function ageChars(world: World, io: GameIO): Promise<void> {
     if (!p.alive) continue;
 
     if (world.eatFromPool()) {
-      io.printMessage(Msg.Starving);
-      await io.flashMember(m);
-      io.sound(Sound.Hit);
-      if (p.subtractHitPoints(5)) io.sound(p.sex === 'F' ? Sound.DeathFemale : Sound.DeathMale);
+      // Food is the party's (this port): one warning a tick, below, and damage by the Starvation setting.
+      starving = true;
+      const floor = world.starvation === 'classic' ? 0 : world.starvation === 'mild' ? Math.ceil(p.maxHitPoints / 2) : p.hitPoints;
+      const loss = Math.min(5, Math.max(0, p.hitPoints - floor));
+      if (loss > 0 && p.subtractHitPoints(loss)) io.sound(p.sex === 'F' ? Sound.DeathFemale : Sound.DeathMale);
     }
     if (p.status === 'P' && (world.poisonKills || p.hitPoints > 1)) {
       if (p.subtractHitPoints(1)) io.sound(p.sex === 'F' ? Sound.DeathFemale : Sound.DeathMale);
@@ -158,6 +160,10 @@ export async function ageChars(world: World, io: GameIO): Promise<void> {
       io.printMessage(Msg.Poison);
     }
     if (world.ageTimer[1] === 0) p.addHitPoints(1);
+  }
+  if (starving) {
+    io.printMessage(Msg.Starving);
+    io.sound(Sound.Hit);
   }
   io.updateStats();
 }

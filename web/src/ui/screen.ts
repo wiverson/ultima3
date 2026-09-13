@@ -28,7 +28,7 @@ import { Keyboard } from './input.ts';
 import { SoundPlayer } from './sound.ts';
 import { MusicPlayer } from './music.ts';
 import { DungeonRenderer } from './dungeonView.ts';
-import { World } from '../game/world.ts';
+import { World, STARVATION_MODES } from '../game/world.ts';
 import { PlayerRecord } from '../game/player.ts';
 import { commandMenu, hasMagic } from '../game/context.ts';
 import { memberShape } from '../game/combat.ts';
@@ -525,6 +525,7 @@ export class Screen implements GameIO {
         { key: 'D', label: `Diagonal move: ${onOff(w.diagonalMoves)}` },
         { key: 'A', label: `Auto combat: ${onOff(w.autoCombat)}` },
         { key: 'P', label: `Poison kills: ${onOff(w.poisonKills)}` },
+        { key: 'V', label: `Starving: ${w.starvation[0].toUpperCase()}${w.starvation.slice(1)}` },
         { key: 'S', label: `Sound effects: ${onOff(w.soundEnabled)}` },
         { key: 'M', label: `Music: ${onOff(this.musicPlayer.enabled)}` },
         { key: 'H', label: 'Help' },
@@ -550,6 +551,9 @@ export class Screen implements GameIO {
           break;
         case 'P':
           w.poisonKills = !w.poisonKills;
+          break;
+        case 'V':
+          w.starvation = STARVATION_MODES[(STARVATION_MODES.indexOf(w.starvation) + 1) % STARVATION_MODES.length];
           break;
         case 'S':
           w.soundEnabled = !w.soundEnabled;

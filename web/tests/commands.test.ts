@@ -366,3 +366,21 @@ describe('poison', () => {
     expect(p.status).toBe('D');
   });
 });
+
+describe('starvation', () => {
+  it('bites by setting: none, mild to half, classic to death, one warning a tick', async () => {
+    const { world, io } = flatWorld();
+    world.party.food = 0;
+    const hp = [0, 1, 2, 3].map((m) => world.member(m).hitPoints); // 100 each
+    world.starvation = 'none';
+    await endTurn(world, io, noHooks);
+    expect(world.member(0).hitPoints).toBe(hp[0]);
+    expect(io.output.split('STARVING!').length - 1).toBe(1);
+    world.starvation = 'mild';
+    for (let i = 0; i < 20; i++) await endTurn(world, io, noHooks);
+    expect(world.member(0).hitPoints).toBe(50);
+    world.starvation = 'classic';
+    for (let i = 0; i < 20; i++) await endTurn(world, io, noHooks);
+    expect(world.member(0).status).toBe('D');
+  });
+});

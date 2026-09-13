@@ -132,6 +132,10 @@ export const DungeonCell = {
   Door: 0xc0,
 } as const;
 
+/** How starvation bites: see World.starvation. */
+export type Starvation = 'none' | 'mild' | 'classic';
+export const STARVATION_MODES: Starvation[] = ['none', 'mild', 'classic'];
+
 export class World {
   readonly rng: Random;
   readonly party: Party;
@@ -638,6 +642,14 @@ export class World {
    * so a long walk home poisoned is a nuisance, not a death.
    */
   poisonKills = false;
+
+  /**
+   * Starvation (this port): what an empty larder does each ageing tick.
+   * 'classic' is the Apple II's 5 hit points a member, to the death;
+   * 'mild' (the default) stops at half of maximum; 'none' does nothing
+   * but say so.
+   */
+  starvation: Starvation = 'mild';
 
   /**
    * Diagonal moves: may the party move, attack and fire diagonally? Off by

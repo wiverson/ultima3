@@ -10,7 +10,7 @@
  */
 
 import { loadResources } from './data/resources.ts';
-import { World } from './game/world.ts';
+import { World, STARVATION_MODES, type Starvation } from './game/world.ts';
 import { Game } from './game/game.ts';
 import { localSave } from './game/save.ts';
 import { AutoMap, MAP_MODES, type MapMode } from './game/automap.ts';
@@ -32,12 +32,13 @@ interface Prefs {
   diagonalMoves: boolean;
   autoCombat: boolean;
   poisonKills: boolean;
+  starvation: Starvation;
   sound: boolean;
   music: boolean;
   dungeonMap: MapMode;
 }
 
-const DEFAULT_PREFS: Prefs = { inputMode: 'keyboard', tiles: 'Standard', diagonalMoves: false, autoCombat: false, poisonKills: false, sound: true, music: true, dungeonMap: 'off' };
+const DEFAULT_PREFS: Prefs = { inputMode: 'keyboard', tiles: 'Standard', diagonalMoves: false, autoCombat: false, poisonKills: false, starvation: 'mild', sound: true, music: true, dungeonMap: 'off' };
 
 function loadPrefs(): Prefs {
   try {
@@ -49,6 +50,7 @@ function loadPrefs(): Prefs {
     if (!TILE_SETS.includes(prefs.tiles)) prefs.tiles = DEFAULT_PREFS.tiles;
     if (prefs.inputMode !== 'controller') prefs.inputMode = 'keyboard';
     if (!MAP_MODES.includes(prefs.dungeonMap)) prefs.dungeonMap = 'off';
+    if (!STARVATION_MODES.includes(prefs.starvation)) prefs.starvation = 'mild';
     return prefs;
   } catch {
     return { ...DEFAULT_PREFS };
@@ -89,6 +91,7 @@ async function start(): Promise<void> {
   world.setDiagonalMoves(prefs.diagonalMoves);
   world.autoCombat = prefs.autoCombat;
   world.poisonKills = prefs.poisonKills;
+  world.starvation = prefs.starvation;
   world.soundEnabled = prefs.sound;
   world.mapMode = prefs.dungeonMap;
   // The dungeon auto-map keeps its own store; a new game starts it blank.
@@ -127,6 +130,7 @@ async function start(): Promise<void> {
       diagonalMoves: world.diagonalMoves,
       autoCombat: world.autoCombat,
       poisonKills: world.poisonKills,
+      starvation: world.starvation,
       sound: world.soundEnabled,
       music: music.enabled,
       dungeonMap: world.mapMode,

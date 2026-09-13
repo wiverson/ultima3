@@ -61,8 +61,8 @@ is used instead).
 Escape opens the Settings menu anywhere (on the title screen it is the
 third entry under Options; in controller mode it is the last entry of the
 command menu). Settings holds the input mode, the tile set, diagonal moves,
-auto combat, poison kills, sound effects, music, and Help, which shows these
-controls in the game. Every setting is remembered by the browser.
+auto combat, poison kills, starvation, sound effects, music, and Help, which
+shows these controls in the game. Every setting is remembered by the browser.
 
 ### Keyboard mode (the Apple II commands)
 
@@ -186,6 +186,11 @@ save contains except the pooled gold and food.
   point every ageing tick until the member died. Off, it stops at one hit
   point, so a poisoned member limps home rather than dying on the road;
   on restores the original.
+- **Starvation** has three settings. Classic is the Apple II's: an empty
+  larder costs every member 5 hit points an ageing tick, to the death.
+  Mild (the default) stops at half of maximum hit points. None only says
+  so. With food pooled, "STARVING!" prints once a tick rather than once a
+  member.
 - **Auto combat** (off by default), a LairWare addition: the party fights
   by itself. As in the Mac version the AI decides a member's turn and
   "types" it: it queues the keys a player would press (`GameIO.queueKeys`)
