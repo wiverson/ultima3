@@ -194,6 +194,9 @@ save contains except the pooled gold and food.
   when yelled, and said "No effect" when typed at Other. EVOCARE now works
   from Other too, so the controller menus list Other alone; Y still works
   on the keyboard.
+- **Peer at gem** asks "whose" only when it matters: the controller menu
+  lists just the members holding a gem, and with a single holder the
+  answer is filled in.
 - **Daggers** are thrown only when the member has a spare; with a single
   dagger an attack at a distant foe just misses. The Apple II let a new
   character throw away their only weapon.

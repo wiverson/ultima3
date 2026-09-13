@@ -676,14 +676,14 @@ export class Screen implements GameIO {
     return key;
   }
 
-  async chooseMember(): Promise<number> {
+  async chooseMember(only?: number[]): Promise<number> {
     let n: number;
     for (;;) {
       if (this.promptMode === 'controller') {
         const options: MenuOption[] = [];
         for (let m = 0; m < 4; m++) {
           const slot = this.world.party.memberSlot(m);
-          if (slot < 0) continue;
+          if (slot < 0 || (only && !only.includes(m))) continue;
           const p = this.world.roster.get(slot);
           options.push({ key: String(m + 1), label: `${m + 1} ${p.name}`, colour: memberColour(p) });
         }

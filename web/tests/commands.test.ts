@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { newWorld, FakeIO } from './helpers.ts';
 import { move, board, exit, look, enter, getDirection, PartyShape } from '../src/game/commands.ts';
+import { peerGem } from '../src/game/actions.ts';
 import { endTurn, placeMoongates, type TurnHooks } from '../src/game/turn.ts';
 import { spawnMonster, moveMonsters, monsterCanEnter } from '../src/game/monsters.ts';
 import { MapValue } from '../src/game/tiles.ts';
@@ -326,5 +327,35 @@ describe('walking into a monster on the surface', () => {
     const x = world.x;
     expect(await move(world, io, 'east')).toEqual({ kind: 'monster', dx: 1, dy: 0 });
     expect(world.x).toBe(x);
+  });
+});
+
+describe('peer at gem', () => {
+  const gems = (world: World, m: number, n: number) => (world.member(m).bytes[37] = n);
+
+  it('skips the "whose" prompt when exactly one member has a gem', async () => {
+    const { world, io } = flatWorld();
+    gems(world, 2, 1);
+    await peerGem(world, io);
+    expect(io.output).toContain('Whose gem-3\n');
+    expect(world.member(2).gems).toBe(0);
+    expect(io.keys).toEqual([]);
+  });
+
+  it('asks when more than one member has a gem', async () => {
+    const { world, io } = flatWorld();
+    gems(world, 0, 1);
+    gems(world, 1, 2);
+    io.keys = ['2'];
+    await peerGem(world, io);
+    expect(world.member(1).gems).toBe(1);
+    expect(world.member(0).gems).toBe(1);
+  });
+
+  it('asks as before and says none left when nobody has one', async () => {
+    const { world, io } = flatWorld();
+    io.keys = ['1'];
+    await peerGem(world, io);
+    expect(io.output).toContain('None left');
   });
 });

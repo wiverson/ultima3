@@ -76,7 +76,7 @@ export class FakeIO implements GameIO {
   async waitCommand(_scope: CommandScope): Promise<string | null> {
     return this.waitKeyOrTimeout();
   }
-  async chooseMember(): Promise<number> {
+  async chooseMember(_only?: number[]): Promise<number> {
     const key = (await this.waitKey()).toUpperCase();
     this.output += `${key}\n`;
     return key.charCodeAt(0) - '0'.charCodeAt(0);

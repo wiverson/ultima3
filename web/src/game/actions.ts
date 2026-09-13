@@ -381,7 +381,7 @@ export async function negateTime(world: World, io: GameIO, member?: number): Pro
 /** Mirrors `PeerGem()`. */
 export async function peerGem(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.PeerAtGem);
-  const n = await io.chooseMember();
+  const n = await chooseHolder(world, io, (p) => p.gems);
   if (n < 1 || n > 4) return io.print('\n');
   const p = world.member(n - 1);
   io.print('\n');
@@ -389,6 +389,23 @@ export async function peerGem(world: World, io: GameIO): Promise<void> {
   p.bytes[37]--;
   if (world.party.location === Location.Dungeon) await io.showMiniDungeon();
   else await io.showMiniMap();
+}
+
+/**
+ * "Whose gem-" and the like, answered by the inventory: the controller menu
+ * lists only the members who have one, and when exactly one member has any
+ * the answer is echoed without asking. With nobody holding one (a keyboard
+ * can still get here) the ordinary prompt runs and the command says "None
+ * left!" as before. Returns 1..4 like `chooseMember`, 0 when cancelled.
+ */
+export async function chooseHolder(world: World, io: GameIO, count: (p: PlayerRecord) => number): Promise<number> {
+  const holders: number[] = [];
+  for (let m = 0; m < 4; m++) if (world.party.memberSlot(m) >= 0 && count(world.member(m)) > 0) holders.push(m);
+  if (holders.length === 1) {
+    io.print(`${holders[0] + 1}\n`);
+    return holders[0] + 1;
+  }
+  return io.chooseMember(holders.length ? holders : undefined);
 }
 
 // ---------------------------------------------------------------------------

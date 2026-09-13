@@ -104,8 +104,12 @@ export interface GameIO {
    * null when `timeoutMs` passes with no input (the turn then passes).
    */
   waitCommand(scope: CommandScope, timeoutMs: number): Promise<string | null>;
-  /** After a "whom?" prompt: 1..4, or 0 when cancelled. Echoes the answer. (`GetChar`) */
-  chooseMember(): Promise<number>;
+  /**
+   * After a "whom?" prompt: 1..4, or 0 when cancelled. Echoes the answer.
+   * `only` (0-based members) limits what the controller menu lists, say to
+   * the members who hold a gem; a keyboard still accepts any digit. (`GetChar`)
+   */
+  chooseMember(only?: number[]): Promise<number>;
   /**
    * After a "Direction-" prompt: a movement key (arrows or keypad digits), the
    * space bar when `allowNone`, or null when cancelled.
