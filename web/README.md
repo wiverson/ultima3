@@ -145,7 +145,8 @@ save contains except the pooled gold and food.
   poisoned, light grey dead, dark grey ashes, blue when Lord British would
   raise the member, white otherwise), then hit points over max, yellow
   under a quarter and red under a tenth, and mana (none for fighters,
-  thieves and barbarians). The message area gained four rows.
+  thieves and barbarians). A dead member's or ashes' whole box takes the
+  name's grey. The message area gained four rows.
 - **The party on foot**, with the Standard tiles, is drawn as its members.
   On the overworld they are at half size in a 2x2 grid in marching order,
   to sell the scale of the map. In towns and castles the leader stands at
