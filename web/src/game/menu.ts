@@ -108,9 +108,10 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
 /**
  * A new game's first question (this port): how doth thine adventure
  * proceed? Modern sets the gentler rules, poison stopping at one hit
- * point and starvation at half; Classic sets the Apple II's, poison and
- * starvation to the death. Both can be changed later in Settings. Returns
- * false if the player backs out.
+ * point, starvation at half and experience shared; Classic sets the Apple
+ * II's, poison and starvation to the death and the killer taking all the
+ * experience. All can be changed later in Settings. Returns false if the
+ * player backs out.
  */
 export async function chooseRules(world: World, io: GameIO): Promise<boolean> {
   const key = await io.chooseFromList(
@@ -123,6 +124,7 @@ export async function chooseRules(world: World, io: GameIO): Promise<boolean> {
   if (key !== 'M' && key !== 'C') return false;
   world.poisonKills = key === 'C';
   world.starvation = key === 'C' ? 'classic' : 'mild';
+  world.balancedXp = key === 'M';
   world.onRulesChange?.();
   world.freshGame = false;
   return true;

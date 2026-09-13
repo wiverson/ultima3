@@ -190,9 +190,10 @@ save contains except the pooled gold and food.
   castle is reached by sea only.
 - **A new game asks "How Doth Thine Adventure Proceed?"** at the first
   Journey onward, and again after a new party is formed: Modern
-  (recommended) sets poison to stop at one hit point and starvation to
-  Mild; Classic (hardcore) sets both to the Apple II's, to the death.
-  Either can be changed afterwards in Settings.
+  (recommended) sets poison to stop at one hit point, starvation to Mild
+  and Balanced XP on; Classic (hardcore) sets poison and starvation to the
+  Apple II's, to the death, and Balanced XP off. Any of them can be
+  changed afterwards in Settings.
 - **Poison kills** (off by default): the Apple II's poison took a hit
   point every ageing tick until the member died. Off, it stops at one hit
   point, so a poisoned member limps home rather than dying on the road;

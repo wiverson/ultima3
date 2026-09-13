@@ -444,12 +444,14 @@ describe('a new game\'s first question', () => {
     expect(await chooseRules(world, io)).toBe(true);
     expect(world.poisonKills).toBe(true);
     expect(world.starvation).toBe('classic');
+    expect(world.balancedXp).toBe(false);
     expect(world.freshGame).toBe(false);
     world.freshGame = true;
     io.keys = ['M'];
     await chooseRules(world, io);
     expect(world.poisonKills).toBe(false);
     expect(world.starvation).toBe('mild');
+    expect(world.balancedXp).toBe(true);
     world.freshGame = true;
     io.keys = [Key.Escape];
     expect(await chooseRules(world, io)).toBe(false);
