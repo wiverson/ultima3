@@ -211,8 +211,9 @@ save contains except the pooled gold and food.
   is still shown so a party without torches can feel its way out. The
   seen cells live in their own browser store, not the save file: "try
   again from last save" keeps what was learned, a new game starts blank.
-  The party's cell blinks; there is no facing arrow, the wind line's
-  compass keeps that job.
+  The party is drawn as its first living member's figure; there is no
+  facing arrow, the wind line's compass keeps that job. Peer keeps its
+  blinking diamond.
 - **Peer at gem** asks "whose" only when it matters: the controller menu
   lists just the members holding a gem, and with a single holder the
   answer is filled in.

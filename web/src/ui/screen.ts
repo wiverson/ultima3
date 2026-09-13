@@ -135,8 +135,6 @@ export class Screen implements GameIO {
   /** Text drawn on the current title screen, replayed when the graphics set changes. */
   private titleText: { x: number; y: number; text: string }[] = [];
   private lastFrame = 0;
-  /** Auto-map: the party marker blinks on the animation tick. */
-  private mapBlink = false;
   /** Auto-map: the 5x5 overlay is on screen, so text under it is held back. */
   private overlayShown = false;
   /** Auto-map: the secret-door piece (a wall with one pixel out of place), per tile set. */
@@ -1150,7 +1148,6 @@ export class Screen implements GameIO {
     if (time - this.lastFrame >= ANIMATION_INTERVAL_MS) {
       this.lastFrame = time;
       this.gfx.tick();
-      this.mapBlink = !this.mapBlink;
       if (!this.viewCovered) this.viewDirty = true;
     }
     if (this.viewDirty && !this.viewCovered) {
@@ -1201,7 +1198,9 @@ export class Screen implements GameIO {
    * pieces Peer at gem uses. Only cells the party has seen (or, in the
    * dark, the 3x3 around it) are drawn; the rest stay black. Secret doors
    * are drawn as a wall with one pixel out of place, so a sharp eye can
-   * spot them where Peer shows them plainly. The party's cell blinks.
+   * spot them where Peer shows them plainly. The party is the figure of
+   * its first living member, standing still (Peer's blinking diamond was
+   * a distraction on a map that stays up).
    */
   private paintAutoMap(x0: number, y0: number, w: number, h: number, left: number, top: number): void {
     const { ctx, cell, world } = this;
@@ -1213,16 +1212,25 @@ export class Screen implements GameIO {
         if (!cellVisible(world, xs, ys)) continue;
         const dx = (left + col) * cell;
         const dy = (top + row) * cell;
-        const here = xs === world.x && ys === world.y;
-        if (here && this.mapBlink) {
-          this.gfx.drawUiPiece(ctx, DUNGEON_MAP_PIECE_COLUMN + 8, 1, dx, dy, cell);
-          continue;
-        }
         const value = world.getXYDng(xs, ys);
         if (value === DungeonCell.SecretDoor) ctx.drawImage(this.secretDoor(), dx, dy, cell, cell);
         else this.gfx.drawUiPiece(ctx, DUNGEON_MAP_PIECE_COLUMN + dungeonMapPiece(value), 1, dx, dy, cell);
+        if (xs === world.x && ys === world.y) {
+          const leader = this.livingLeader();
+          if (leader !== undefined) this.drawMember(leader, dx, dy, cell);
+        }
       }
     }
+  }
+
+  /** The first member in marching order who is neither dead nor ashes. */
+  private livingLeader(): number | undefined {
+    for (let m = 0; m < 4; m++) {
+      if (this.world.party.memberSlot(m) < 0) continue;
+      const s = this.world.member(m).status;
+      if (s !== 'D' && s !== 'A') return m;
+    }
+    return undefined;
   }
 
   /** The wall piece with one pixel (one Apple-scale pixel, whatever the sheet's size) turned black. */
