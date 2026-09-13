@@ -152,7 +152,7 @@ export async function ageChars(world: World, io: GameIO): Promise<void> {
       io.sound(Sound.Hit);
       if (p.subtractHitPoints(5)) io.sound(p.sex === 'F' ? Sound.DeathFemale : Sound.DeathMale);
     }
-    if (p.status === 'P') {
+    if (p.status === 'P' && (world.poisonKills || p.hitPoints > 1)) {
       if (p.subtractHitPoints(1)) io.sound(p.sex === 'F' ? Sound.DeathFemale : Sound.DeathMale);
       await io.flashMember(m);
       io.printMessage(Msg.Poison);

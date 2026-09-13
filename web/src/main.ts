@@ -31,12 +31,13 @@ interface Prefs {
   tiles: string;
   diagonalMoves: boolean;
   autoCombat: boolean;
+  poisonKills: boolean;
   sound: boolean;
   music: boolean;
   dungeonMap: MapMode;
 }
 
-const DEFAULT_PREFS: Prefs = { inputMode: 'keyboard', tiles: 'Standard', diagonalMoves: false, autoCombat: false, sound: true, music: true, dungeonMap: 'off' };
+const DEFAULT_PREFS: Prefs = { inputMode: 'keyboard', tiles: 'Standard', diagonalMoves: false, autoCombat: false, poisonKills: false, sound: true, music: true, dungeonMap: 'off' };
 
 function loadPrefs(): Prefs {
   try {
@@ -87,6 +88,7 @@ async function start(): Promise<void> {
   const world = new World(resources);
   world.setDiagonalMoves(prefs.diagonalMoves);
   world.autoCombat = prefs.autoCombat;
+  world.poisonKills = prefs.poisonKills;
   world.soundEnabled = prefs.sound;
   world.mapMode = prefs.dungeonMap;
   // The dungeon auto-map keeps its own store; a new game starts it blank.
@@ -124,6 +126,7 @@ async function start(): Promise<void> {
       tiles: screen.tileSetName,
       diagonalMoves: world.diagonalMoves,
       autoCombat: world.autoCombat,
+      poisonKills: world.poisonKills,
       sound: world.soundEnabled,
       music: music.enabled,
       dungeonMap: world.mapMode,

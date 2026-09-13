@@ -61,8 +61,8 @@ is used instead).
 Escape opens the Settings menu anywhere (on the title screen it is the
 third entry under Options; in controller mode it is the last entry of the
 command menu). Settings holds the input mode, the tile set, diagonal moves,
-auto combat, sound effects, music, and Help, which shows these controls in
-the game. Every setting is remembered by the browser.
+auto combat, poison kills, sound effects, music, and Help, which shows these
+controls in the game. Every setting is remembered by the browser.
 
 ### Keyboard mode (the Apple II commands)
 
@@ -182,6 +182,10 @@ save contains except the pooled gold and food.
   the Mac version's party diagonals; the lava either side of Exodus'
   castle then becomes mountains as the Mac's `BlockExodus()` did, so the
   castle is reached by sea only.
+- **Poison kills** (off by default): the Apple II's poison took a hit
+  point every ageing tick until the member died. Off, it stops at one hit
+  point, so a poisoned member limps home rather than dying on the road;
+  on restores the original.
 - **Auto combat** (off by default), a LairWare addition: the party fights
   by itself. As in the Mac version the AI decides a member's turn and
   "types" it: it queues the keys a player would press (`GameIO.queueKeys`)

@@ -347,3 +347,22 @@ describe('peer at gem', () => {
     expect(io.output).toContain('None left');
   });
 });
+
+describe('poison', () => {
+  it('stops at one hit point unless Poison kills is on', async () => {
+    const { world, io } = flatWorld();
+    const p = world.member(0);
+    p.status = 'P';
+    p.hitPoints = 2;
+    world.party.food = 500;
+    await endTurn(world, io, noHooks); // ageing runs every surface turn
+    expect(p.hitPoints).toBe(1);
+    await endTurn(world, io, noHooks);
+    expect(p.hitPoints).toBe(1);
+    expect(p.status).toBe('P'); // still poisoned, just not dying
+    world.poisonKills = true;
+    await endTurn(world, io, noHooks);
+    expect(p.hitPoints).toBe(0);
+    expect(p.status).toBe('D');
+  });
+});

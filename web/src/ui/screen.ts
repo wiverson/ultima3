@@ -524,6 +524,7 @@ export class Screen implements GameIO {
         { key: 'T', label: `Tiles: ${this.tileSetName}` },
         { key: 'D', label: `Diagonal move: ${onOff(w.diagonalMoves)}` },
         { key: 'A', label: `Auto combat: ${onOff(w.autoCombat)}` },
+        { key: 'P', label: `Poison kills: ${onOff(w.poisonKills)}` },
         { key: 'S', label: `Sound effects: ${onOff(w.soundEnabled)}` },
         { key: 'M', label: `Music: ${onOff(this.musicPlayer.enabled)}` },
         { key: 'H', label: 'Help' },
@@ -546,6 +547,9 @@ export class Screen implements GameIO {
         case 'A':
           w.autoCombat = !w.autoCombat;
           w.onAutoCombatChange?.();
+          break;
+        case 'P':
+          w.poisonKills = !w.poisonKills;
           break;
         case 'S':
           w.soundEnabled = !w.soundEnabled;

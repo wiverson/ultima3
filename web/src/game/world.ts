@@ -633,6 +633,13 @@ export class World {
   autoCombat = false;
 
   /**
+   * Poison kills (off by default): as on the Apple II, poison takes a hit
+   * point every ageing tick until it kills. Off, it stops at one hit point,
+   * so a long walk home poisoned is a nuisance, not a death.
+   */
+  poisonKills = false;
+
+  /**
    * Diagonal moves: may the party move, attack and fire diagonally? Off by
    * default, as on the Apple II, where only monsters could (a small edge
    * for them). On gives the party diagonals too, as the Mac version allowed.
