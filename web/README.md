@@ -224,6 +224,10 @@ save contains except the pooled gold and food.
   when yelled, and said "No effect" when typed at Other. EVOCARE now works
   from Other too, so the controller menus list Other alone; Y still works
   on the keyboard.
+- **Repeated turns fold into one line.** A turn whose only output repeats
+  the previous turn's, "North" five times or "Pass" eight, shows as
+  "North (x5)" or "Pass (x8)" rather than filling the message area; any
+  other output in between starts the count afresh.
 - **Fountains and the Time Lord** speak only when the party steps onto
   their cell. The Apple II asked "who will drink?" again on every turn
   spent standing there, turning on the spot included, and the idle pass

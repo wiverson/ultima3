@@ -146,6 +146,13 @@ export class Screen implements GameIO {
   private cursorY = ROWS - 1;
   /** Characters currently shown in the message area, so it can be scrolled. */
   private textRows: string[][] = [];
+  /**
+   * Repeated one-line turns fold into one line with a count ("North (x5)"):
+   * the last turn's sole line, where it sits now, and how many times it has
+   * repeated. Any other output in between starts the count afresh.
+   */
+  private lastSole: { text: string; row: number; count: number } | null = null;
+  private linesSincePrompt = 0;
 
   /** Last values drawn in each stats box, to avoid redrawing every turn. */
   private statsCache: string[] = ['', '', '', ''];
@@ -253,6 +260,7 @@ export class Screen implements GameIO {
       this.drawText(String(i + 1), 31, i * BOX_PITCH);
     }
     this.textRows.forEach((row) => row.fill(' '));
+    this.lastSole = null;
     this.redrawTextArea();
     this.showWind();
     this.showMoons();
@@ -370,6 +378,7 @@ export class Screen implements GameIO {
   private scrollText(): void {
     this.textRows.shift();
     this.textRows.push(new Array(TEXT_RIGHT - TEXT_LEFT).fill(' '));
+    if (this.lastSole && --this.lastSole.row < 0) this.lastSole = null;
     this.redrawTextArea();
     // The prompt corner piece is part of the border; redraw it after scrolling.
     this.piece(Piece.BottomRight, 23, 23);
@@ -378,6 +387,7 @@ export class Screen implements GameIO {
   print(text: string): void {
     for (const ch of text) {
       if (ch === '\n') {
+        if (this.foldRepeat()) continue;
         this.cursorX = TEXT_LEFT;
         this.cursorY++;
         if (this.cursorY >= TEXT_BOTTOM) {
@@ -394,6 +404,37 @@ export class Screen implements GameIO {
     }
   }
 
+  /**
+   * At the end of a line: if this is a turn's only line and it repeats the
+   * previous turn's only line, fold it into that line as "text (xN)" and
+   * leave the cursor where the folded line began. Returns true when folded.
+   */
+  private foldRepeat(): boolean {
+    const width = TEXT_RIGHT - TEXT_LEFT;
+    const row = this.cursorY - TEXT_TOP;
+    const raw = this.textRows[row].join('').trimEnd(); // keeps the prompt column's leading space
+    const text = raw.trim();
+    const sole = this.linesSincePrompt === 0;
+    this.linesSincePrompt++;
+    if (!sole || !text) {
+      this.lastSole = null;
+      return false;
+    }
+    const last = this.lastSole;
+    if (last && last.text === text && last.row === row - 1) {
+      last.count++;
+      this.textRows[row].fill(' ');
+      this.drawText(' '.repeat(width), TEXT_LEFT, this.cursorY);
+      const label = `${raw} (x${last.count})`.slice(0, width).padEnd(width);
+      this.textRows[row - 1] = label.split('');
+      this.drawText(label, TEXT_LEFT, this.cursorY - 1);
+      this.cursorX = TEXT_LEFT;
+      return true;
+    }
+    this.lastSole = { text, row, count: 1 };
+    return false;
+  }
+
   printMessage(n: number): void {
     const s = this.world.resources.strings.Messages[n - 1];
     this.print(s ?? `[msg ${n}]`);
@@ -406,6 +447,7 @@ export class Screen implements GameIO {
     for (let x = TEXT_LEFT + 1; x < TEXT_RIGHT; x++) this.drawText(' ', x, TEXT_BOTTOM - 1);
     this.cursorX = TEXT_LEFT + 1;
     this.cursorY = TEXT_BOTTOM - 1;
+    this.linesSincePrompt = 0;
   }
 
   // -------------------------------------------------------------------------
