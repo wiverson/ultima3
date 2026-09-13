@@ -275,6 +275,12 @@ save contains except the pooled gold and food.
 - **`heading()`** in `monsters.ts` uses true 8-bit wrap-around, as the
   Apple II did. The C port tested for negative values first, which sent
   monsters the long way round when the party was far to their west.
+- **The Ranger's figure** in the Standard and Lairware tiles has a second
+  animation frame of its own now, the sword arm raised, made by turning
+  the arm of the Mac's single frame about the shoulder; the Mac sheet's
+  two frames were the same picture, so the Ranger alone stood still. Any
+  member figure whose two frames match in another set turns about on the
+  alternate frame instead.
 - **Appearance**: the classic bitmap-font layout is used throughout; any of
   the thirteen tile sets (with their fonts, borders and dungeon art) can be chosen in
   Settings, Standard by default.
