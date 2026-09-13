@@ -96,12 +96,36 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
         await notice(io, mm(world, MM.NotFormed));
         continue;
       }
+      if (world.freshGame && !(await chooseRules(world, io))) continue;
       await play();
     } else if (key === 'O') {
       await organize(world, io);
       options.save?.(world);
     }
   }
+}
+
+/**
+ * A new game's first question (this port): how doth thine adventure
+ * proceed? Modern sets the gentler rules, poison stopping at one hit
+ * point and starvation at half; Classic sets the Apple II's, poison and
+ * starvation to the death. Both can be changed later in Settings. Returns
+ * false if the player backs out.
+ */
+export async function chooseRules(world: World, io: GameIO): Promise<boolean> {
+  const key = await io.chooseFromList(
+    [
+      { key: 'M', label: 'Modern (Recommended)' },
+      { key: 'C', label: 'Classic (Hardcore)' },
+    ],
+    { row: MENU_ROW, title: 'How Doth Thine Adventure Proceed?' },
+  );
+  if (key !== 'M' && key !== 'C') return false;
+  world.poisonKills = key === 'C';
+  world.starvation = key === 'C' ? 'classic' : 'mild';
+  world.onRulesChange?.();
+  world.freshGame = false;
+  return true;
 }
 
 /** Mirrors `Organize()`. */
@@ -387,6 +411,7 @@ export async function formParty(world: World, io: GameIO): Promise<void> {
   world.poolPurses();
   world.poolGear();
   world.poolSupplies();
+  world.freshGame = true; // a new party: the first journey asks Modern or Classic
   world.party.location = Location.Sosaria;
   world.party.shape = 0x7e;
   world.party.bytes[5] = 0xff;

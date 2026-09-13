@@ -634,6 +634,15 @@ export class World {
   trail: { x: number; y: number }[] = [];
 
   /**
+   * Set when a game has just begun (a new game, or a party just formed) and
+   * the journey has not yet started: the first Journey onward then asks how
+   * the adventure should proceed, Modern or Classic (this port).
+   */
+  freshGame = false;
+  /** Called when the game changes a rule setting itself (the Modern/Classic choice), so the page can remember it. */
+  onRulesChange: (() => void) | null = null;
+
+  /**
    * Balanced XP (on by default, this port): a kill's experience is shared
    * among the living members, the killer taking any remainder first. Off,
    * the killer takes it all, as on the Apple II.

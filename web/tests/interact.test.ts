@@ -434,3 +434,25 @@ describe('Lord British', () => {
     expect(world.member(0).maxHitPoints).toBe(100);
   });
 });
+
+describe('a new game\'s first question', () => {
+  it('sets Classic or Modern rules at the first Journey onward, and can be backed out of', async () => {
+    const { chooseRules } = await import('../src/game/menu.ts');
+    const { world, io } = townWorld();
+    world.freshGame = true;
+    io.keys = ['C'];
+    expect(await chooseRules(world, io)).toBe(true);
+    expect(world.poisonKills).toBe(true);
+    expect(world.starvation).toBe('classic');
+    expect(world.freshGame).toBe(false);
+    world.freshGame = true;
+    io.keys = ['M'];
+    await chooseRules(world, io);
+    expect(world.poisonKills).toBe(false);
+    expect(world.starvation).toBe('mild');
+    world.freshGame = true;
+    io.keys = [Key.Escape];
+    expect(await chooseRules(world, io)).toBe(false);
+    expect(world.freshGame).toBe(true);
+  });
+});
