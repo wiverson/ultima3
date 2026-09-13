@@ -219,6 +219,11 @@ describe('equipment and stats', () => {
     await stats(world, io);
     expect(io.output).toContain('STR...');
     expect(io.output).toContain('H.P...');
+    // Race and class under the name.
+    const races = world.resources.strings.Races;
+    const race = races.find((r) => r[0] === world.member(0).race)!;
+    expect(io.output).toContain(race);
+    expect(io.output).toContain('Thief');
   });
 });
 

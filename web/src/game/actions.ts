@@ -416,6 +416,13 @@ export async function stats(world: World, io: GameIO, member?: number): Promise<
   const names = world.resources.strings.WeaponsArmour;
 
   io.print(p.name);
+  // Race and class (this port shows neither in the character boxes).
+  const races = world.resources.strings.Races;
+  const race = races.find((r) => r[0] === p.race) ?? '';
+  const careers = String.fromCharCode(...world.resources.misc.careerTable);
+  const career = world.resources.strings.Classes[Math.max(0, careers.indexOf(p.classLetter))] ?? '';
+  const who = `${race} ${career}`;
+  io.print(who.length <= 16 ? `\n${who}` : `\n${race}\n${career}`);
   io.print(`\nSTR...${pad(p.strength, 2)}\nDEX...${pad(p.dexterity, 2)}\nINT...${pad(p.intelligence, 2)}\nWIS...${pad(p.wisdom, 2)}`);
   if (await wait()) return;
   const lines = [

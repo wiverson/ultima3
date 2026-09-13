@@ -155,7 +155,8 @@ save contains except the pooled gold and food.
   worn armour is announced, stock they cannot use is greyed but still for
   sale, and after a purchase they can use, the shop offers to ready or
   wear it there and then. Selling takes from the bag only. Ztats lists the
-  bag on every member's page. Chest finds, dug exotics and thrown daggers
+  bag on every member's page, under the member's race and class, which
+  the character boxes no longer show. Chest finds, dug exotics and thrown daggers
   come and go from the bag; a pilfering thief empties one kind from it.
   Forming a party pools the members' bags (each keeps what is in hand);
   dispersing deals the bag out, to members who can use each item first.
