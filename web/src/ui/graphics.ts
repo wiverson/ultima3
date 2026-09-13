@@ -251,7 +251,7 @@ export class GraphicsSet {
       ctx.drawImage(src, rect.x, rect.y + scrollPx, rect.w, topH, dx, dy, size, topH * scale);
       ctx.drawImage(src, rect.x, rect.y, rect.w, scrollPx, dx, dy + topH * scale, size, scrollPx * scale);
     }
-    if (opts.flip) ctx.restore();
+    if (flip) ctx.restore();
   }
 
   /** Draw a glyph of the classic bitmap font. */
