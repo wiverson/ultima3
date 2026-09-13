@@ -33,12 +33,13 @@ interface Prefs {
   autoCombat: boolean;
   poisonKills: boolean;
   starvation: Starvation;
+  balancedXp: boolean;
   sound: boolean;
   music: boolean;
   dungeonMap: MapMode;
 }
 
-const DEFAULT_PREFS: Prefs = { inputMode: 'keyboard', tiles: 'Standard', diagonalMoves: false, autoCombat: false, poisonKills: false, starvation: 'mild', sound: true, music: true, dungeonMap: 'off' };
+const DEFAULT_PREFS: Prefs = { inputMode: 'keyboard', tiles: 'Standard', diagonalMoves: false, autoCombat: false, poisonKills: false, starvation: 'mild', balancedXp: true, sound: true, music: true, dungeonMap: 'off' };
 
 function loadPrefs(): Prefs {
   try {
@@ -92,6 +93,7 @@ async function start(): Promise<void> {
   world.autoCombat = prefs.autoCombat;
   world.poisonKills = prefs.poisonKills;
   world.starvation = prefs.starvation;
+  world.balancedXp = prefs.balancedXp;
   world.soundEnabled = prefs.sound;
   world.mapMode = prefs.dungeonMap;
   // The dungeon auto-map keeps its own store; a new game starts it blank.
@@ -131,6 +133,7 @@ async function start(): Promise<void> {
       autoCombat: world.autoCombat,
       poisonKills: world.poisonKills,
       starvation: world.starvation,
+      balancedXp: world.balancedXp,
       sound: world.soundEnabled,
       music: music.enabled,
       dungeonMap: world.mapMode,

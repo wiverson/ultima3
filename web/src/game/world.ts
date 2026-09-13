@@ -633,6 +633,13 @@ export class World {
    */
   trail: { x: number; y: number }[] = [];
 
+  /**
+   * Balanced XP (on by default, this port): a kill's experience is shared
+   * among the living members, the killer taking any remainder first. Off,
+   * the killer takes it all, as on the Apple II.
+   */
+  balancedXp = true;
+
   /** Each member's last spell this session, for the combat menu's "Cast (spell)" shortcut (this port). */
   lastSpell: (number | undefined)[] = [];
 

@@ -147,11 +147,17 @@ export class Screen implements GameIO {
   /** Characters currently shown in the message area, so it can be scrolled. */
   private textRows: string[][] = [];
   /**
-   * Repeated one-line turns fold into one line with a count ("North (x5)"):
-   * the last turn's sole line, where it sits now, and how many times it has
-   * repeated. Any other output in between starts the count afresh.
+   * A turn that prints exactly what the previous turn printed folds into it
+   * with counts: "North (x5)" over "POISON! (x5)". `prevTurn` is the last
+   * turn's block of lines, where each now sits and how often it has
+   * repeated; `thisTurn` gathers the current turn's lines. Lines fold one by
+   * one while they match; the first difference, or a turn that ends short,
+   * unfolds what matched and prints the turn afresh.
    */
-  private lastSole: { text: string; row: number; count: number } | null = null;
+  private prevTurn: { texts: string[]; rows: number[]; counts: number[] } | null = null;
+  private thisTurn: { texts: string[]; rows: number[] } = { texts: [], rows: [] };
+  private foldedThisTurn = 0;
+  private brokenThisTurn = false;
   private linesSincePrompt = 0;
 
   /** Last values drawn in each stats box, to avoid redrawing every turn. */
@@ -260,7 +266,9 @@ export class Screen implements GameIO {
       this.drawText(String(i + 1), 31, i * BOX_PITCH);
     }
     this.textRows.forEach((row) => row.fill(' '));
-    this.lastSole = null;
+    this.prevTurn = null;
+    this.thisTurn = { texts: [], rows: [] };
+    this.foldedThisTurn = 0;
     this.redrawTextArea();
     this.showWind();
     this.showMoons();
@@ -378,7 +386,16 @@ export class Screen implements GameIO {
   private scrollText(): void {
     this.textRows.shift();
     this.textRows.push(new Array(TEXT_RIGHT - TEXT_LEFT).fill(' '));
-    if (this.lastSole && --this.lastSole.row < 0) this.lastSole = null;
+    // The folding records follow their lines up the screen; a block that scrolls off is forgotten.
+    if (this.prevTurn) {
+      this.prevTurn.rows = this.prevTurn.rows.map((r) => r - 1);
+      if (this.prevTurn.rows[0] < 0) this.prevTurn = null;
+    }
+    this.thisTurn.rows = this.thisTurn.rows.map((r) => r - 1);
+    while (this.thisTurn.rows.length && this.thisTurn.rows[0] < 0) {
+      this.thisTurn.rows.shift();
+      this.thisTurn.texts.shift();
+    }
     this.redrawTextArea();
     // The prompt corner piece is part of the border; redraw it after scrolling.
     this.piece(Piece.BottomRight, 23, 23);
@@ -387,13 +404,7 @@ export class Screen implements GameIO {
   print(text: string): void {
     for (const ch of text) {
       if (ch === '\n') {
-        if (this.foldRepeat()) continue;
-        this.cursorX = TEXT_LEFT;
-        this.cursorY++;
-        if (this.cursorY >= TEXT_BOTTOM) {
-          this.cursorY = TEXT_BOTTOM - 1;
-          this.scrollText();
-        }
+        if (!this.foldRepeat()) this.newline();
         continue;
       }
       if (ch < ' ') continue;
@@ -404,35 +415,74 @@ export class Screen implements GameIO {
     }
   }
 
+  private newline(): void {
+    this.cursorX = TEXT_LEFT;
+    this.cursorY++;
+    if (this.cursorY >= TEXT_BOTTOM) {
+      this.cursorY = TEXT_BOTTOM - 1;
+      this.scrollText();
+    }
+  }
+
+  /** Write a whole message-area row (text with its prompt column kept) and draw it. */
+  private setRow(row: number, text: string): void {
+    const width = TEXT_RIGHT - TEXT_LEFT;
+    const padded = text.slice(0, width).padEnd(width);
+    this.textRows[row] = padded.split('');
+    this.drawText(padded, TEXT_LEFT, TEXT_TOP + row);
+  }
+
+  private countLabel(text: string, count: number): string {
+    return count > 1 && text.trim() ? `${text} (x${count})` : text;
+  }
+
   /**
-   * At the end of a line: if this is a turn's only line and it repeats the
-   * previous turn's only line, fold it into that line as "text (xN)" and
-   * leave the cursor where the folded line began. Returns true when folded.
+   * At the end of a line: if this turn has matched the previous turn's block
+   * so far and this line matches its next line too, fold it in (count up,
+   * leave the cursor where the line began) and return true. Otherwise the
+   * line is the turn's own; any lines folded earlier in this turn are unfolded
+   * and printed again ahead of it, so a turn that only starts like the last
+   * one is shown in full.
    */
   private foldRepeat(): boolean {
-    const width = TEXT_RIGHT - TEXT_LEFT;
     const row = this.cursorY - TEXT_TOP;
     const raw = this.textRows[row].join('').trimEnd(); // keeps the prompt column's leading space
-    const text = raw.trim();
-    const sole = this.linesSincePrompt === 0;
-    this.linesSincePrompt++;
-    if (!sole || !text) {
-      this.lastSole = null;
-      return false;
-    }
-    const last = this.lastSole;
-    if (last && last.text === text && last.row === row - 1) {
-      last.count++;
-      this.textRows[row].fill(' ');
-      this.drawText(' '.repeat(width), TEXT_LEFT, this.cursorY);
-      const label = `${raw} (x${last.count})`.slice(0, width).padEnd(width);
-      this.textRows[row - 1] = label.split('');
-      this.drawText(label, TEXT_LEFT, this.cursorY - 1);
+    const k = this.linesSincePrompt++;
+    const prev = this.prevTurn;
+    const contiguous = prev !== null && prev.rows[prev.rows.length - 1] === row - 1;
+    if (!this.brokenThisTurn && prev && contiguous && k === this.foldedThisTurn && k < prev.texts.length && prev.texts[k] === raw) {
+      prev.counts[k]++;
+      this.setRow(row, '');
+      this.setRow(prev.rows[k], this.countLabel(prev.texts[k], prev.counts[k]));
+      this.foldedThisTurn++;
       this.cursorX = TEXT_LEFT;
       return true;
     }
-    this.lastSole = { text, row, count: 1 };
+    if (this.foldedThisTurn > 0) this.unfold(raw);
+    this.brokenThisTurn = true;
+    this.thisTurn.texts.push(raw);
+    this.thisTurn.rows.push(row);
     return false;
+  }
+
+  /** Take back the lines folded this turn and print them again as this turn's own, ahead of `pending` (the line now on the bottom row). */
+  private unfold(pending: string | null): void {
+    const prev = this.prevTurn!;
+    const row = this.cursorY - TEXT_TOP;
+    const lines = prev.texts.slice(0, this.foldedThisTurn);
+    lines.forEach((text, i) => {
+      prev.counts[i]--;
+      this.setRow(prev.rows[i], this.countLabel(text, prev.counts[i]));
+    });
+    this.foldedThisTurn = 0;
+    for (const text of lines) {
+      this.setRow(this.cursorY - TEXT_TOP, text);
+      this.thisTurn.texts.push(text);
+      this.thisTurn.rows.push(this.cursorY - TEXT_TOP);
+      this.newline();
+    }
+    if (pending !== null) this.setRow(this.cursorY - TEXT_TOP, pending);
+    void row;
   }
 
   printMessage(n: number): void {
@@ -441,12 +491,28 @@ export class Screen implements GameIO {
   }
 
   prompt(): void {
+    this.endTurn(); // may print unfolded lines, so before the prompt row is cleared
     this.piece(Piece.BottomTee, 23, 23);
     this.piece(Piece.CapLeft, 24, 23);
     this.textRows[TEXT_BOTTOM - 1 - TEXT_TOP].fill(' ');
     for (let x = TEXT_LEFT + 1; x < TEXT_RIGHT; x++) this.drawText(' ', x, TEXT_BOTTOM - 1);
     this.cursorX = TEXT_LEFT + 1;
     this.cursorY = TEXT_BOTTOM - 1;
+  }
+
+  /** A new command prompt: the block just printed becomes the one the next turn may fold into. */
+  private endTurn(): void {
+    const prev = this.prevTurn;
+    if (this.foldedThisTurn > 0 && prev && this.foldedThisTurn < prev.texts.length) {
+      // The turn ended before matching the whole block: show it on its own.
+      this.unfold(null);
+    }
+    if (this.thisTurn.texts.length > 0) {
+      this.prevTurn = { texts: this.thisTurn.texts, rows: this.thisTurn.rows, counts: this.thisTurn.texts.map(() => 1) };
+    }
+    this.thisTurn = { texts: [], rows: [] };
+    this.foldedThisTurn = 0;
+    this.brokenThisTurn = false;
     this.linesSincePrompt = 0;
   }
 
@@ -578,6 +644,7 @@ export class Screen implements GameIO {
         { key: 'A', label: `Auto combat: ${onOff(w.autoCombat)}` },
         { key: 'P', label: `Poison kills: ${onOff(w.poisonKills)}` },
         { key: 'V', label: `Starving: ${w.starvation[0].toUpperCase()}${w.starvation.slice(1)}` },
+        { key: 'X', label: `Balanced XP: ${onOff(w.balancedXp)}` },
         { key: 'S', label: `Sound effects: ${onOff(w.soundEnabled)}` },
         { key: 'M', label: `Music: ${onOff(this.musicPlayer.enabled)}` },
         { key: 'H', label: 'Help' },
@@ -606,6 +673,9 @@ export class Screen implements GameIO {
           break;
         case 'V':
           w.starvation = STARVATION_MODES[(STARVATION_MODES.indexOf(w.starvation) + 1) % STARVATION_MODES.length];
+          break;
+        case 'X':
+          w.balancedXp = !w.balancedXp;
           break;
         case 'S':
           w.soundEnabled = !w.soundEnabled;

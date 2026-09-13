@@ -61,8 +61,8 @@ is used instead).
 Escape opens the Settings menu anywhere (on the title screen it is the
 third entry under Options; in controller mode it is the last entry of the
 command menu). Settings holds the input mode, the tile set, diagonal moves,
-auto combat, poison kills, starvation, sound effects, music, and Help, which
-shows these controls in the game. Every setting is remembered by the browser.
+auto combat, poison kills, starvation, balanced XP, sound effects, music, and
+Help, which shows these controls in the game. Every setting is remembered by the browser.
 
 ### Keyboard mode (the Apple II commands)
 
@@ -197,6 +197,11 @@ save contains except the pooled gold and food.
   Mild (the default) stops at half of maximum hit points. None only says
   so. With food pooled, "STARVING!" prints once a tick rather than once a
   member.
+- **Balanced XP** (on by default): a kill's experience is shared among the
+  living members, the killer then the others in marching order taking any
+  odd points, so an orc's 3 points go one each to three of four. Off, the
+  killer takes it all, as on the Apple II, where a bow-armed member who
+  finished off wounded foes out-levelled the rest.
 - **Auto combat** (off by default), a LairWare addition: the party fights
   by itself. As in the Mac version the AI decides a member's turn and
   "types" it: it queues the keys a player would press (`GameIO.queueKeys`)
@@ -229,10 +234,11 @@ save contains except the pooled gold and food.
   when yelled, and said "No effect" when typed at Other. EVOCARE now works
   from Other too, so the controller menus list Other alone; Y still works
   on the keyboard.
-- **Repeated turns fold into one line.** A turn whose only output repeats
-  the previous turn's, "North" five times or "Pass" eight, shows as
-  "North (x5)" or "Pass (x8)" rather than filling the message area; any
-  other output in between starts the count afresh.
+- **Repeated turns fold together.** A turn that prints exactly what the
+  previous turn printed, "North" five times, "Pass" eight, or "North" over
+  "POISON!" on a poisoned walk, shows as "North (x5)", "Pass (x8)", or
+  "North (x5)" over "POISON! (x5)" rather than filling the message area;
+  a turn that differs, even partly, is printed in full and starts afresh.
 - **Fountains and the Time Lord** speak only when the party steps onto
   their cell. The Apple II asked "who will drink?" again on every turn
   spent standing there, turning on the spot included, and the idle pass

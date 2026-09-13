@@ -253,8 +253,22 @@ export async function shoot(
 }
 
 /**
+ * Who gets a kill's experience: with Balanced XP the living members share it
+ * equally, the killer then the others in marching order taking the odd
+ * points; otherwise the killer alone, as on the Apple II.
+ */
+export function shareExperience(world: World, killer: number, exp: number): [number, number][] {
+  if (!world.balancedXp) return [[killer, exp]];
+  const living = [killer, ...[0, 1, 2, 3].filter((m) => m !== killer)].filter((m) => world.memberAlive(m));
+  if (living.length === 0) return [[killer, exp]];
+  const each = Math.floor(exp / living.length);
+  const odd = exp % living.length;
+  return living.map((m, i) => [m, each + (i < odd ? 1 : 0)] as [number, number]).filter(([, share]) => share > 0);
+}
+
+/**
  * Mirrors `DamageMonster()`. Lord British cannot be hurt. A kill awards the
- * experience for the monster's tier to member `member` (0..3).
+ * experience for the monster's tier (see `shareExperience`).
  */
 export function damageMonster(world: World, io: GameIO, which: number, damage: number, member: number): void {
   const c = world.combat!;
@@ -264,7 +278,7 @@ export function damageMonster(world: World, io: GameIO, which: number, damage: n
     const exp = world.resources.misc.experience[(c.monsterShape >> 1) & 0x0f];
     io.printMessage(Msg.Killed);
     io.print(`${exp}\n`);
-    addExperience(world, io, member, exp);
+    for (const [m, share] of shareExperience(world, member, exp)) addExperience(world, io, m, share);
     m.hp = 0;
     io.redrawMap();
   } else {

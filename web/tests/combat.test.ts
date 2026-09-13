@@ -264,3 +264,17 @@ describe('throwing daggers', () => {
     expect(p.bytes[48]).toBe(1);
   });
 });
+
+describe('balanced experience', () => {
+  it('shares a kill among the living, killer first for the odd points, or gives it all to the killer when off', async () => {
+    const { newWorld } = await import('./helpers.ts');
+    const { shareExperience } = await import('../src/game/combat.ts');
+    const world = newWorld();
+    expect(shareExperience(world, 2, 3)).toEqual([[2, 1], [0, 1], [1, 1]]); // the fourth gets nothing this time
+    expect(shareExperience(world, 0, 20)).toEqual([[0, 5], [1, 5], [2, 5], [3, 5]]);
+    world.member(3).status = 'D';
+    expect(shareExperience(world, 0, 10)).toEqual([[0, 4], [1, 3], [2, 3]]);
+    world.balancedXp = false;
+    expect(shareExperience(world, 1, 15)).toEqual([[1, 15]]);
+  });
+});
