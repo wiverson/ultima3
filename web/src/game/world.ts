@@ -138,6 +138,10 @@ export const DungeonCell = {
 export type Starvation = 'none' | 'mild' | 'classic';
 export const STARVATION_MODES: Starvation[] = ['none', 'mild', 'classic'];
 
+/** The turn timer: see World.timer. */
+export type Timer = 'slow' | 'fast' | 'off';
+export const TIMER_MODES: Timer[] = ['slow', 'fast', 'off'];
+
 export class World {
   readonly rng: Random;
   readonly party: Party;
@@ -684,6 +688,22 @@ export class World {
    * but say so.
    */
   starvation: Starvation = 'mild';
+
+  /**
+   * The turn timer (this port): how long the game waits for a key before
+   * a combat turn, or an idle turn in the field or a dungeon, passes by
+   * itself. 'fast' is the Apple II's (4, 5 and 6 seconds); 'slow' gives
+   * 10, 12 and 14; 'off' waits for ever, so a turn passes only when the
+   * player says so. Fast by default, for games from before the setting;
+   * "Choose Thine Adventure!" sets Slow for Modern and Off for Story.
+   */
+  timer: Timer = 'fast';
+
+  /** The wait for a key under the timer setting, from the Apple II's wait in ms; undefined for no limit. */
+  timeLimit(originalMs: number): number | undefined {
+    if (this.timer === 'off') return undefined;
+    return this.timer === 'slow' ? originalMs * 2 + 2000 : originalMs;
+  }
 
   /**
    * Diagonal moves: may the party move, attack and fire diagonally? Off by

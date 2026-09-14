@@ -442,16 +442,18 @@ async function victory(world: World, io: GameIO, previousMusic: number): Promise
 
 /**
  * Wait for the member's command while the UI marks their figure. After
- * TURN_TIMEOUT_MS the turn is passed, as on the Apple II.
+ * the turn timer (TURN_TIMEOUT_MS under Fast) the turn is passed, as on
+ * the Apple II; with the timer off the wait has no end.
  */
 async function waitForCombatKey(world: World, io: GameIO, member: number): Promise<string> {
   const c = world.combat!;
   c.markedMember = member;
   c.markedAt = performance.now();
-  c.markedFor = TURN_TIMEOUT_MS;
+  const limit = world.timeLimit(TURN_TIMEOUT_MS);
+  c.markedFor = limit ?? 0; // 0: no countdown, the outline stays white
   io.redrawMap();
   try {
-    const key = await io.waitCommand('combat', TURN_TIMEOUT_MS);
+    const key = await io.waitCommand('combat', limit);
     return key ?? Key.Space;
   } finally {
     c.markedFor = 0; // the outline stays, steady, while the command's prompts run (a direction, a target)

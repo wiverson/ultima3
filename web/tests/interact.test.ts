@@ -448,6 +448,7 @@ describe("a new game's first question", () => {
     expect(world.poisonKills).toBe(true);
     expect(world.starvation).toBe('classic');
     expect(world.balancedXp).toBe(false);
+    expect(world.timer).toBe('fast');
     expect(world.party.rulesPending).toBe(false);
     world.party.rulesPending = true;
     io.keys = ['M'];
@@ -455,6 +456,13 @@ describe("a new game's first question", () => {
     expect(world.poisonKills).toBe(false);
     expect(world.starvation).toBe('mild');
     expect(world.balancedXp).toBe(true);
+    expect(world.timer).toBe('slow');
+    io.keys = ['S']; // Story: Modern without starvation or a timer
+    await chooseRules(world, io);
+    expect(world.poisonKills).toBe(false);
+    expect(world.starvation).toBe('none');
+    expect(world.balancedXp).toBe(true);
+    expect(world.timer).toBe('off');
     world.party.rulesPending = true;
     io.keys = [Key.Escape];
     expect(await chooseRules(world, io)).toBe(false);

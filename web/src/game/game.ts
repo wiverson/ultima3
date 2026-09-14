@@ -125,11 +125,13 @@ export class Game {
   }
 
   /**
-   * Wait for a key while the whirlpool keeps moving. After IDLE_PASS_MS with
-   * no input the turn passes by itself, as on the Apple II.
+   * Wait for a key while the whirlpool keeps moving. After the idle time
+   * (IDLE_PASS_MS under the Fast timer) with no input the turn passes by
+   * itself, as on the Apple II; with the timer off it never does.
    */
   private async waitForCommand(): Promise<string> {
-    const deadline = performance.now() + IDLE_PASS_MS;
+    const limit = this.world.timeLimit(IDLE_PASS_MS);
+    const deadline = limit === undefined ? Infinity : performance.now() + limit;
     for (;;) {
       await whirlpoolTick(this.world, this.io, this.hooks);
       const remaining = deadline - performance.now();

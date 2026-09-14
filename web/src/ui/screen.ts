@@ -28,7 +28,7 @@ import { Keyboard } from './input.ts';
 import { SoundPlayer } from './sound.ts';
 import { MusicPlayer } from './music.ts';
 import { DungeonRenderer } from './dungeonView.ts';
-import { World, STARVATION_MODES } from '../game/world.ts';
+import { World, STARVATION_MODES, TIMER_MODES } from '../game/world.ts';
 import { PlayerRecord, levelUpDue } from '../game/player.ts';
 import { commandMenu, hasMagic } from '../game/context.ts';
 import { memberShape } from '../game/combat.ts';
@@ -658,6 +658,7 @@ export class Screen implements GameIO {
         { key: 'P', label: `Poison kills: ${onOff(w.poisonKills)}` },
         { key: 'V', label: `Starving: ${w.starvation[0].toUpperCase()}${w.starvation.slice(1)}` },
         { key: 'X', label: `Balanced XP: ${onOff(w.balancedXp)}` },
+        { key: 'R', label: `Timer: ${w.timer[0].toUpperCase()}${w.timer.slice(1)}` },
         { key: 'S', label: `Sound effects: ${onOff(w.soundEnabled)}` },
         { key: 'M', label: `Music: ${onOff(this.musicPlayer.enabled)}` },
         { key: 'H', label: 'Help' },
@@ -686,6 +687,9 @@ export class Screen implements GameIO {
           break;
         case 'X':
           w.balancedXp = !w.balancedXp;
+          break;
+        case 'R':
+          w.timer = TIMER_MODES[(TIMER_MODES.indexOf(w.timer) + 1) % TIMER_MODES.length];
           break;
         case 'S':
           w.soundEnabled = !w.soundEnabled;
@@ -951,7 +955,7 @@ export class Screen implements GameIO {
     else this.viewDirty = true;
   }
 
-  async waitCommand(scope: CommandScope, timeoutMs: number): Promise<string | null> {
+  async waitCommand(scope: CommandScope, timeoutMs?: number): Promise<string | null> {
     const key = await this.readKey(timeoutMs);
     if (key === null || this.promptMode === 'keyboard') return key;
     if (DIRECTION_KEYS.includes(key)) return key;
@@ -1252,9 +1256,8 @@ export class Screen implements GameIO {
    * In combat, a rounded outline around the member whose turn it is, two
    * game pixels wide just outside their tile. It starts white and fades to
    * mid grey over the time the member has before the turn passes by
-   * itself, so the outline doubles as the timer; once they have chosen it
-   * stays white through the command's prompts. (The Apple II blinked the
-   * figure.)
+   * itself, so the outline doubles as the timer; once they have chosen, or
+   * with the timer off, it stays white. (The Apple II blinked the figure.)
    */
   private markActiveMember(): void {
     const c = this.world.combat;

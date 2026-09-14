@@ -384,3 +384,15 @@ describe('starvation', () => {
     expect(world.member(0).status).toBe('D');
   });
 });
+
+describe('the turn timer', () => {
+  it('keeps the original waits under Fast, more than doubles them under Slow, and has no limit when Off', () => {
+    const world = newWorld();
+    expect(world.timer).toBe('fast');
+    expect([4000, 5000, 6000].map((ms) => world.timeLimit(ms))).toEqual([4000, 5000, 6000]);
+    world.timer = 'slow';
+    expect([4000, 5000, 6000].map((ms) => world.timeLimit(ms))).toEqual([10000, 12000, 14000]);
+    world.timer = 'off';
+    expect(world.timeLimit(4000)).toBeUndefined();
+  });
+});

@@ -65,7 +65,7 @@ const Msg = {
   NotDngCmd: 172,
 } as const;
 
-/** Idle time before the turn passes on its own (the original: six seconds). */
+/** Idle time before the turn passes on its own (the original: six seconds), under the Fast timer. */
 const IDLE_PASS_MS = 6000;
 
 /** Unit vectors for the four headings: north, east, south, west. (`HeadX`, `HeadY`) */
@@ -195,7 +195,7 @@ export async function runDungeon(world: World, io: GameIO): Promise<void> {
     io.print(' ');
     io.prompt();
 
-    const key = (await io.waitCommand('dungeon', IDLE_PASS_MS)) ?? Key.Space;
+    const key = (await io.waitCommand('dungeon', world.timeLimit(IDLE_PASS_MS))) ?? Key.Space;
     if (world.done) return;
     if (key === Key.Escape) {
       await io.showSettings(); // no turn passes

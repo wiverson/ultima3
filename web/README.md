@@ -61,8 +61,8 @@ is used instead).
 Escape opens the Settings menu anywhere (on the title screen it is the
 third entry under Options; in controller mode it is the last entry of the
 command menu). Settings holds the input mode, the tile set,
-auto combat, poison kills, starvation, balanced XP, sound effects, music, and
-Help, which shows these controls in the game in a box over the map. J (Journal
+auto combat, poison kills, starvation, balanced XP, the turn timer, sound
+effects, music, and Help, which shows these controls in the game in a box over the map. J (Journal
 in the controller menu) opens the quest journal the same way; neither
 takes a turn. Every setting is remembered by the browser.
 
@@ -185,9 +185,9 @@ save contains except the pooled gold and food.
   16-pixel grid (a small disc, a larger one, then a ring) instead of the
   "HIT" tile; the other tile sets keep their HIT tile.
 - **Combat marker**: the member whose turn it is gets a rounded outline,
-  two game pixels wide, fading from white to grey over the four seconds
-  before the turn passes by itself, then steady white while the chosen
-  command's prompts run. The Apple II blinked the figure.
+  two game pixels wide, fading from white to grey over the time the turn
+  timer allows, then steady white while the chosen command's prompts run
+  (and throughout, with the timer off). The Apple II blinked the figure.
 - **Direction prompts** sit on the map's bottom border, where the wind
   line is ("Direction? Esc Cancel", or "B: Cancel" on a controller), so
   the map and the combat marker stay in view. The wind line comes back
@@ -200,10 +200,11 @@ save contains except the pooled gold and food.
 - **A new game asks "Choose Thine Adventure!"** when a party is formed,
   and at Journey onward while the question is still unanswered (the
   answer is kept with the party, so a reload does not lose it): Modern
-  (recommended) sets poison to stop at one hit point, starvation to Mild
-  and Balanced XP on; Classic (hardcore) sets poison and starvation to the
-  Apple II's, to the death, and Balanced XP off. Any of them can be
-  changed afterwards in Settings.
+  (recommended) sets poison to stop at one hit point, starvation to Mild,
+  Balanced XP on and the timer Slow; Classic (hardcore) sets poison and
+  starvation to the Apple II's, to the death, Balanced XP off and the
+  timer Fast; Story (relaxed) is Modern with starvation None and the
+  timer Off. Any of them can be changed afterwards in Settings.
 - **Poison kills** (off by default): the Apple II's poison took a hit
   point every ageing tick until the member died. Off, it stops at one hit
   point, so a poisoned member limps home rather than dying on the road;
@@ -213,6 +214,12 @@ save contains except the pooled gold and food.
   Mild (the default) stops at half of maximum hit points. None only says
   so. With food pooled, "STARVING!" prints once a tick rather than once a
   member.
+- **Timer** has three settings. Fast is the Apple II's: a combat turn
+  passes by itself after 4 seconds, an idle turn in the field after 5 and
+  in a dungeon after 6. Slow gives 10, 12 and 14. Off waits for a key,
+  however long, so the game is turn-based through and through; the
+  combat outline then stays white instead of fading. Fast is the default
+  for games from before the setting existed.
 - **Balanced XP** (on by default): a kill's experience is shared among the
   living members, the killer then the others in marching order taking any
   odd points, so an orc's 3 points go one each to three of four. Off, the

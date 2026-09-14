@@ -107,24 +107,27 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
 
 /**
  * A new game's first question (this port), asked when a party is formed
- * and again at Journey onward while unanswered: Modern sets the gentler rules, poison stopping at one hit
- * point, starvation at half and experience shared; Classic sets the Apple
- * II's, poison and starvation to the death and the killer taking all the
- * experience. All can be changed later in Settings. Returns false if the
- * player backs out.
+ * and again at Journey onward while unanswered. Modern sets the gentler
+ * rules: poison stopping at one hit point, starvation at half, experience
+ * shared, the turn timer slow. Classic sets the Apple II's: poison and
+ * starvation to the death, the killer taking all the experience, the
+ * timer fast. Story is Modern with no starvation and no timer. All can be
+ * changed later in Settings. Returns false if the player backs out.
  */
 export async function chooseRules(world: World, io: GameIO): Promise<boolean> {
   const key = await io.chooseFromList(
     [
       { key: 'M', label: 'Modern (Recommended)' },
       { key: 'C', label: 'Classic (Hardcore)' },
+      { key: 'S', label: 'Story (Relaxed)' },
     ],
     { row: 15, title: 'Choose Thine Adventure!' }, // where the Options box sits, clear of the verse
   );
-  if (key !== 'M' && key !== 'C') return false;
+  if (key !== 'M' && key !== 'C' && key !== 'S') return false;
   world.poisonKills = key === 'C';
-  world.starvation = key === 'C' ? 'classic' : 'mild';
-  world.balancedXp = key === 'M';
+  world.starvation = key === 'C' ? 'classic' : key === 'M' ? 'mild' : 'none';
+  world.balancedXp = key !== 'C';
+  world.timer = key === 'C' ? 'fast' : key === 'M' ? 'slow' : 'off';
   world.onRulesChange?.();
   world.party.rulesPending = false;
   return true;

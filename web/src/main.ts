@@ -10,7 +10,7 @@
  */
 
 import { loadResources } from './data/resources.ts';
-import { World, STARVATION_MODES, type Starvation } from './game/world.ts';
+import { World, STARVATION_MODES, TIMER_MODES, type Starvation, type Timer } from './game/world.ts';
 import { Game } from './game/game.ts';
 import { localSave } from './game/save.ts';
 import { AutoMap, MAP_MODES, type MapMode } from './game/automap.ts';
@@ -33,6 +33,8 @@ interface Prefs {
   poisonKills: boolean;
   starvation: Starvation;
   balancedXp: boolean;
+  /** The turn timer; Fast, the Apple II's, for games from before the setting. */
+  timer: Timer;
   sound: boolean;
   music: boolean;
   dungeonMap: MapMode;
@@ -45,6 +47,7 @@ const DEFAULT_PREFS: Prefs = {
   poisonKills: false,
   starvation: 'mild',
   balancedXp: true,
+  timer: 'fast',
   sound: true,
   music: true,
   dungeonMap: 'off',
@@ -59,6 +62,7 @@ function loadPrefs(): Prefs {
     if (prefs.inputMode !== 'controller') prefs.inputMode = 'keyboard';
     if (!MAP_MODES.includes(prefs.dungeonMap)) prefs.dungeonMap = 'off';
     if (!STARVATION_MODES.includes(prefs.starvation)) prefs.starvation = 'mild';
+    if (!TIMER_MODES.includes(prefs.timer)) prefs.timer = 'fast';
     return prefs;
   } catch {
     return { ...DEFAULT_PREFS };
@@ -101,6 +105,7 @@ async function start(): Promise<void> {
   world.poisonKills = prefs.poisonKills;
   world.starvation = prefs.starvation;
   world.balancedXp = prefs.balancedXp;
+  world.timer = prefs.timer;
   world.soundEnabled = prefs.sound;
   world.mapMode = prefs.dungeonMap;
   // The dungeon auto-map keeps its own store; a new game starts it blank.
@@ -140,6 +145,7 @@ async function start(): Promise<void> {
       poisonKills: world.poisonKills,
       starvation: world.starvation,
       balancedXp: world.balancedXp,
+      timer: world.timer,
       sound: world.soundEnabled,
       music: music.enabled,
       dungeonMap: world.mapMode,
