@@ -107,7 +107,19 @@ fresh game.
 
 Keyboard stand-ins: WASD or arrows for the d-pad, Enter or Z for A, Escape
 or X for B, C for X, V for Y. Pressing a gamepad button switches to
-controller mode. The command menu lists the commands the surroundings call
+controller mode.
+
+### Touch screens
+
+A tap (or click) anywhere shows a virtual controller drawn in thin
+lines over the game: a d-pad at the lower left, A and B at the lower
+right, a close button at the upper left and, where the browser allows
+it, a full-screen button at the upper right (gone while full screen). It
+works the controller mode and switches to it; holding a direction walks.
+Only the close button hides it, or a physical key or gamepad press. On a
+touch screen it is shown from the first visit, and whether it is shown
+is remembered. The controls are sized in millimetres, so they come out
+about the size of an NES controller's on any screen. The command menu lists the commands the surroundings call
 for first (Enter on a town, Board on a horse, Get on a chest, Attack
 beside a monster), leaves out commands that make no sense where you stand
 (no craft to board, no chest to get), and greys out ones with nothing on

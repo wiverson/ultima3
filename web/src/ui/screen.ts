@@ -188,6 +188,15 @@ export class Screen implements GameIO {
   inputMode: 'keyboard' | 'controller' = 'keyboard';
   /** Called when a gamepad press switches the mode to 'controller'. */
   onModeChange: (() => void) | null = null;
+  /** Called on every gamepad button press (the touch pad hides itself). */
+  onGamepadPress: (() => void) | null = null;
+
+  /** Switch to controller mode, as a gamepad or touch-pad press does. */
+  useController(): void {
+    if (this.inputMode === 'controller') return;
+    this.inputMode = 'controller';
+    this.onModeChange?.();
+  }
   /** What the PAUSED box covers, restored when the window regains focus. */
   private underPaused: { image: ImageData; x: number; y: number } | null = null;
   /** While set, the frame loop paints this instead of the game (the map through its CRT effect). */
@@ -238,10 +247,8 @@ export class Screen implements GameIO {
       if (this.world.combat) this.world.combat.markedAt += pausedMs;
     };
     this.gamepads = new GamepadReader(keyboard, () => {
-      if (this.inputMode !== 'controller') {
-        this.inputMode = 'controller';
-        this.onModeChange?.();
-      }
+      this.useController();
+      this.onGamepadPress?.();
     });
     requestAnimationFrame((t) => this.frame(t));
   }

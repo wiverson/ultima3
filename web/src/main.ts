@@ -18,6 +18,7 @@ import { mainMenu } from './game/menu.ts';
 import { GraphicsSet, loadImages } from './ui/graphics.ts';
 import { Keyboard } from './ui/input.ts';
 import { SoundPlayer } from './ui/sound.ts';
+import { TouchPad } from './ui/touch.ts';
 import { MusicPlayer } from './ui/music.ts';
 import { Screen } from './ui/screen.ts';
 import { TILE_SETS } from './ui/help.ts';
@@ -38,6 +39,8 @@ interface Prefs {
   sound: boolean;
   music: boolean;
   dungeonMap: MapMode;
+  /** The virtual controller shown; on first visit, shown on a touch screen. */
+  touchPad: boolean;
 }
 
 const DEFAULT_PREFS: Prefs = {
@@ -51,6 +54,7 @@ const DEFAULT_PREFS: Prefs = {
   sound: true,
   music: true,
   dungeonMap: 'off',
+  touchPad: typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches,
 };
 
 function loadPrefs(): Prefs {
@@ -150,6 +154,7 @@ async function start(): Promise<void> {
       sound: world.soundEnabled,
       music: music.enabled,
       dungeonMap: world.mapMode,
+      touchPad: prefs.touchPad,
     });
   };
   screen.onSettingsChange = remember;
@@ -157,6 +162,18 @@ async function start(): Promise<void> {
   world.onRulesChange = remember;
   screen.onModeChange = remember;
   world.onAutoCombatChange = remember;
+
+  // The virtual controller: a tap shows it, its close button (or a physical key or gamepad press) hides it.
+  const pad = new TouchPad({
+    keyboard,
+    shown: prefs.touchPad,
+    onPress: () => screen.useController(),
+    onToggle: (shown) => {
+      prefs.touchPad = shown;
+      remember();
+    },
+  });
+  screen.onGamepadPress = () => pad.show(false);
 
   const game = new Game(world, screen, { save: (w) => localSave.write(w), load: (w) => localSave.read(w) });
   // Debug hook: lets the console (and the browser tests) inspect and poke the game.
