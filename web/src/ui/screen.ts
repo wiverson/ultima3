@@ -1802,11 +1802,14 @@ export class Screen implements GameIO {
       if (p) {
         const nameColour = memberColour(p, due);
         this.drawText(p.name, 24, top, nameColour);
-        // Dead or ashes: the whole box takes the name's grey. Otherwise hit points warn by colour.
+        // Dead or ashes: the whole box takes the name's grey. Otherwise, on the
+        // Standard set only, hit points warn by colour; the other sets' fonts
+        // and palettes are left as they are.
         const gone = p.status === 'D' || p.status === 'A';
         const hp = p.hitPoints;
         const max = Math.max(1, p.maxHitPoints);
-        const hpColour = gone ? nameColour : hp < max / 10 ? '#ff4040' : hp < max / 4 ? '#ffe040' : undefined;
+        const warn = this.tileSetName === 'Standard';
+        const hpColour = gone ? nameColour : !warn ? undefined : hp < max / 10 ? '#ff4040' : hp < max / 4 ? '#ffe040' : undefined;
         this.drawText(`${hp}/${p.maxHitPoints}`, 24, top + 1, hpColour);
         if (hasMagic(this.world, p)) {
           const mana = `M:${p.mana}`;

@@ -51,7 +51,7 @@ const HOW_IT_WORKS = [
   'blue when the king',
   'will raise them.',
   'HP yellow under 1/4,',
-  'red under 1/10.',
+  'red 1/10 (Standard).',
   '',
 ];
 

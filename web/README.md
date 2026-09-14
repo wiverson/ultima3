@@ -170,7 +170,8 @@ save contains except the pooled gold and food.
 - **Character boxes** are two rows: the name, coloured by state (green
   poisoned, light grey dead, dark grey ashes, blue when Lord British would
   raise the member, white otherwise), then hit points over max, yellow
-  under a quarter and red under a tenth, and mana (none for fighters,
+  under a quarter and red under a tenth on the Standard set (the other
+  sets' fonts and palettes are left alone), and mana (none for fighters,
   thieves and barbarians). A dead member's or ashes' whole box takes the
   name's grey. The message area gained four rows.
 - **The party on foot** is drawn as its members in two ways. With the
