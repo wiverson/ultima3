@@ -19,6 +19,10 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
+      // Command handlers are async as a family so callers await them alike; some have nothing to wait for.
+      '@typescript-eslint/require-await': 'off',
+      // A leading underscore marks a parameter kept for the interface.
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
   prettier,

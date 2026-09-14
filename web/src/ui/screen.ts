@@ -217,7 +217,7 @@ export class Screen implements GameIO {
     this.ctx = canvas.getContext('2d')!;
     this.ctx.imageSmoothingEnabled = false;
     this.cell = Math.floor(canvas.width / COLUMNS);
-    for (let r = 0; r < TEXT_BOTTOM - TEXT_TOP; r++) this.textRows.push(new Array(TEXT_RIGHT - TEXT_LEFT).fill(' '));
+    for (let r = 0; r < TEXT_BOTTOM - TEXT_TOP; r++) this.textRows.push(Array<string>(TEXT_RIGHT - TEXT_LEFT).fill(' '));
     this.dungeonRenderer = DungeonRenderer.forSet(gfx);
     // A pause (window not focused) should not eat into a combat turn's timer.
     keyboard.onResume = (pausedMs) => {
@@ -393,7 +393,7 @@ export class Screen implements GameIO {
   /** Scroll the message area up one line. (`UTextScroll`) */
   private scrollText(): void {
     this.textRows.shift();
-    this.textRows.push(new Array(TEXT_RIGHT - TEXT_LEFT).fill(' '));
+    this.textRows.push(Array<string>(TEXT_RIGHT - TEXT_LEFT).fill(' '));
     // The folding records follow their lines up the screen; a block that scrolls off is forgotten.
     if (this.prevTurn) {
       this.prevTurn.rows = this.prevTurn.rows.map((r) => r - 1);

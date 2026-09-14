@@ -223,7 +223,7 @@ export async function runDungeon(world: World, io: GameIO): Promise<void> {
     if (cell === DungeonCell.Open) {
       // Random encounters get likelier on deeper levels.
       if (world.rng.range(0, 0x82 + d.level) < 128) continue;
-      let type = Math.min(6, world.rng.range(0, d.level + 2)) + 0x18;
+      const type = Math.min(6, world.rng.range(0, d.level + 2)) + 0x18;
       world.putXYDng(DungeonCell.Chest, world.x, world.y);
       await combat(world, io, type * 2, 0);
       io.clearTiles();

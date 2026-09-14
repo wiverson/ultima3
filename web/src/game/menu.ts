@@ -253,7 +253,7 @@ export async function createCharacter(world: World, io: GameIO): Promise<void> {
   };
 
   // Name: typed, or one from the stock list.
-  let name = '';
+  let name: string;
   let suggestion = randomName(() => world.rng.range(0, 255) / 256, taken);
   let cursor = 0;
   for (;;) {

@@ -272,7 +272,7 @@ export function hearTownLine(world: World, town: string, speaker: number): boole
 }
 
 /** Record one of the other clues (Lord British, the prayer, the Time Lord). */
-export function hearClue(world: World, id: keyof typeof OTHER_CLUES | string): void {
+export function hearClue(world: World, id: string): void {
   if (OTHER_CLUES[id] && !world.journal.clues.includes(id)) world.journal.clues.push(id);
 }
 

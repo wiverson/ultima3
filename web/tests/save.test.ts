@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { newWorld } from './helpers.ts';
+import { newWorld, savedCopy } from './helpers.ts';
 import { serialize, restore } from '../src/game/save.ts';
 import { MapValue } from '../src/game/tiles.ts';
 import { Location } from '../src/game/party.ts';
@@ -15,7 +15,7 @@ describe('save and restore', () => {
     a.moonPhase = [2, 6];
     a.windDirection = 3;
 
-    const data = JSON.parse(JSON.stringify(serialize(a)));
+    const data = savedCopy(a);
     const b = new World(a.resources);
     expect(restore(b, data)).toBe(true);
 
@@ -59,7 +59,7 @@ describe('save migration', () => {
     a.member(0).bytes[48 + 6] = 2; // two swords in the old per-member bag ...
     a.member(0).bytes[48] = 6; // ... one in hand
     a.member(1).bytes[40 + 3] = 1; // chain, not worn
-    const data = JSON.parse(JSON.stringify(serialize(a)));
+    const data = savedCopy(a);
     data.version = 2;
     const b = new World(a.resources);
     expect(restore(b, data)).toBe(true);
@@ -74,7 +74,7 @@ describe('save migration', () => {
     a.member(0).bytes[37] = 2; // gems
     a.member(1).bytes[38] = 1; // a key
     a.member(2).torches = 4;
-    const data = JSON.parse(JSON.stringify(serialize(a)));
+    const data = savedCopy(a);
     data.version = 3;
     const b = new World(a.resources);
     expect(restore(b, data)).toBe(true);

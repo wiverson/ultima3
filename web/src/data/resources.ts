@@ -63,7 +63,7 @@ export interface GameResources {
   strings: Record<string, string[]>;
 }
 
-interface Bundle {
+export interface Bundle {
   [type: string]: Record<string, { name: string; data: string }> | Record<string, string[]>;
 }
 

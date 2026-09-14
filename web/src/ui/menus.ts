@@ -263,7 +263,7 @@ export function wrapText(s: string, width: number, rows: number): string[] {
 export function moveCursor(menu: MenuWindow, key: string): boolean {
   const n = menu.items.length;
   const c = menu.columns;
-  let next = menu.cursor;
+  let next: number;
   switch (key) {
     case Key.Up:
       next = menu.cursor - c;

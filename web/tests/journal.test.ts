@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { FakeIO, newWorld } from './helpers.ts';
+import { FakeIO, newWorld, savedCopy } from './helpers.ts';
 import { World } from '../src/game/world.ts';
 import { Location } from '../src/game/party.ts';
 import { MapValue } from '../src/game/tiles.ts';
 import { MapId } from '../src/data/resources.ts';
 import { journalLines, journalCheck, hearClue, markHintSeen, emptyJournal, ENTRIES } from '../src/game/journal.ts';
 import { talkTo, transactToward, otherCommand } from '../src/game/interact.ts';
-import { serialize, restore, SAVE_VERSION } from '../src/game/save.ts';
+import { restore, SAVE_VERSION, type SaveData } from '../src/game/save.ts';
 
 /** A world standing in a town map (id) on an empty floor with no townsfolk. */
 function inTown(id: number): { world: World; io: FakeIO } {
@@ -171,20 +171,20 @@ describe('the journal', () => {
     a.journal.clues.push('LB:mark', 'Moon#6');
     a.journal.hints.push('kings');
     journalCheck(a, new FakeIO(a.resources));
-    const data = JSON.parse(JSON.stringify(serialize(a)));
+    const data = savedCopy(a);
     expect(data.version).toBe(SAVE_VERSION);
     const b = new World(a.resources);
     expect(restore(b, data)).toBe(true);
     expect(b.journal).toEqual(a.journal);
     expect(b.journal).not.toBe(a.journal);
 
-    const old = { ...data, version: 4 };
+    const old: SaveData = { ...data, version: 4 };
     delete old.journal;
     const c = new World(a.resources);
     expect(restore(c, old)).toBe(true);
     expect(c.journal).toEqual(emptyJournal());
 
-    const odd = { ...data, journal: { lordBritish: 'yes', clues: [1, 'Moon#6'], hints: null } };
+    const odd = { ...data, journal: { lordBritish: 'yes', clues: [1, 'Moon#6'], hints: null } } as unknown as SaveData;
     const d = new World(a.resources);
     expect(restore(d, odd)).toBe(true);
     expect(d.journal).toEqual({ ...emptyJournal(), clues: ['Moon#6'] });

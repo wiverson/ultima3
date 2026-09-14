@@ -6,7 +6,8 @@
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resourcesFromBundle, type GameResources } from '../src/data/resources.ts';
+import { resourcesFromBundle, type Bundle, type GameResources } from '../src/data/resources.ts';
+import { serialize, type SaveData } from '../src/game/save.ts';
 import { World } from '../src/game/world.ts';
 import { Key, type GameIO, type MenuOption, type CommandScope } from '../src/game/io.ts';
 
@@ -14,11 +15,16 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 
 let cached: GameResources | null = null;
 
+/** A save as it comes back from storage: through JSON, so nothing but plain data survives. */
+export function savedCopy(world: World): SaveData {
+  return JSON.parse(JSON.stringify(serialize(world))) as SaveData;
+}
+
 /** Load public/data/resources.json once per test run. */
 export function loadTestResources(): GameResources {
   if (!cached) {
     const json = readFileSync(join(HERE, '..', 'public', 'data', 'resources.json'), 'utf8');
-    cached = resourcesFromBundle(JSON.parse(json));
+    cached = resourcesFromBundle(JSON.parse(json) as Bundle);
   }
   return cached;
 }

@@ -419,5 +419,6 @@ round-trips and the music decoder. The renderer is exercised in headless
 Chromium (Playwright is preinstalled in the development environment) by
 driving the keyboard and taking screenshots. `npm run format` applies
 Prettier (single quotes, 140 columns; see `.prettierrc.json`) and
-`npm run format:check` is the first step of the CI workflow, before the
-tests and the build.
+`npm run lint` runs ESLint (typescript-eslint's type-checked rules, with
+unawaited promises as errors; see `eslint.config.js`). The CI workflow
+runs the format check, the lint, the tests and the build, in that order.

@@ -210,7 +210,7 @@ export async function moveMonsters(world: World, io: GameIO, hooks: MonsterHooks
     if (m.type(i) === 0) continue;
 
     const hostileSurface = world.onSurface && !world.party.exodusDestroyed;
-    let behaviour = hostileSurface ? Behaviour.Attack : m.behaviour(i);
+    const behaviour = hostileSurface ? Behaviour.Attack : m.behaviour(i);
 
     if (behaviour === Behaviour.Stationary) continue;
 
