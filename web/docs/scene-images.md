@@ -9,19 +9,22 @@ The game shows four full-window pictures at fixed moments:
 | Shrine    | the party stands at a shrine in Ambrosia                |
 | TimeLord  | the party reaches the Time Lord, level 8 of Time Awaits |
 
-The four shipped in `public/images` are LairWare's 3D renders for the
-Mac. This note is for drawing replacements that match each tile set.
+Every tile set ships its own four, drawn in its style; the Lairware set
+has LairWare's 3D renders from the Mac. This note is the spec they were
+drawn to, for anyone redrawing them.
 
 ## Where the files go
 
 Put a set's pictures beside its tile sheets in `public/graphics`, named
 `<Set>-<Scene>.png`, for example `Nintendo-Fountain.png` or
-`PC CGA-TimeLord.png`. The set name is exactly as the Settings menu
-lists it. PNG is preferred; JPEG and GIF also load.
+`PC CGA-TimeLord.png`. The set name is as the Settings menu lists it,
+with one exception: "&" is dropped from file names, since it cannot
+travel in a URL, so the Macintosh set's files are `Macintosh BW-...`.
+PNG is preferred; JPEG and GIF also load.
 
-A set only needs the pictures you give it. A scene it lacks is drawn
-from the shared picture in `public/images`, so sets can be filled in
-one at a time and a partial set still works.
+A scene a set lacks shows as a black window, so give a set all four.
+(The loader also accepts a shared picture in `public/images` as a
+fallback, but none ships.)
 
 ## How the game draws them
 

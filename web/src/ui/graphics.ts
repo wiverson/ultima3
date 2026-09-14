@@ -46,15 +46,24 @@ export function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
+/**
+ * The file name a set's sheets carry: the set's name without "&", which a
+ * URL cannot carry safely (Vite's dev server answers "%26" with the page).
+ * "Macintosh B&W" is filed as "Macintosh BW-Tiles.gif" and so on.
+ */
+export function fileStem(setName: string): string {
+  return setName.replace(/&/g, '');
+}
+
 /** The full-window scenes a tile set may paint in its own style (see docs/scene-images.md). */
 export const SCENE_NAMES = ['Fountain', 'Rod', 'Shrine', 'TimeLord'];
 
 /** The pictures in public/images, by file name without extension. */
 export type ImageMap = Map<string, HTMLImageElement>;
 
-/** Load the pictures used in play (title, dungeon walls, shrines, fountains ...). */
+/** Load the pictures shared by every tile set: the title logo and the cloth map. */
 export async function loadImages(baseUrl = 'images/'): Promise<ImageMap> {
-  const files = ['Exodus.png', 'Fountain.jpg', 'Rod.jpg', 'Shrine.jpg', 'TimeLord.jpg', 'SosariaMap.jpg'];
+  const files = ['Exodus.png', 'SosariaMap.jpg'];
   const images: ImageMap = new Map();
   await Promise.all(
     files.map(async (file) => {
@@ -132,9 +141,10 @@ export class GraphicsSet {
     /** The style the sheet was painted from at run time (null for a sheet loaded from a file). */
     readonly dungeonStyle: DungeonStyle | null,
     /**
-     * The set's own full-window scene pictures (Fountain, Rod, Shrine,
-     * TimeLord), from "<Set>-<Scene>.png" beside its sheets; a scene the
-     * set lacks is drawn from the shared picture in public/images. See
+     * The set's full-window scene pictures (Fountain, Rod, Shrine,
+     * TimeLord), from "<Set>-<Scene>.png" (or .jpg) beside its sheets:
+     * every set ships its own, the Lairware set LairWare's renders. A
+     * scene missing from a set shows as a black window. See
      * docs/scene-images.md.
      */
     readonly scenes: Map<string, HTMLImageElement> = new Map(),
@@ -161,7 +171,7 @@ export class GraphicsSet {
       for (const set of fallback ? [name, 'Standard'] : [name]) {
         for (const ext of exts) {
           try {
-            return await loadImage(`${baseUrl}${encodeURIComponent(set)}-${suffix}.${ext}`);
+            return await loadImage(`${baseUrl}${encodeURIComponent(fileStem(set))}-${suffix}.${ext}`);
           } catch {
             /* try the next candidate */
           }

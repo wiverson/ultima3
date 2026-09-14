@@ -174,25 +174,22 @@ function main(): void {
     mkdirSync(join(OUT, dst), { recursive: true });
     for (const file of readdirSync(join(RESOURCES, src))) {
       if (file.startsWith('_') || file.startsWith('.')) continue;
-      copyFileSync(join(RESOURCES, src, file), join(OUT, dst, file));
+      // "&" cannot travel in a URL safely: "Macintosh B&W-Tiles.gif" is served as "Macintosh BW-Tiles.gif" (see fileStem in graphics.ts).
+      copyFileSync(join(RESOURCES, src, file), join(OUT, dst, file.replace(/&/g, '')));
     }
   }
 
   // Pictures used in play: the dungeon wall sheet and its mask, the title
-  // picture, the full-screen images for shrines, fountains and so on, and
-  // the cloth map of Sosaria (View map).
-  const images = [
-    'DungeonShapes.jpg',
-    'DungeonMasks.png',
-    'Exodus.png',
-    'Fountain.jpg',
-    'Rod.jpg',
-    'Shrine.jpg',
-    'TimeLord.jpg',
-    'SosariaMap.jpg',
-  ];
+  // picture and the cloth map of Sosaria (View map). LairWare's scene
+  // renders (fountain, rod, shrine, Time Lord) go to the Lairware tile set
+  // as its own scene pictures; the other sets have theirs drawn for them
+  // (see docs/scene-images.md).
+  const images = ['DungeonShapes.jpg', 'DungeonMasks.png', 'Exodus.png', 'SosariaMap.jpg'];
   mkdirSync(join(OUT, 'images'), { recursive: true });
   for (const file of images) copyFileSync(join(REPO_ROOT, 'Images', file), join(OUT, 'images', file));
+  for (const scene of ['Fountain', 'Rod', 'Shrine', 'TimeLord']) {
+    copyFileSync(join(REPO_ROOT, 'Images', `${scene}.jpg`), join(OUT, 'graphics', `Lairware-${scene}.jpg`));
+  }
 
   const counts = Object.entries(wanted)
     .map(([k]) => `${k}=${Object.keys(bundle[k] as object).length}`)

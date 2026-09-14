@@ -324,11 +324,10 @@ save contains except the pooled gold and food.
   facing arrow, the wind line's compass keeps that job. Peer keeps its
   blinking diamond.
 - **Scene pictures per tile set.** The full-window pictures for the
-  fountain, the mark rod, the shrine and the Time Lord are LairWare's 3D
-  renders; a set may ship its own as `<Set>-<Scene>.png` beside its tile
-  sheets and they are used in its place, scene by scene, the shared
-  render standing in for any it lacks. Sizes and palettes for drawing
-  them are in `docs/scene-images.md`.
+  fountain, the mark rod, the shrine and the Time Lord are drawn for
+  each tile set in its own style and palette, as `<Set>-<Scene>.png`
+  beside its tile sheets; the Lairware set keeps LairWare's 3D renders.
+  The spec they were drawn to is `docs/scene-images.md`.
 - **Dungeon art per tile set** (`dungeonArt.ts`). LairWare's Mac version
   drew the first-person dungeon from one photographic sheet whatever tiles
   were chosen. Here that pairing is the "Lairware" set, and every other
