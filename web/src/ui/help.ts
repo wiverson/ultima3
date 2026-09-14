@@ -91,6 +91,7 @@ export const KEYBOARD_HELP: HelpPage[] = [
       'N negate time',
       'Q quit and save',
       '  (surface only)',
+      '# view the map',
       '',
       'COMBAT',
       'Arrows  move; into a',

@@ -108,6 +108,7 @@ export class FakeIO implements GameIO {
   }
   async showSettings(): Promise<void> {}
   async showJournal(): Promise<void> {}
+  async showMap(): Promise<void> {}
   /** Answered from the key queue like chooseOption. */
   async chooseFromList(options: MenuOption[]): Promise<string> {
     return this.chooseOption(options, 'none');

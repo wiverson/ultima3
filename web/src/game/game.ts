@@ -19,7 +19,7 @@ import * as act from './actions.ts';
 import * as interact from './interact.ts';
 import { attackMonster, showBall } from './combat.ts';
 import { cast, quickHeal, quickSafeChest } from './spells.ts';
-import { QUICK_CAST_KEY, SAFE_CHEST_KEY } from './context.ts';
+import { QUICK_CAST_KEY, SAFE_CHEST_KEY, VIEW_MAP_KEY } from './context.ts';
 import { journalCheck } from './journal.ts';
 import { runDungeon } from './dungeon.ts';
 import { checkAllDead } from './death.ts';
@@ -114,6 +114,10 @@ export class Game {
       }
       if (key === 'J' || key === 'j') {
         await io.showJournal(); // no turn passes
+        continue;
+      }
+      if (key === VIEW_MAP_KEY && world.party.location !== Location.Ambrosia) {
+        await io.showMap(); // no turn passes
         continue;
       }
       await this.dispatch(key);

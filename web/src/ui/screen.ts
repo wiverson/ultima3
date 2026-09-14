@@ -183,6 +183,9 @@ export class Screen implements GameIO {
   onModeChange: (() => void) | null = null;
   /** What the PAUSED box covers, restored when the window regains focus. */
   private underPaused: { image: ImageData; x: number; y: number } | null = null;
+  /** While set, the frame loop paints this instead of the game (the map through its CRT effect). */
+  private overlay: ((time: number) => void) | null = null;
+  private scanlines: CanvasPattern | null = null;
   /** Called when anything in the Settings menu changes, so the page can remember it. */
   onSettingsChange: (() => void) | null = null;
   /** Name of the tile set in use (see help.ts TILE_SETS). */
@@ -822,6 +825,72 @@ export class Screen implements GameIO {
     }
   }
 
+  /**
+   * The cloth map of Sosaria from the box, over the whole screen and
+   * through a light CRT effect (scanlines, a slow rolling band, a faint
+   * flicker and dark corners), animated until a key is pressed. The Mac
+   * showed the map from a menu item; the Apple II box had it on cloth.
+   */
+  async showMap(): Promise<void> {
+    const map = this.images.get('SosariaMap');
+    if (!map) return;
+    const wasCovered = this.viewCovered;
+    this.viewCovered = true;
+    this.overlay = (time) => this.paintMap(map, time);
+    try {
+      await this.readKey();
+    } finally {
+      this.overlay = null;
+      this.viewCovered = wasCovered;
+      this.redrawAll();
+    }
+  }
+
+  private paintMap(map: HTMLImageElement, time: number): void {
+    const { ctx, cell } = this;
+    const width = COLUMNS * cell;
+    const height = ROWS * cell;
+    ctx.save();
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, width, height);
+    // The map is square: as tall as the screen, centred.
+    const size = height;
+    const left = (width - size) / 2;
+    ctx.drawImage(map, left, 0, size, size);
+    // Scanlines: a dark line every fourth pixel row, tiled from a small pattern.
+    if (!this.scanlines) {
+      const tile = document.createElement('canvas');
+      tile.width = 1;
+      tile.height = 4;
+      const tctx = tile.getContext('2d')!;
+      tctx.fillStyle = 'rgba(0,0,0,0.22)';
+      tctx.fillRect(0, 2, 1, 2);
+      this.scanlines = ctx.createPattern(tile, 'repeat');
+    }
+    if (this.scanlines) {
+      ctx.fillStyle = this.scanlines;
+      ctx.fillRect(left, 0, size, size);
+    }
+    // A pale band rolling down the screen every six seconds.
+    const bandTop = ((time / 6000) % 1) * (height + size / 4) - size / 4;
+    const band = ctx.createLinearGradient(0, bandTop, 0, bandTop + size / 4);
+    band.addColorStop(0, 'rgba(255,255,255,0)');
+    band.addColorStop(0.5, 'rgba(255,255,255,0.07)');
+    band.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = band;
+    ctx.fillRect(left, 0, size, size);
+    // A faint flicker, and corners darkened as a curved tube's were.
+    const flicker = 0.02 + 0.02 * Math.abs(Math.sin(time / 90) * Math.sin(time / 1300));
+    ctx.fillStyle = `rgba(0,0,0,${flicker.toFixed(3)})`;
+    ctx.fillRect(left, 0, size, size);
+    const vignette = ctx.createRadialGradient(width / 2, height / 2, size * 0.35, width / 2, height / 2, size * 0.75);
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, 'rgba(0,0,0,0.45)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(left, 0, size, size);
+    ctx.restore();
+  }
+
   /** One journal entry's page; Up and Down scroll when it runs long. */
   private async journalEntry(entry: JournalLine): Promise<void> {
     const controller = this.inputMode === 'controller';
@@ -1448,6 +1517,11 @@ export class Screen implements GameIO {
       else this.hidePaused();
     }
     if (this.underPaused) {
+      requestAnimationFrame((t) => this.frame(t));
+      return;
+    }
+    if (this.overlay) {
+      this.overlay(time);
       requestAnimationFrame((t) => this.frame(t));
       return;
     }

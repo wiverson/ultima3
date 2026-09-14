@@ -63,7 +63,8 @@ third entry under Options; in controller mode it is the last entry of the
 command menu). Settings holds the input mode, the tile set,
 auto combat, poison kills, starvation, balanced XP, the turn timer, sound
 effects, music, and Help, which shows these controls in the game in a box over the map. J (Journal
-in the controller menu) opens the quest journal the same way; neither
+in the controller menu) opens the quest journal the same way, and # (View
+map) shows the cloth map of Sosaria over the whole screen; none of these
 takes a turn. Every setting is remembered by the browser.
 
 ### Keyboard mode (the Apple II commands)
@@ -277,6 +278,11 @@ save contains except the pooled gold and food.
   updated" prints when a revealed entry changes state, and only then; a
   clue for an entry not yet revealed waits quietly. The journal lives in
   the save file (version 5); older saves start it empty.
+- **View map** (# on the keyboard, View map in the controller menu, not
+  in Ambrosia) shows the cloth map of Sosaria that came in the box, over
+  the whole screen through a light CRT effect: scanlines, a slow rolling
+  band, a faint flicker and darkened corners, animated until a key is
+  pressed. The Mac showed the map from a menu item.
 - **Other and Yell are one command.** The Apple II's Yell was Other under
   another name, with one difference: EVOCARE parted the great serpent only
   when yelled, and said "No effect" when typed at Other. EVOCARE now works

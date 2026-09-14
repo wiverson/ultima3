@@ -179,12 +179,12 @@ function main(): void {
   }
 
   // Pictures used in play: the dungeon wall sheet and its mask, the title
-  // picture, and the full-screen images for shrines, fountains and so on.
+  // picture, the full-screen images for shrines, fountains and so on, and
+  // the cloth map of Sosaria (View map).
   const images = [
     'DungeonShapes.jpg',
     'DungeonMasks.png',
     'Exodus.png',
-    'UltimaLogo.png',
     'Fountain.jpg',
     'Rod.jpg',
     'Shrine.jpg',

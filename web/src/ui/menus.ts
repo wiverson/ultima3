@@ -11,6 +11,7 @@
  */
 
 import { Key, type CommandScope, type MenuOption } from '../game/io.ts';
+import { VIEW_MAP_KEY } from '../game/context.ts';
 import { GraphicsSet } from './graphics.ts';
 import { Keyboard } from './input.ts';
 
@@ -74,6 +75,7 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
     { key: 'Q', label: 'Quit and save' },
     { key: ' ', label: 'Pass' },
     { key: 'J', label: 'Journal' },
+    { key: VIEW_MAP_KEY, label: 'View map' },
   ],
   combat: [
     { key: 'A', label: 'Attack' },
