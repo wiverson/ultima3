@@ -167,13 +167,15 @@ save contains except the pooled gold and food.
   Forming a party pools the members' bags (each keeps what is in hand);
   dispersing deals the bag out, to members who can use each item first.
   The Hand command, which moved gear between members, is gone.
-- **Character boxes** are two rows: the name, coloured by state (green
-  poisoned, light grey dead, dark grey ashes, blue when Lord British would
-  raise the member, white otherwise), then hit points over max, yellow
-  under a quarter and red under a tenth on the Standard set (the other
-  sets' fonts and palettes are left alone), and mana (none for fighters,
-  thieves and barbarians). A dead member's or ashes' whole box takes the
-  name's grey. The message area gained four rows.
+- **Character boxes** are two rows: the name, then hit points over max
+  and mana (none for fighters, thieves and barbarians). On the Standard
+  set the name is coloured by state (green poisoned, light grey dead,
+  dark grey ashes, blue when Lord British would raise the member, white
+  otherwise), hit points go yellow under a quarter and red under a tenth,
+  and a dead member's or ashes' whole box takes the name's grey. Every
+  other set does as the Apple II did: the status letter, G good, P
+  poisoned, D dead, A ashes, at the end of the name row, and no colour.
+  The message area gained four rows.
 - **The party on foot** is drawn as its members in two ways. With the
   Standard tiles, on the overworld they are at half size in a 2x2 grid in
   marching order, to sell the scale of the map. In towns and castles with

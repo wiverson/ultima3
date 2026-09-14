@@ -1800,20 +1800,24 @@ export class Screen implements GameIO {
         }
       }
       if (p) {
-        const nameColour = memberColour(p, due);
+        // The Standard set tells a member's state by colour: the name green
+        // poisoned, grey dead, dark grey ashes, blue with a level due; dead
+        // or ashes, the whole box takes that grey; hit points go yellow under
+        // a quarter and red under a tenth. Every other set does as the Apple
+        // II did: the status letter (G, P, D or A) at the end of the name
+        // row, and no colour at all.
+        const classic = this.tileSetName !== 'Standard';
+        const nameColour = classic ? undefined : memberColour(p, due);
         this.drawText(p.name, 24, top, nameColour);
-        // Dead or ashes: the whole box takes the name's grey. Otherwise, on the
-        // Standard set only, hit points warn by colour; the other sets' fonts
-        // and palettes are left as they are.
+        if (classic) this.drawText(p.status, 38, top);
         const gone = p.status === 'D' || p.status === 'A';
         const hp = p.hitPoints;
         const max = Math.max(1, p.maxHitPoints);
-        const warn = this.tileSetName === 'Standard';
-        const hpColour = gone ? nameColour : !warn ? undefined : hp < max / 10 ? '#ff4040' : hp < max / 4 ? '#ffe040' : undefined;
+        const hpColour = classic ? undefined : gone ? nameColour : hp < max / 10 ? '#ff4040' : hp < max / 4 ? '#ffe040' : undefined;
         this.drawText(`${hp}/${p.maxHitPoints}`, 24, top + 1, hpColour);
         if (hasMagic(this.world, p)) {
           const mana = `M:${p.mana}`;
-          this.drawText(mana, 39 - mana.length, top + 1, gone ? nameColour : undefined);
+          this.drawText(mana, 39 - mana.length, top + 1, gone && !classic ? nameColour : undefined);
         }
       }
       if (this.highlighted.has(m)) this.invert(24, top, 15, BOX_ROWS);
