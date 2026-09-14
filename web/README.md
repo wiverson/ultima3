@@ -324,11 +324,13 @@ save contains except the pooled gold and food.
   The party is drawn as its first living member's figure; there is no
   facing arrow, the wind line's compass keeps that job. Peer keeps its
   blinking diamond.
-- **Scene pictures per tile set.** The full-window pictures for the
-  fountain, the mark rod, the shrine and the Time Lord are drawn for
-  each tile set in its own style and palette, as `<Set>-<Scene>.png`
-  beside its tile sheets; the Lairware set keeps LairWare's 3D renders.
-  The spec they were drawn to is `docs/scene-images.md`.
+- **Scene pictures and the logo per tile set.** The full-window
+  pictures for the fountain, the mark rod, the shrine and the Time Lord,
+  and the Exodus logo on the title screen, are drawn for each tile set
+  in its own style and palette, as `<Set>-<Scene>.png` beside its tile
+  sheets; the Lairware set keeps LairWare's 3D scene renders. The title
+  logo changes with the set as it is picked in Settings. The spec they
+  were drawn to is `docs/scene-images.md`.
 - **Dungeon art per tile set** (`dungeonArt.ts`). LairWare's Mac version
   drew the first-person dungeon from one photographic sheet whatever tiles
   were chosen. Here that pairing is the "Lairware" set, and every other

@@ -318,7 +318,7 @@ export class Screen implements GameIO {
     this.piece(Piece.TopRight, 39, 0);
     this.piece(Piece.BottomLeft, 0, 23);
     this.piece(Piece.BottomRight, 39, 23);
-    const exodus = this.images.get('Exodus');
+    const exodus = this.gfx.scenes.get('Exodus') ?? this.images.get('Exodus'); // the tile set's own logo; setGraphics() redraws it
     if (exodus) {
       const c = this.cell;
       this.ctx.drawImage(exodus, 5.25 * c, 1.25 * c, 29.5 * c, 8.375 * c);

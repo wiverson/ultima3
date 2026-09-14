@@ -55,8 +55,11 @@ export function fileStem(setName: string): string {
   return setName.replace(/&/g, '');
 }
 
-/** The full-window scenes a tile set may paint in its own style (see docs/scene-images.md). */
-export const SCENE_NAMES = ['Fountain', 'Rod', 'Shrine', 'TimeLord'];
+/**
+ * The pictures a tile set paints in its own style (see docs/scene-images.md):
+ * the four full-window scenes, and the Exodus logo on the title screen.
+ */
+export const SCENE_NAMES = ['Fountain', 'Rod', 'Shrine', 'TimeLord', 'Exodus'];
 
 /** The pictures in public/images, by file name without extension. */
 export type ImageMap = Map<string, HTMLImageElement>;
@@ -141,11 +144,12 @@ export class GraphicsSet {
     /** The style the sheet was painted from at run time (null for a sheet loaded from a file). */
     readonly dungeonStyle: DungeonStyle | null,
     /**
-     * The set's full-window scene pictures (Fountain, Rod, Shrine,
-     * TimeLord), from "<Set>-<Scene>.png" (or .jpg) beside its sheets:
-     * every set ships its own, the Lairware set LairWare's renders. A
-     * scene missing from a set shows as a black window. See
-     * docs/scene-images.md.
+     * The set's own pictures: the full-window scenes (Fountain, Rod,
+     * Shrine, TimeLord) and the title logo (Exodus), from
+     * "<Set>-<Name>.png" (or .jpg) beside its sheets. Every set ships
+     * its own, the Lairware set LairWare's scene renders. A scene missing
+     * from a set shows as a black window; a missing logo falls back to
+     * the shared one in public/images. See docs/scene-images.md.
      */
     readonly scenes: Map<string, HTMLImageElement> = new Map(),
   ) {
