@@ -49,12 +49,14 @@ export class TouchPad {
 
   constructor(private readonly options: TouchPadOptions) {
     this.root = document.createElement('div');
-    this.root.style.cssText = 'position:fixed;inset:0;pointer-events:none;user-select:none;-webkit-user-select:none;z-index:10;';
+    this.root.style.cssText =
+      'position:fixed;inset:0;pointer-events:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none;z-index:10;';
     document.body.appendChild(this.root);
 
     this.root.appendChild(this.dpad());
-    this.root.appendChild(this.button('A', Key.A, `right:${MARGIN_MM + 8}mm;bottom:${MARGIN_MM}mm`));
-    this.root.appendChild(this.button('B', Key.B, `right:${MARGIN_MM}mm;bottom:${MARGIN_MM + 9}mm`));
+    // A low and B up to its right, each a button's width and a little more apart on the diagonal.
+    this.root.appendChild(this.button('A', Key.A, `right:${MARGIN_MM + BUTTON_MM + 1}mm;bottom:${MARGIN_MM}mm`));
+    this.root.appendChild(this.button('B', Key.B, `right:${MARGIN_MM}mm;bottom:${MARGIN_MM + BUTTON_MM + 1}mm`));
     this.root.appendChild(this.closeButton());
     if (document.fullscreenEnabled) {
       this.fullscreenButton = this.fullscreenToggle();
@@ -95,7 +97,7 @@ export class TouchPad {
     svg.setAttribute('viewBox', `0 0 ${mm} ${mm}`);
     svg.setAttribute('width', `${mm}mm`);
     svg.setAttribute('height', `${mm}mm`);
-    svg.style.cssText = `position:absolute;${position};pointer-events:none;overflow:visible;`;
+    svg.style.cssText = `position:absolute;${position};pointer-events:none;overflow:visible;touch-action:none;`;
     // Keep clear of notches and rounded corners.
     for (const side of ['left', 'right', 'top', 'bottom']) {
       const m = position.match(new RegExp(`${side}:([0-9.]+)mm`));
