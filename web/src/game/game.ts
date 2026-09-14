@@ -20,6 +20,7 @@ import * as interact from './interact.ts';
 import { attackMonster, showBall } from './combat.ts';
 import { cast, quickHeal } from './spells.ts';
 import { QUICK_CAST_KEY } from './context.ts';
+import { journalCheck } from './journal.ts';
 import { runDungeon } from './dungeon.ts';
 import { checkAllDead } from './death.ts';
 import { MapId } from '../data/resources.ts';
@@ -109,6 +110,10 @@ export class Game {
       if (world.done) return;
       if (key === Key.Escape) {
         await io.showSettings(); // no turn passes
+        continue;
+      }
+      if (key === 'J' || key === 'j') {
+        await io.showJournal(); // no turn passes
         continue;
       }
       await this.dispatch(key);
@@ -321,6 +326,8 @@ export class Game {
       world.party.location = Location.Ambrosia;
       io.printMessage(258);
       this.setMusic(Music.Ambrosia);
+      world.journal.ambrosia = true;
+      journalCheck(world, io);
     } else if (world.party.location === Location.Ambrosia) {
       world.returnToSurface();
       io.printMessage(114);

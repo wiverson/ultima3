@@ -62,11 +62,14 @@ Escape opens the Settings menu anywhere (on the title screen it is the
 third entry under Options; in controller mode it is the last entry of the
 command menu). Settings holds the input mode, the tile set,
 auto combat, poison kills, starvation, balanced XP, sound effects, music, and
-Help, which shows these controls in the game. Every setting is remembered by the browser.
+Help, which shows these controls in the game in a box over the map. J (Journal
+in the controller menu) opens the quest journal the same way; neither
+takes a turn. Every setting is remembered by the browser.
 
 ### Keyboard mode (the Apple II commands)
 
     Arrows       walk; move in combat      Space   pass a turn
+    Escape       settings                  J       journal
 
     A attack     B board      C cast      E enter     F fire
     G get chest  I ignite     L look      M modify    N negate
@@ -115,7 +118,7 @@ included, is drawn on the canvas; the page has nothing else on it.
 
 ### Cheats
 
-On the Help screen, Y (V on the keyboard in controller mode) opens a
+On the Help pages, Y (V on the keyboard in controller mode) opens a
 cheat menu: full restore (everyone healed and alive), go home (back to
 Lord British's gate, leaving any town, castle or dungeon), exit dungeon,
 100 gold or 100 food for the party, and ten gems, five keys or five
@@ -241,6 +244,22 @@ save contains except the pooled gold and food.
   Heal, the other standing in when it alone can be afforded, and the
   caster is whoever with cleric spells has the most mana. Once nobody
   can pay, the entry goes.
+- **A quest journal** (`journal.ts`), the Apple II had none. J opens it
+  over the map. The main line is ten entries, revealed one at a time as
+  the one before is done: speak to the king, the Mark of Kings, lost
+  Ambrosia, the four cards, exotic arms, the Marks of Fire and Force, the
+  silver snake, the order of the cards, Exodus. Each is open, heard or
+  done: heard once a townsperson, the king, the prayer in Yew or the Time
+  Lord has said something about it, and their words are kept as spoken,
+  with the town's name, and shown on the entry's page; done is read from
+  the party (who bears a mark, cards found "2 of 4", exotics in the bag,
+  Exodus destroyed) or flagged as it happens (the audience, the shore of
+  Ambrosia, the word learned, the serpent parted, the Time Lord). Every
+  entry also has a hint written for this port, shown only when asked for
+  (H, or Y on a controller), and the asking is remembered. "Journal
+  updated" prints when a revealed entry changes state, and only then; a
+  clue for an entry not yet revealed waits quietly. The journal lives in
+  the save file (version 5); older saves start it empty.
 - **Other and Yell are one command.** The Apple II's Yell was Other under
   another name, with one difference: EVOCARE parted the great serpent only
   when yelled, and said "No effect" when typed at Other. EVOCARE now works

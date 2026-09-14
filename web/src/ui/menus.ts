@@ -73,6 +73,7 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
     { key: 'O', label: 'Other command' },
     { key: 'Q', label: 'Quit and save' },
     { key: ' ', label: 'Pass' },
+    { key: 'J', label: 'Journal' },
   ],
   combat: [
     { key: 'A', label: 'Attack' },
@@ -97,6 +98,7 @@ export const COMMAND_MENUS: Record<CommandScope, MenuOption[]> = {
     { key: 'N', label: 'Negate time' },
     { key: 'O', label: 'Other command' },
     { key: ' ', label: 'Pass' },
+    { key: 'J', label: 'Journal' },
   ],
 };
 

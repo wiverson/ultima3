@@ -20,6 +20,8 @@ import { Party, Location, PARTY_RECORD_SIZE } from './party.ts';
 import { Roster, PLAYER_RECORD_SIZE, ROSTER_SIZE } from './player.ts';
 import { Random } from './random.ts';
 import { MapValue } from './tiles.ts';
+import { type JournalState, emptyJournal } from './journal.ts';
+import { speech } from './talk.ts';
 
 /** A loaded map plus the creatures living on it. */
 export interface MapState {
@@ -582,6 +584,7 @@ export class World {
     this.poolGear();
     this.poolSupplies();
     this.party.rulesPending = true; // "Choose Thine Adventure!" at the first Journey onward
+    this.journal = emptyJournal();
     this.party.location = Location.Sosaria;
     this.party.shape = 0x7e;
     this.x = this.party.surfaceX;
@@ -646,6 +649,23 @@ export class World {
 
   /** Each member's last spell this session, for the combat menu's "Cast (spell)" shortcut (this port). */
   lastSpell: (number | undefined)[] = [];
+
+  /** The quest journal (this port; see journal.ts). Saved with the game. */
+  journal: JournalState = emptyJournal();
+
+  /**
+   * A townsperson's line as the talk table has it: `town` is a map name
+   * ("Moon") and `n` the speaker number. Line breaks become spaces, for
+   * the journal, which wraps the words itself.
+   */
+  townLine(town: string, n: number): string {
+    for (const [id, name] of this.resources.mapNames) {
+      if (name !== town) continue;
+      const talk = this.resources.talk.get(id);
+      return talk ? speech(talk, n).replace(/\n/g, ' ').trim() : '';
+    }
+    return '';
+  }
 
   /** Auto-combat on or off (a LairWare addition; see autocombat.ts). */
   autoCombat = false;

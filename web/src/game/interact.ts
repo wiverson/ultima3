@@ -11,6 +11,7 @@
 
 import { levelUpDue } from './player.ts';
 import { World } from './world.ts';
+import type { PlayerRecord } from './player.ts';
 import { Location } from './party.ts';
 import { MapValue, Shape } from './tiles.ts';
 import { type GameIO, Sound, Music, deathSound, letterOptions } from './io.ts';
@@ -68,25 +69,9 @@ const Msg = {
 // Talking
 // ---------------------------------------------------------------------------
 
-/**
- * Mirrors `Speak()`: NPC dialogue. A TLKS resource is a run of NUL
- * terminated strings; `person` selects the nth. Characters have the high
- * bit set (Apple II text) and 0xFF marks a line break.
- */
-export function speech(talk: Uint8Array, person: number): string {
-  let p = 0;
-  while (person > 0 && p < 256) {
-    while (talk[p] !== 0 && p < 256) p++;
-    person--;
-    p++;
-  }
-  let out = '';
-  while (p < 256 && talk[p] !== 0) {
-    out += talk[p] === 0xff ? '\n' : String.fromCharCode(talk[p] & 0x7f);
-    p++;
-  }
-  return out;
-}
+import { speech } from './talk.ts';
+import { hearTownLine, hearClue, journalCheck } from './journal.ts';
+export { speech };
 
 /**
  * Talk to whoever or whatever is in a chosen direction: NPCs, Lord British,
@@ -186,12 +171,21 @@ export async function talkTo(world: World, io: GameIO, mon: number, member: numb
       return;
     }
     io.print(speech(world.current.talk, person));
+    const town = world.resources.mapNames.get(world.current.id);
+    if (town && hearTownLine(world, town, person)) journalCheck(world, io);
     return;
   }
 
   // Lord British raises levels once the character has the experience.
   io.music(Music.LordBritish);
   io.printMessage(Msg.WelcomeMyChild);
+  world.journal.lordBritish = true;
+  await lordBritishSpeaks(world, io, p);
+  journalCheck(world, io);
+}
+
+/** The rest of the audience: level up, or one of the king's excuses. */
+async function lordBritishSpeaks(world: World, io: GameIO, p: PlayerRecord): Promise<void> {
   const level = p.bytes[30];
   let hpmax = p.maxHitPoints;
   if (hpmax % 100 === 50) hpmax -= 50; // old 150/250 style values
@@ -201,7 +195,10 @@ export async function talkTo(world: World, io: GameIO, mon: number, member: numb
     return;
   }
   if (hpmax >= 25 && !world.party.exodusDestroyed) return io.printMessage(Msg.NoMore);
-  if (hpmax > 4 && !(p.marks & 0x80)) return io.printMessage(Msg.SeekMarkOfKings);
+  if (hpmax > 4 && !(p.marks & 0x80)) {
+    hearClue(world, 'LB:mark');
+    return io.printMessage(Msg.SeekMarkOfKings);
+  }
   const newMax = Math.min(9950, p.maxHitPoints + 100);
   const gained = newMax - p.maxHitPoints;
   p.bytes[28] = Math.floor(newMax / 256);
@@ -351,6 +348,8 @@ async function evocare(world: World, io: GameIO, member: number): Promise<void> 
   io.sound(Sound.Invocation);
   await io.pause(1000);
   io.redrawMap();
+  world.journal.serpentParted = true;
+  journalCheck(world, io);
 }
 
 // ---------------------------------------------------------------------------
@@ -399,12 +398,16 @@ export async function otherCommand(world: World, io: GameIO, fromYell = false): 
       if (world.x === 0x21 && world.y === 0x03) world.addGear(true, 15); // exotic weapon
       else if (world.x === 0x13 && world.y === 0x2c) world.addGear(false, 7); // exotic armour
       else return notHere(io);
-      return io.printMessage(Msg.Exotics);
+      io.printMessage(Msg.Exotics);
+      journalCheck(world, io);
+      return;
     }
     case 'SEARCH': {
       if (world.getXYVal(world.x, world.y) !== MapValue.Shrine) return notHere(io);
       p.bytes[14] |= 1 << (world.x & 0x03);
-      return io.printMessage(Msg.StrangeCard);
+      io.printMessage(Msg.StrangeCard);
+      journalCheck(world, io);
+      return;
     }
     case 'BRIBE': {
       io.printMessage(Msg.Dir);
@@ -428,7 +431,11 @@ export async function otherCommand(world: World, io: GameIO, fromYell = false): 
       if (world.party.location !== Location.Town) return io.printMessage(Msg.NoEffect);
       if (world.party.surfaceX !== world.resources.misc.locationX[4]) return io.printMessage(Msg.NoEffect);
       if (world.x !== 0x30 || world.y !== 0x30) return io.printMessage(Msg.NoEffect);
-      return io.printMessage(Msg.YellEvocare);
+      io.printMessage(Msg.YellEvocare);
+      world.journal.wordKnown = true;
+      hearClue(world, 'Yew:pray');
+      journalCheck(world, io);
+      return;
     }
     case 'EVOCARE':
       return evocare(world, io, member);
@@ -499,6 +506,7 @@ async function insertCard(world: World, io: GameIO, member: number): Promise<voi
   safeExodus(world);
   io.redrawMap();
   io.print('\n');
+  journalCheck(world, io);
 }
 
 /** Mirrors `SafeExodus()`: after the victory the castle is emptied and its traps removed. */

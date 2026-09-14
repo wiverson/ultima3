@@ -23,6 +23,7 @@ import { QUICK_CAST_KEY } from './context.ts';
 import { ageChars } from './turn.ts';
 import { checkAllDead } from './death.ts';
 import { speech, otherCommand, yell } from './interact.ts';
+import { hearClue, journalCheck } from './journal.ts';
 import {
   getChest,
   igniteTorch,
@@ -200,6 +201,10 @@ export async function runDungeon(world: World, io: GameIO): Promise<void> {
       await io.showSettings(); // no turn passes
       continue;
     }
+    if (key === 'J' || key === 'j') {
+      await io.showJournal(); // no turn passes
+      continue;
+    }
     const before = `${d.level}:${world.x}:${world.y}`;
     await dispatch(world, io, key);
     const arrived = `${d.level}:${world.x}:${world.y}` !== before;
@@ -319,6 +324,9 @@ async function encounter(world: World, io: GameIO, cell: number, arrived = true)
       io.print('\n');
       io.redrawMap();
       io.music(Music.Dungeon);
+      world.journal.timeLord = true;
+      hearClue(world, 'TimeLord');
+      journalCheck(world, io);
       return;
 
     case DungeonCell.Fountain: {
@@ -394,6 +402,7 @@ async function encounter(world: World, io: GameIO, cell: number, arrived = true)
       io.updateStats();
       io.music(Music.Dungeon);
       io.redrawMap();
+      journalCheck(world, io);
       return;
     }
 

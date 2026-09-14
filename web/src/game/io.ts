@@ -123,6 +123,8 @@ export interface GameIO {
   chooseOption(options: MenuOption[], echo: 'none' | 'key' | 'line', place?: MenuPlacement): Promise<string>;
   /** The Settings menu (input mode, tiles, diagonal moves, auto combat, sound, music, help). Returns when closed. */
   showSettings(): Promise<void>;
+  /** The quest journal (J): a page over the map. No turn passes. */
+  showJournal(): Promise<void>;
   /**
    * Pick from a list shown as a menu in every input mode (the title and
    * party screens, where there is no Apple II key to press). Resolves with

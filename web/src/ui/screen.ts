@@ -33,6 +33,7 @@ import { PlayerRecord, levelUpDue } from '../game/player.ts';
 import { commandMenu, hasMagic } from '../game/context.ts';
 import { memberShape } from '../game/combat.ts';
 import { TILE_SETS, KEYBOARD_HELP, CONTROLLER_HELP } from './help.ts';
+import { journalLines, journalSnapshot, markHintSeen, type JournalLine } from '../game/journal.ts';
 import { CHEATS } from '../game/cheats.ts';
 import { Location } from '../game/party.ts';
 import { buildViewport, VIEW_SIZE, type Viewport } from '../game/viewport.ts';
@@ -53,6 +54,7 @@ import {
   GamepadReader,
   type MenuWindow,
   HINT_ROWS,
+  wrapText,
 } from './menus.ts';
 import { DungeonCell } from '../game/world.ts';
 
@@ -78,6 +80,12 @@ const Piece = {
 /** The message area. */
 /** Character boxes: two rows each, three rows apart, separators below each. */
 const BOX_ROWS = 2;
+
+/** Pages over the map (Help, the Journal): text column, width and rows. */
+const PAGE_LEFT = 2;
+const PAGE_WIDTH = 20;
+const PAGE_TOP = 1;
+const PAGE_ROWS = 19;
 const BOX_PITCH = 3;
 const BOX_SEPARATORS = [3, 6, 9, 12];
 const BOXES_BOTTOM = 12;
@@ -707,22 +715,61 @@ export class Screen implements GameIO {
     }
   }
 
+  // -------------------------------------------------------------------------
+  // Pages over the map: Help and the Journal
+  // -------------------------------------------------------------------------
+
   /**
-   * Full-screen help pages for the current input mode. Any key turns the
-   * page, Escape or B closes, and Y (V on the keyboard in controller mode)
-   * opens the cheat menu.
+   * A page is a boxed screen of text over the map area, with its title in
+   * the box's top edge as a menu window has it: up to PAGE_ROWS lines of
+   * PAGE_WIDTH characters from row 1, a note row, then two footer rows.
+   * Over the game frame the box is the map's own frame; on a title screen
+   * the same box is drawn in the plain frame first. Returns whether the
+   * viewport was already covered, for closePage.
+   */
+  private openPage(): boolean {
+    const wasCovered = this.viewCovered;
+    this.viewCovered = true; // stop the viewport repainting under the page
+    if (!this.frameShown) {
+      this.black(1, 1, COLUMNS - 2, ROWS - 2); // the title picture comes back on closing
+      for (let y = 1; y < 23; y++) this.piece(Piece.Vertical, 23, y);
+      this.piece(Piece.TopTee, 23, 0);
+      this.piece(Piece.BottomTee, 23, 23);
+    }
+    return wasCovered;
+  }
+
+  private closePage(wasCovered: boolean): void {
+    this.viewCovered = wasCovered;
+    this.redrawAll();
+  }
+
+  private drawPage(title: string, lines: string[], footer: string[], note = '', cursor = -1): void {
+    this.black(1, 0, 22, 23);
+    for (let x = 1; x <= 22; x++) this.piece(Piece.Horizontal, x, 0);
+    const t = title.slice(0, PAGE_WIDTH);
+    const tx = 1 + Math.floor((22 - t.length) / 2);
+    this.black(tx, 0, t.length, 1);
+    this.drawText(t, tx, 0);
+    lines.slice(0, PAGE_ROWS).forEach((line, i) => this.drawText(line.slice(0, PAGE_WIDTH), PAGE_LEFT, PAGE_TOP + i));
+    if (cursor >= 0 && cursor < Math.min(lines.length, PAGE_ROWS)) this.invert(PAGE_LEFT - 1, PAGE_TOP + cursor, PAGE_WIDTH + 2, 1);
+    if (note) this.drawText(note.slice(0, PAGE_WIDTH), PAGE_LEFT, PAGE_TOP + PAGE_ROWS);
+    footer.forEach((line, i) => this.drawText(line.slice(0, PAGE_WIDTH), PAGE_LEFT, PAGE_TOP + PAGE_ROWS + 1 + i));
+  }
+
+  /**
+   * The help pages for the current input mode, in a box over the map. Any
+   * key (A) turns the page, Escape or B closes, and Y (V on the keyboard
+   * in controller mode) opens the cheat menu.
    */
   private async showHelp(): Promise<void> {
     const pages = this.inputMode === 'controller' ? CONTROLLER_HELP : KEYBOARD_HELP;
-    const wasCovered = this.viewCovered;
-    this.viewCovered = true; // stop the viewport repainting under the page
+    const footer = this.inputMode === 'controller' ? ['A next  B close', 'Y cheats'] : ['Any key next  Esc', 'Y cheats'];
+    const wasCovered = this.openPage();
     let note = '';
     try {
       for (let index = 0; index < pages.length; ) {
-        this.black(0, 0, COLUMNS, ROWS);
-        pages[index].forEach((line, i) => this.drawText(line, 1, 1 + i));
-        if (note) this.drawText(note, 1, ROWS - 2);
-        this.drawText(this.inputMode === 'controller' ? 'A: next   B: close   Y: cheats' : 'Any key: next  Esc: close  Y: cheats', 1, ROWS - 1);
+        this.drawPage(pages[index].title, pages[index].lines, footer, note);
         const key = await this.readKey();
         if (key === Key.Escape || key === Key.B) break;
         if (key === Key.Y || key === 'y' || key === 'Y') {
@@ -732,8 +779,69 @@ export class Screen implements GameIO {
         index++;
       }
     } finally {
-      this.viewCovered = wasCovered;
-      this.redrawAll();
+      this.closePage(wasCovered);
+    }
+  }
+
+  /**
+   * The quest journal (J): the revealed entries as a list, each marked
+   * open, heard or done; choosing one shows its page with its state, the
+   * clues heard about it and, on request, its hint. What the player has
+   * seen is noted on closing, so "Journal updated" only marks real change.
+   */
+  async showJournal(): Promise<void> {
+    const controller = this.inputMode === 'controller';
+    const wasCovered = this.openPage();
+    let cursor = 0;
+    try {
+      for (;;) {
+        const entries = journalLines(this.world);
+        const marks = { open: '-', heard: '?', done: '*' };
+        const lines = entries.map((e) => `${marks[e.state]} ${e.title}`);
+        const footer = [controller ? 'A open  B close' : 'Enter opens  Esc', '- open ? heard *done'];
+        this.drawPage('Journal', lines, footer, '', cursor);
+        const key = await this.readKey();
+        if (key === Key.Escape || key === Key.B) break;
+        if (key === Key.Up && cursor > 0) cursor--;
+        else if (key === Key.Down && cursor < entries.length - 1) cursor++;
+        else if (key === Key.Enter || key === Key.A) await this.journalEntry(entries[cursor]);
+      }
+    } finally {
+      journalSnapshot(this.world);
+      this.closePage(wasCovered);
+    }
+  }
+
+  /** One journal entry's page; Up and Down scroll when it runs long. */
+  private async journalEntry(entry: JournalLine): Promise<void> {
+    const controller = this.inputMode === 'controller';
+    let top = 0;
+    for (;;) {
+      const state = entry.state === 'done' ? 'Done.' : entry.state === 'heard' ? 'Heard of.' : 'Not yet.';
+      const lines: string[] = [state];
+      if (entry.note) lines.push(...wrapText(entry.note, PAGE_WIDTH, 4));
+      for (const clue of entry.clues) {
+        lines.push('');
+        lines.push(...wrapText(`${clue.from}: ${clue.text}`, PAGE_WIDTH, 12));
+      }
+      const hintSeen = this.world.journal.hints.includes(entry.id);
+      if (hintSeen) {
+        lines.push('');
+        lines.push(...wrapText(`Hint: ${entry.hint}`, PAGE_WIDTH, 12));
+      }
+      const maxTop = Math.max(0, lines.length - PAGE_ROWS);
+      top = Math.min(top, maxTop);
+      const scroll = [top > 0 && 'Up', top < maxTop && 'Down'].filter(Boolean).join('/');
+      const footer = [controller ? 'B back' : 'Esc back', hintSeen ? '' : controller ? 'Y for a hint' : 'H for a hint'];
+      this.drawPage(entry.title, lines.slice(top), footer, scroll && `${scroll} for more`);
+      const key = await this.readKey();
+      if (key === Key.Escape || key === Key.B) return;
+      if (key === Key.Up) top = Math.max(0, top - 1);
+      else if (key === Key.Down) top = Math.min(maxTop, top + 1);
+      else if (!hintSeen && (key === Key.Y || key === 'h' || key === 'H')) {
+        markHintSeen(this.world, entry.id);
+        top = lines.length; // scroll to the hint (clamped next time round)
+      }
     }
   }
 

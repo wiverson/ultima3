@@ -13,13 +13,15 @@
 import { World, blockExodusApproach } from './world.ts';
 import { Location } from './party.ts';
 import { MapId } from '../data/resources.ts';
+import { type JournalState, emptyJournal } from './journal.ts';
 
 /**
  * Version 2 pools gold and food in the party record, version 3 weapons and
- * armour, version 4 gems, keys, powders and torches; older saves are
+ * armour, version 4 gems, keys, powders and torches, version 5 adds the
+ * quest journal; older saves are
  * migrated on load.
  */
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 export const SAVE_KEY = 'ultima3.save';
 
 export interface SaveData {
@@ -34,6 +36,8 @@ export interface SaveData {
   moonPhase: [number, number];
   moonTimer: [number, number];
   windDirection: number;
+  /** The quest journal (version 5 on; older saves start it empty). */
+  journal?: JournalState;
 }
 
 function toBase64(bytes: Uint8Array): string {
@@ -46,6 +50,18 @@ function fromBase64(s: string): Uint8Array {
   const bin = atob(s);
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/** A journal from a save, checked field by field; anything missing or odd starts empty. */
+function restoreJournal(j: unknown): JournalState {
+  const out = emptyJournal();
+  if (!j || typeof j !== 'object') return out;
+  const r = j as Record<string, unknown>;
+  for (const flag of ['lordBritish', 'ambrosia', 'timeLord', 'wordKnown', 'serpentParted'] as const) out[flag] = r[flag] === true;
+  for (const list of ['clues', 'hints', 'seen'] as const) {
+    if (Array.isArray(r[list])) out[list] = (r[list] as unknown[]).filter((s): s is string => typeof s === 'string');
+  }
   return out;
 }
 
@@ -64,6 +80,7 @@ export function serialize(world: World): SaveData {
     moonPhase: [...world.moonPhase],
     moonTimer: [...world.moonTimer],
     windDirection: world.windDirection,
+    journal: { ...world.journal, clues: [...world.journal.clues], hints: [...world.journal.hints], seen: [...world.journal.seen] },
   };
 }
 
@@ -96,6 +113,7 @@ export function restore(world: World, data: SaveData): boolean {
     if (data.version < 2) world.poolPurses(); // members' purses become the party's
     if (data.version < 3) world.poolGear(); // members' bags become the party's
     if (data.version < 4) world.poolSupplies(); // and their gems, keys, powders and torches
+    world.journal = restoreJournal(data.journal);
     return true;
   } catch {
     return false;
