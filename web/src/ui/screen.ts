@@ -827,8 +827,9 @@ export class Screen implements GameIO {
 
   /**
    * The cloth map of Sosaria from the box, over the whole screen and
-   * through a light CRT effect (scanlines, a slow rolling band, a faint
-   * flicker and dark corners), animated until a key is pressed. The Mac
+   * through a CRT effect (scanlines, a ghost image, a rolling band, a
+   * flicker, the odd sideways jitter and dark corners), animated until a
+   * key is pressed. The Mac
    * showed the map from a menu item; the Apple II box had it on cloth.
    */
   async showMap(): Promise<void> {
@@ -853,17 +854,23 @@ export class Screen implements GameIO {
     ctx.save();
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, width, height);
-    // The map is square: as tall as the screen, centred.
+    // The map is square: as tall as the screen, centred. Now and then the
+    // picture jitters a pixel or two sideways, as a tube losing sync did.
     const size = height;
-    const left = (width - size) / 2;
+    const wobble = Math.sin(time / 230) * Math.sin(time / 3100) > 0.9 ? Math.round(Math.sin(time / 17) * 3) : 0;
+    const left = (width - size) / 2 + wobble;
     ctx.drawImage(map, left, 0, size, size);
+    // A ghost of the picture a little to the right, the way a tube's edges doubled.
+    ctx.globalAlpha = 0.35;
+    ctx.drawImage(map, left + 4, 1, size, size);
+    ctx.globalAlpha = 1;
     // Scanlines: a dark line every fourth pixel row, tiled from a small pattern.
     if (!this.scanlines) {
       const tile = document.createElement('canvas');
       tile.width = 1;
       tile.height = 4;
       const tctx = tile.getContext('2d')!;
-      tctx.fillStyle = 'rgba(0,0,0,0.22)';
+      tctx.fillStyle = 'rgba(0,0,0,0.4)';
       tctx.fillRect(0, 2, 1, 2);
       this.scanlines = ctx.createPattern(tile, 'repeat');
     }
@@ -871,21 +878,21 @@ export class Screen implements GameIO {
       ctx.fillStyle = this.scanlines;
       ctx.fillRect(left, 0, size, size);
     }
-    // A pale band rolling down the screen every six seconds.
-    const bandTop = ((time / 6000) % 1) * (height + size / 4) - size / 4;
+    // A pale band rolling down the screen every four seconds.
+    const bandTop = ((time / 4000) % 1) * (height + size / 4) - size / 4;
     const band = ctx.createLinearGradient(0, bandTop, 0, bandTop + size / 4);
     band.addColorStop(0, 'rgba(255,255,255,0)');
-    band.addColorStop(0.5, 'rgba(255,255,255,0.07)');
+    band.addColorStop(0.5, 'rgba(255,255,255,0.18)');
     band.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = band;
     ctx.fillRect(left, 0, size, size);
-    // A faint flicker, and corners darkened as a curved tube's were.
-    const flicker = 0.02 + 0.02 * Math.abs(Math.sin(time / 90) * Math.sin(time / 1300));
+    // A flicker, and corners darkened as a curved tube's were.
+    const flicker = 0.04 + 0.08 * Math.abs(Math.sin(time / 90) * Math.sin(time / 1300));
     ctx.fillStyle = `rgba(0,0,0,${flicker.toFixed(3)})`;
     ctx.fillRect(left, 0, size, size);
-    const vignette = ctx.createRadialGradient(width / 2, height / 2, size * 0.35, width / 2, height / 2, size * 0.75);
+    const vignette = ctx.createRadialGradient(width / 2, height / 2, size * 0.3, width / 2, height / 2, size * 0.75);
     vignette.addColorStop(0, 'rgba(0,0,0,0)');
-    vignette.addColorStop(1, 'rgba(0,0,0,0.45)');
+    vignette.addColorStop(1, 'rgba(0,0,0,0.55)');
     ctx.fillStyle = vignette;
     ctx.fillRect(left, 0, size, size);
     ctx.restore();

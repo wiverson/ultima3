@@ -280,9 +280,9 @@ save contains except the pooled gold and food.
   the save file (version 5); older saves start it empty.
 - **View map** (# on the keyboard, View map in the controller menu, not
   in Ambrosia) shows the cloth map of Sosaria that came in the box, over
-  the whole screen through a light CRT effect: scanlines, a slow rolling
-  band, a faint flicker and darkened corners, animated until a key is
-  pressed. The Mac showed the map from a menu item.
+  the whole screen through a CRT effect: scanlines, a colour ghost, a
+  rolling band, a flicker, the odd sideways jitter and darkened corners,
+  animated until a key is pressed. The Mac showed the map from a menu item.
 - **Other and Yell are one command.** The Apple II's Yell was Other under
   another name, with one difference: EVOCARE parted the great serpent only
   when yelled, and said "No effect" when typed at Other. EVOCARE now works
