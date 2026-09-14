@@ -174,6 +174,12 @@ export class World {
   moonTimer: [number, number] = [12, 4];
   moonPhase: [number, number] = [4, 4];
 
+  /**
+   * Moongates the party has come out of (gate numbers 0..7), this port:
+   * View map marks each with the moon that opens it. Saved with the game.
+   */
+  gatesKnown: number[] = [];
+
   /** Wind: 0 calm, 1 north, 2 east, 3 south, 4 west. Blocks ships sailing into it. */
   windDirection = 0;
   windTimer = 0;
@@ -589,6 +595,7 @@ export class World {
     this.poolSupplies();
     this.party.rulesPending = true; // "Choose Thine Adventure!" at the first Journey onward
     this.journal = emptyJournal();
+    this.gatesKnown = [];
     this.party.location = Location.Sosaria;
     this.party.shape = 0x7e;
     this.x = this.party.surfaceX;

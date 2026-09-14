@@ -18,10 +18,11 @@ import { type JournalState, emptyJournal } from './journal.ts';
 /**
  * Version 2 pools gold and food in the party record, version 3 weapons and
  * armour, version 4 gems, keys, powders and torches, version 5 adds the
- * quest journal; older saves are
+ * quest journal, version 6 the moongates the party has come out of;
+ * older saves are
  * migrated on load.
  */
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 export const SAVE_KEY = 'ultima3.save';
 
 export interface SaveData {
@@ -38,6 +39,8 @@ export interface SaveData {
   windDirection: number;
   /** The quest journal (version 5 on; older saves start it empty). */
   journal?: JournalState;
+  /** Moongates come out of, 0..7 (version 6 on). */
+  moongates?: number[];
 }
 
 function toBase64(bytes: Uint8Array): string {
@@ -81,6 +84,7 @@ export function serialize(world: World): SaveData {
     moonTimer: [...world.moonTimer],
     windDirection: world.windDirection,
     journal: { ...world.journal, clues: [...world.journal.clues], hints: [...world.journal.hints], seen: [...world.journal.seen] },
+    moongates: [...world.gatesKnown],
   };
 }
 
@@ -114,6 +118,9 @@ export function restore(world: World, data: SaveData): boolean {
     if (data.version < 3) world.poolGear(); // members' bags become the party's
     if (data.version < 4) world.poolSupplies(); // and their gems, keys, powders and torches
     world.journal = restoreJournal(data.journal);
+    world.gatesKnown = Array.isArray(data.moongates)
+      ? data.moongates.filter((g): g is number => Number.isInteger(g) && g >= 0 && g < 8)
+      : [];
     return true;
   } catch {
     return false;

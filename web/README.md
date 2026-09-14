@@ -283,6 +283,15 @@ save contains except the pooled gold and food.
   the whole screen through a CRT effect: scanlines, a colour ghost, a
   rolling band, a flicker, the odd sideways jitter and darkened corners,
   animated until a key is pressed. The Mac showed the map from a menu item.
+  Every moongate the party has come out of is marked on it with the
+  Trammel moon that opens it, so the gate table builds itself one trip at
+  a time; the Apple II never wrote it down anywhere. The marks are kept in
+  the save file (version 6).
+- **Moon phases as pictures.** The status bar shows the two moons as the
+  tile set's pictures of their phases, Trammel then Felucca, as the Mac
+  did and as Ultima IV and V did; the Apple II printed digits. A new moon
+  is dark, a full one bright, and the gate open is the one Trammel's
+  picture names.
 - **Other and Yell are one command.** The Apple II's Yell was Other under
   another name, with one difference: EVOCARE parted the great serpent only
   when yelled, and said "No effect" when typed at Other. EVOCARE now works

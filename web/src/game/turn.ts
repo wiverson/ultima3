@@ -71,6 +71,7 @@ export async function handleMoonStep(world: World, io: GameIO): Promise<void> {
     const phase = world.moonPhase[1];
     world.x = moonX[phase];
     world.y = moonY[phase];
+    if (!world.gatesKnown.includes(phase)) world.gatesKnown.push(phase); // View map marks the gates come out of
   } else {
     let value = 0;
     while (value !== MapValue.Grass) {

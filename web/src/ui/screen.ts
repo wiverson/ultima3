@@ -81,6 +81,13 @@ const Piece = {
 /** Character boxes: two rows each, three rows apart, separators below each. */
 const BOX_ROWS = 2;
 
+/**
+ * Where the 64x64 tile grid sits on SosariaMap.jpg (its pixels): the land
+ * fills the picture below the title band. Found by laying the water tiles
+ * over the drawing; the coasts agree to about a square.
+ */
+const MAP_GRID = { image: 704, x: 0, y: 70, sx: 11, sy: 9.9 };
+
 /** Pages over the map (Help, the Journal): text column, width and rows. */
 const PAGE_LEFT = 2;
 const PAGE_WIDTH = 20;
@@ -847,6 +854,35 @@ export class Screen implements GameIO {
     }
   }
 
+  /**
+   * The moongates the party has come out of, on the cloth map: each drawn
+   * as the Trammel moon that opens it, in a round frame. The map is a
+   * drawing, not a plot, but its coasts follow the tile grid closely
+   * enough: the land fills the picture below its title band, at
+   * MAP_GRID's scale, so a gate lands within a square of its place.
+   */
+  private markGates(left: number, size: number): void {
+    const { ctx, cell, world } = this;
+    const { moonX, moonY } = world.resources.misc;
+    const scale = size / MAP_GRID.image;
+    const radius = cell * 0.65;
+    for (const gate of world.gatesKnown) {
+      const x = left + (MAP_GRID.x + (moonX[gate] + 0.5) * MAP_GRID.sx) * scale;
+      const y = (MAP_GRID.y + (moonY[gate] + 0.5) * MAP_GRID.sy) * scale;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.clip();
+      this.gfx.drawMoon(ctx, 0, gate, x - radius, y - radius, radius * 2);
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.lineWidth = Math.max(2, cell / 12);
+      ctx.strokeStyle = '#f0e0a0';
+      ctx.stroke();
+    }
+  }
+
   private paintMap(map: HTMLImageElement, time: number): void {
     const { ctx, cell } = this;
     const width = COLUMNS * cell;
@@ -895,6 +931,7 @@ export class Screen implements GameIO {
     vignette.addColorStop(1, 'rgba(0,0,0,0.55)');
     ctx.fillStyle = vignette;
     ctx.fillRect(left, 0, size, size);
+    this.markGates(left, size); // over the tube effects, so the moons read clearly
     ctx.restore();
   }
 
@@ -1826,11 +1863,18 @@ export class Screen implements GameIO {
 
     // Plain bar across the top of the map, then the three fields over it:
     // gold at the left, the moons (or dungeon level) in the middle where the
-    // Apple II showed them, food at the right.
+    // Apple II showed them, food at the right. The moons are the tile set's
+    // pictures of the phases, Trammel then Felucca, between two bar caps;
+    // the Apple II printed the phases as digits, LairWare drew these.
     for (let x = 1; x <= 22; x++) piece(Piece.Horizontal, x);
     this.drawText(`G:${w.party.gold}`, 1, 0);
     if (w.party.location === Location.Dungeon) this.drawText(`Lvl:${w.dungeon.level + 1}`.padEnd(6), 9, 0);
-    else this.drawText(`(${w.moonPhase[0]})(${w.moonPhase[1]})`, 9, 0);
+    else {
+      piece(Piece.CapLeft, 9);
+      this.gfx.drawMoon(this.ctx, 0, w.moonPhase[0], 10 * this.cell, 0, this.cell);
+      this.gfx.drawMoon(this.ctx, 1, w.moonPhase[1], 11 * this.cell, 0, this.cell);
+      piece(Piece.CapRight, 12);
+    }
     const food = `F:${w.party.food}`;
     this.drawText(food, 23 - food.length, 0);
   }

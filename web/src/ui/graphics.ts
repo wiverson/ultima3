@@ -232,6 +232,11 @@ export class GraphicsSet {
     ctx.drawImage(this.font, code * this.fontSize, 0, this.fontSize, this.fontHeight, dx, dy, size, size);
   }
 
+  /** Draw a moon's phase (0..7) from the UI sheet's third row: Trammel's eight, then Felucca's. */
+  drawMoon(ctx: CanvasRenderingContext2D, moon: 0 | 1, phase: number, dx: number, dy: number, size: number): void {
+    this.drawUiPiece(ctx, moon * 8 + (phase & 7), 2, dx, dy, size);
+  }
+
   /** Draw piece (column, row) of the UI sheet. */
   drawUiPiece(ctx: CanvasRenderingContext2D, column: number, row: number, dx: number, dy: number, size: number): void {
     const s = this.uiSize;

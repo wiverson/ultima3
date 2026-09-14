@@ -396,3 +396,30 @@ describe('the turn timer', () => {
     expect(world.timeLimit(4000)).toBeUndefined();
   });
 });
+
+describe('moongates come out of', () => {
+  it('are remembered, once each, saved with the game, and forgotten by a new game', async () => {
+    const { handleMoonStep } = await import('../src/game/turn.ts');
+    const { serialize, restore } = await import('../src/game/save.ts');
+    const { World } = await import('../src/game/world.ts');
+    const world = newWorld();
+    const io = new FakeIO(world.resources);
+    world.moonPhase = [2, 5];
+    await handleMoonStep(world, io);
+    expect([world.x, world.y]).toEqual([world.resources.misc.moonX[5], world.resources.misc.moonY[5]]);
+    expect(world.gatesKnown).toEqual([5]);
+    await handleMoonStep(world, io);
+    expect(world.gatesKnown).toEqual([5]);
+    world.moonPhase = [2, 0];
+    await handleMoonStep(world, io);
+    expect(world.gatesKnown).toEqual([5, 0]);
+    const data = JSON.parse(JSON.stringify(serialize(world))) as ReturnType<typeof serialize>;
+    const b = new World(world.resources);
+    expect(restore(b, data)).toBe(true);
+    expect(b.gatesKnown).toEqual([5, 0]);
+    expect(restore(b, { ...data, version: 5, moongates: undefined })).toBe(true);
+    expect(b.gatesKnown).toEqual([]);
+    world.newGame();
+    expect(world.gatesKnown).toEqual([]);
+  });
+});
