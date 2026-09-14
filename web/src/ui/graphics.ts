@@ -23,10 +23,13 @@
 
 import { DUNGEON_STYLES, paintDungeonSheet, type DungeonStyle } from './dungeonArt.ts';
 import { MOON_STYLES, MOON_CELL, paintMoons } from './moonArt.ts';
-import { Shape } from '../game/tiles.ts';
+import { MapValue, Shape } from '../game/tiles.ts';
 
 export const TILE_COLUMNS = 12;
 export const TILE_ROWS = 16;
+/** The Exodus tile (map value 0x7c) and the sheet column holding its four light panels. */
+export const EXODUS_INDEX = MapValue.Exodus >> 2;
+export const EXODUS_PANEL_COLUMN = 5;
 export const FONT_GLYPHS = 96;
 export const UI_COLUMNS = 16;
 export const UI_ROWS = 3;
@@ -120,6 +123,14 @@ export class GraphicsSet {
   private swapped = new Uint8Array(TILE_COLUMNS * TILE_ROWS);
   /** Vertical scroll offset in tile pixels for water, lava, forcefield and moongate. */
   private scroll = new Map<number, number>();
+  /**
+   * Which of Exodus' four light panels is showing, 0..3. The panels are
+   * kept in the alternate-frame cells of indices 32-35 (column 5, rows
+   * 0-3), whose owners scroll and never swap frames; the Exodus cell itself
+   * is blank in every sheet. (`exoduslitez`)
+   */
+  private exodusFrame = 0;
+  private exodusSkip = 0;
 
   // Animation counters, with the original's initial values. (`twiddleFlag`, `animFlag`)
   private twiddle = [3, 2, 1];
@@ -211,6 +222,7 @@ export class GraphicsSet {
   /** Source rectangle of a tile index, honouring the animation frame. (`GetTileRectForIndex`) */
   tileRect(index: number, frameOverride?: boolean): SourceRect {
     const s = this.tileSize;
+    if (index === EXODUS_INDEX) return { x: EXODUS_PANEL_COLUMN * s, y: this.exodusFrame * s, w: s, h: s };
     const swapped = frameOverride ?? this.swapped[index] === 1;
     return {
       x: (Math.floor(index / TILE_ROWS) * 2 + (swapped ? 1 : 0)) * s,
@@ -296,6 +308,11 @@ export class GraphicsSet {
     scrollBy(Shape.MoonGate, step * 2);
     scrollBy(Shape.Water, step);
     scrollBy(Shape.Lava, step);
+
+    // Exodus' lights: every other tick the next panel down the strip (3, 2,
+    // 1, 0) becomes the Exodus tile. The original copied the panel into the
+    // tile's own cell; here `tileRect` points at the panel. (`ExodusLights`)
+    if ((this.exodusSkip ^= 1) === 1) this.exodusFrame = (this.exodusFrame + 3) & 3;
 
     // Flags: castle every 4th tick, town every 3rd, ship every 2nd.
     const flagShapes = [Shape.Castle, Shape.Town, Shape.Frigate];

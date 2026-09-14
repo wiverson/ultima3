@@ -393,6 +393,17 @@ save contains except the pooled gold and food.
   Mac's single frame about the shoulder; the Mac sheet's two frames were
   the same picture, so the Ranger alone stood still. Lairware keeps the
   Mac sheet untouched, still Ranger and all.
+- **Exodus' lights.** The Exodus tile is blank in every sheet: the Mac
+  kept its four light panels in the second-frame cells of the forcefield,
+  lava, moongate and wall tiles (which scroll or stand still and never
+  swap frames) and copied the next one into the Exodus cell every other
+  tick (`ExodusLights()`). The port draws the panel straight from where it
+  sits, so the machine's lights run in every set.
+- **Standard sheet repairs.** The bottom pixel row of the water, lava and
+  moongate tiles was a shade off the row above it and showed as a line
+  crossing the tile as it scrolled; it is now the mean of the rows on
+  either side of the wrap. Faint alpha fringe on the cell edges of the
+  creature tiles was cleared; figures that reach the edge are untouched.
 - **Tile sheets carry their own transparency.** The Mac shipped a
   separate grey "Mask" image per set for creature transparency, since
   QuickDraw had no alpha channel; those masks are baked into the alpha of

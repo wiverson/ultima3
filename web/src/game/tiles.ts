@@ -17,7 +17,10 @@
  *
  * 3. TILE INDEX (0-95) - the position in the tile sheet. Row = index % 16,
  *    column pair = index / 16. Indices 0-63 are the classic Apple II tiles;
- *    64-79 are monster variants; 80+ are extras used by this port's sheets.
+ *    64-67 are four figures the animation toggles but nothing draws; 68-79
+ *    are empty; 80-95 are the monster variants (see `monsterVariantShape`).
+ *    The Exodus tile (31) is blank in every sheet: its four light panels sit
+ *    in the second-frame cells of 32-35 and `GraphicsSet` shows them in turn.
  *
  * Conversions:  shape = mapValue & 0xFC >> 1     tileIndex = shape >> 1
  */
