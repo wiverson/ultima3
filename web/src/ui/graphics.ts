@@ -22,6 +22,7 @@
  */
 
 import { DUNGEON_STYLES, paintDungeonSheet, type DungeonStyle } from './dungeonArt.ts';
+import { MOON_STYLES, MOON_CELL, paintMoons } from './moonArt.ts';
 import { Shape } from '../game/tiles.ts';
 
 export const TILE_COLUMNS = 12;
@@ -152,6 +153,8 @@ export class GraphicsSet {
      * the shared one in public/images. See docs/scene-images.md.
      */
     readonly scenes: Map<string, HTMLImageElement> = new Map(),
+    /** Moons painted for the set at run time (moonArt.ts), or null to use the UI sheet's. */
+    readonly moons: HTMLCanvasElement | null = null,
   ) {
     this.tileSize = tiles.width / TILE_COLUMNS;
     this.opaqueTiles = document.createElement('canvas');
@@ -200,7 +203,9 @@ export class GraphicsSet {
       const own = await tryLoad(scene, ['png', 'jpg', 'gif'], false);
       if (own) scenes.set(scene, own);
     }
-    return new GraphicsSet(tiles, applyMask(tiles, mask), font, ui, dungeonShapes, dungeonMasks, style, scenes);
+    const moonStyle = MOON_STYLES[name];
+    const moons = moonStyle ? paintMoons(moonStyle) : null;
+    return new GraphicsSet(tiles, applyMask(tiles, mask), font, ui, dungeonShapes, dungeonMasks, style, scenes, moons);
   }
 
   /** Source rectangle of a tile index, honouring the animation frame. (`GetTileRectForIndex`) */
@@ -261,9 +266,11 @@ export class GraphicsSet {
     ctx.drawImage(this.font, code * this.fontSize, 0, this.fontSize, this.fontHeight, dx, dy, size, size);
   }
 
-  /** Draw a moon's phase (0..7) from the UI sheet's third row: Trammel's eight, then Felucca's. */
+  /** Draw a moon's phase (0..7): Trammel's eight then Felucca's, from the moons painted for the set or the UI sheet's third row. */
   drawMoon(ctx: CanvasRenderingContext2D, moon: 0 | 1, phase: number, dx: number, dy: number, size: number): void {
-    this.drawUiPiece(ctx, moon * 8 + (phase & 7), 2, dx, dy, size);
+    const column = moon * 8 + (phase & 7);
+    if (this.moons) ctx.drawImage(this.moons, column * MOON_CELL, 0, MOON_CELL, MOON_CELL, dx, dy, size, size);
+    else this.drawUiPiece(ctx, column, 2, dx, dy, size);
   }
 
   /** Draw piece (column, row) of the UI sheet. */
