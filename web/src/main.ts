@@ -121,15 +121,16 @@ async function start(): Promise<void> {
   const music = new MusicPlayer();
   music.enabled = prefs.music;
   const keyboard = new Keyboard();
-  // Audio may only start after a user gesture; the first key press is one.
-  window.addEventListener(
-    'keydown',
-    () => {
-      sounds.unlock();
-      music.unlock();
-    },
-    { once: true },
-  );
+  // Audio may only start after a user gesture. A key press or a click is
+  // one; a gamepad button is not, but once the page has had a click (to
+  // focus it, say) the browser lets audio start, so every key from any
+  // source tries the unlock, which is harmless once it has worked.
+  const unlockAudio = () => {
+    sounds.unlock();
+    music.unlock();
+  };
+  keyboard.onInput = unlockAudio;
+  window.addEventListener('pointerdown', unlockAudio);
 
   const screen = new Screen(canvas, gfx, images, keyboard, sounds, music, world);
   screen.inputMode = prefs.inputMode;

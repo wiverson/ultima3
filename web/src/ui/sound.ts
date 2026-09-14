@@ -1,11 +1,14 @@
 /**
  * sound.ts
  *
- * Sound effects through the Web Audio API. Effects are the original WAV
- * files in public/sounds, decoded once and cached.
+ * Sound effects through the Web Audio API. Effects are the original Mac
+ * sounds in public/sounds, decoded once and cached. The Mac files were
+ * IMA ADPCM WAVs, which browsers cannot decode; they are shipped as
+ * 16-bit PCM (converted once, sample rates kept).
  *
  * Browsers refuse to start audio until the user has interacted with the
- * page, so the AudioContext is created lazily on the first key press.
+ * page, so the AudioContext is created lazily on the first key press or
+ * click (main.ts).
  *
  * Music is not handled here: the original tracks are QuickTime Music
  * Architecture files (a MIDI-like format) that browsers cannot play. They

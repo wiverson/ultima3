@@ -22,6 +22,8 @@ export class Keyboard {
   private timed: { remaining: number; started: number; timer: ReturnType<typeof setTimeout> | null; fire: () => void } | null = null;
   /** Called when the window regains focus, with how long it was away (ms). */
   onResume: ((pausedMs: number) => void) | null = null;
+  /** Called on every key from any source, the gamepad included (audio is unlocked from here). */
+  onInput: (() => void) | null = null;
   private pausedAt = 0;
 
   constructor(target: EventTarget = window) {
@@ -62,13 +64,7 @@ export class Keyboard {
     const key = translate(e);
     if (key === null) return;
     e.preventDefault();
-    if (this.waiter) {
-      const w = this.waiter;
-      this.waiter = null;
-      w(key);
-    } else if (this.queue.length < MAX_QUEUED) {
-      this.queue.push(key);
-    }
+    this.push(key);
   }
 
   /** Resolve with the next key press. */
@@ -110,6 +106,7 @@ export class Keyboard {
 
   /** Inject a key from another source, such as a gamepad button. */
   push(key: string): void {
+    this.onInput?.();
     if (this.waiter) {
       const w = this.waiter;
       this.waiter = null;
