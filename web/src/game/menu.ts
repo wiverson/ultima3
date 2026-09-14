@@ -75,6 +75,8 @@ export interface Transfer {
   /** Replace the saved game with the text; null when it worked, else a short reason. */
   import(text: string): string | null;
   clipboard: { write(text: string): Promise<void>; read(): Promise<string> };
+  /** A file downloaded, and a file picked; load resolves to '' when the picker is cancelled. */
+  file: { save(text: string): Promise<void>; load(): Promise<string> };
 }
 
 /** A new version of the app, downloaded and waiting (the installed app). */
@@ -132,27 +134,59 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
   }
 }
 
-/** Export: the game goes to the clipboard as text. */
+/** Export: the game as text, to the clipboard or a file. */
 async function exportGameTo(io: GameIO, t: Transfer): Promise<void> {
   const text = t.export();
   if (!text) return notice(io, 'Nothing to export');
-  try {
-    await t.clipboard.write(text);
-    await notice(io, 'Game copied to the clipboard');
-  } catch {
-    await notice(io, 'The clipboard is not available here');
+  const where = await io.chooseFromList(
+    [
+      { key: 'C', label: 'To the clipboard' },
+      { key: 'F', label: 'To a file' },
+    ],
+    { row: 15, title: 'Export' },
+  );
+  if (where === 'C') {
+    try {
+      await t.clipboard.write(text);
+      await notice(io, 'Game copied to the clipboard');
+    } catch {
+      await notice(io, 'The clipboard is not available here');
+    }
+  } else if (where === 'F') {
+    try {
+      await t.file.save(text);
+      await notice(io, 'Game saved as a file');
+    } catch {
+      await notice(io, 'Could not save a file here');
+    }
   }
 }
 
-/** Import: the clipboard's text replaces the saved game, after a word of warning. */
+/** Import: text from the clipboard or a file replaces the saved game, after a word of warning. */
 async function importGameFrom(io: GameIO, t: Transfer): Promise<void> {
+  const from = await io.chooseFromList(
+    [
+      { key: 'C', label: 'From the clipboard' },
+      { key: 'F', label: 'From a file' },
+    ],
+    { row: 15, title: 'Import' },
+  );
   let text: string;
-  try {
-    text = (await t.clipboard.read()).trim();
-  } catch {
-    return notice(io, 'The clipboard cannot be read here');
-  }
-  if (!text) return notice(io, 'The clipboard is empty');
+  if (from === 'C') {
+    try {
+      text = (await t.clipboard.read()).trim();
+    } catch {
+      return notice(io, 'The clipboard cannot be read here');
+    }
+    if (!text) return notice(io, 'The clipboard is empty');
+  } else if (from === 'F') {
+    try {
+      text = (await t.file.load()).trim();
+    } catch {
+      return notice(io, 'Could not read the file');
+    }
+    if (!text) return; // cancelled
+  } else return;
   const answer = await io.chooseFromList(
     [
       { key: 'Y', label: 'Replace the saved game' },

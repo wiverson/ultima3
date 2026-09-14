@@ -15,6 +15,7 @@ import { Game } from './game/game.ts';
 import { localSave, exportGame, parseExport, restore } from './game/save.ts';
 import { registerSW } from 'virtual:pwa-register';
 import type { Transfer, Update } from './game/menu.ts';
+import { launchWarning } from './ui/platform.ts';
 import { AutoMap, MAP_MODES, type MapMode } from './game/automap.ts';
 import { mainMenu } from './game/menu.ts';
 import { GraphicsSet, loadImages } from './ui/graphics.ts';
@@ -109,6 +110,50 @@ const applyUpdate = registerSW({
 });
 const update: Update = { ready: () => updateReady, apply: () => void applyUpdate(true) };
 
+/** A download of the text as a JSON file named by the moment. */
+async function saveFile(text: string): Promise<void> {
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ultima3-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/** The file picker; resolves to the file's text, or '' when the picker is dismissed. */
+function pickFile(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    let done = false;
+    const finish = (text: string): void => {
+      if (done) return;
+      done = true;
+      input.remove();
+      resolve(text);
+    };
+    input.addEventListener('change', () => {
+      const file = input.files?.[0];
+      if (!file) return finish('');
+      file.text().then(finish, (e: unknown) => {
+        done = true;
+        input.remove();
+        reject(e instanceof Error ? e : new Error(String(e)));
+      });
+    });
+    input.addEventListener('cancel', () => finish(''));
+    // Browsers without the cancel event: the window regains focus when the picker closes; a file, if any, has arrived by then.
+    window.addEventListener('focus', () => setTimeout(() => !input.files?.length && finish(''), 1500), { once: true });
+    input.click();
+  });
+}
+
 async function start(): Promise<void> {
   const canvas = document.getElementById('screen') as HTMLCanvasElement;
   canvasNotice('Loading...');
@@ -198,6 +243,12 @@ async function start(): Promise<void> {
     }
   });
 
+  // Keep the browser from evicting the saved game under disk pressure (Chrome, Edge, Firefox honour this).
+  if (navigator.storage?.persist) void navigator.storage.persist();
+  // An iOS browser tab deletes the saved game after a week away; say so before the title.
+  const warning = launchWarning(navigator, (q) => window.matchMedia(q));
+  if (warning) alert(warning);
+
   const game = new Game(world, screen, { save: (w) => localSave.write(w), load: (w) => localSave.read(w) });
   // Debug hook: lets the console (and the browser tests) inspect and poke the game.
   (window as unknown as { u3: unknown }).u3 = { world, screen, game, keyboard, update };
@@ -223,6 +274,7 @@ async function start(): Promise<void> {
       return null;
     },
     clipboard: { write: (text) => navigator.clipboard.writeText(text), read: () => navigator.clipboard.readText() },
+    file: { save: saveFile, load: pickFile },
   };
   await mainMenu(world, screen, () => game.run(), { save: (w) => localSave.write(w), transfer, update });
 }

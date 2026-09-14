@@ -92,11 +92,17 @@ Prompts for "whom" take a member number 1-4, or Up and Down to move a pair
 of arrows through the stats boxes and Enter to take the marked member; a
 direction is an arrow key.
 Q on the surface saves the game in this browser; it resumes on the next
-visit. The title menu's Export game copies the saved game to the
-clipboard as JSON text, and Import game reads such text back from the
-clipboard and replaces the saved game, after asking; that is how a game
-moves between browsers or machines. The text carries the save and the
-dungeon auto-map, not the settings. The game also saves itself when the journey starts and at every
+visit. The title menu's Export game writes the saved game as JSON text
+to the clipboard or to a downloaded file, and Import game reads such
+text back from the clipboard or a chosen file and replaces the saved
+game, after asking; that is how a game moves between browsers or
+machines, and a file is the copy that outlives the browser's storage.
+The text carries the save and the dungeon auto-map, not the settings.
+The game asks the browser for persistent storage, which keeps Chrome,
+Edge and Firefox from clearing the save under disk pressure. Every
+browser on iOS runs on WebKit, which deletes a site's storage after
+seven days of browser use without a visit unless the page has been
+added to the Home Screen; an iOS browser tab is told so at launch. The game also saves itself when the journey starts and at every
 town, castle and dungeon door, going in and coming out, and prints
 "(saved)" under the door message when it does. `?new` on the URL starts a
 fresh game.
