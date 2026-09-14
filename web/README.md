@@ -113,8 +113,10 @@ controller mode.
 
 A tap (or click) anywhere shows a virtual controller drawn in thin
 lines over the game: a d-pad at the lower left, A and B at the lower
-right, a close button at the upper left and, where the browser allows
-it, a full-screen button at the upper right (gone while full screen). It
+right, a close button at the upper left and, at the upper right, a
+full-screen button where the browser allows it (gone while full screen)
+with Y below it, for the cheats on the help pages and Look, Attack or
+Ignite in play. It
 works the controller mode and switches to it; holding a direction walks.
 Only the close button hides it, or a physical key or gamepad press. On a
 touch screen it is shown from the first visit, and whether it is shown

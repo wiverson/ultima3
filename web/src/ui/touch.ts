@@ -3,8 +3,10 @@
  *
  * A virtual controller for touch screens (and the mouse): a d-pad at the
  * lower left, A and B at the lower right in the Xbox arrangement (A low,
- * B up and to its right), a close button at the upper left and, where the
- * browser allows it, a full-screen button at the upper right. Everything
+ * B up and to its right), a close button at the upper left and, at the
+ * upper right, a full-screen button where the browser allows it with a Y
+ * button below it (Y opens the cheats from the help pages, and is Look,
+ * Attack or Ignite in play). Everything
  * is drawn as one-pixel lines at three-quarter white with nothing inside,
  * so the game shows through. Sizes are in millimetres, which CSS scales
  * by the device's pixel ratio, so the pad is about the size of an NES
@@ -58,6 +60,7 @@ export class TouchPad {
     this.root.appendChild(this.button('A', Key.A, `right:${MARGIN_MM + BUTTON_MM + 1}mm;bottom:${MARGIN_MM}mm`));
     this.root.appendChild(this.button('B', Key.B, `right:${MARGIN_MM}mm;bottom:${MARGIN_MM + BUTTON_MM + 1}mm`));
     this.root.appendChild(this.closeButton());
+    this.root.appendChild(this.button('Y', Key.Y, `right:${MARGIN_MM}mm;top:${MARGIN_MM + SMALL_MM + 4}mm`));
     if (document.fullscreenEnabled) {
       this.fullscreenButton = this.fullscreenToggle();
       this.root.appendChild(this.fullscreenButton);
