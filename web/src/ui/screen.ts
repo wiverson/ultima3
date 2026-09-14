@@ -970,7 +970,7 @@ export class Screen implements GameIO {
 
   /**
    * "Who?": the member is picked in the stats boxes. Up and Down move a
-   * pair of arrows (">" and "<" around the box's two rows) among the
+   * pair of arrows (">" and "<" on the frame either side of a box) among the
    * members offered; Enter or A takes the marked one, Escape or B cancels
    * (0), and a digit 1-4 still answers at once as on the Apple II. The
    * prompt itself sits on the map's bottom border. The answer is echoed
@@ -1659,27 +1659,30 @@ export class Screen implements GameIO {
 
       const top = m * BOX_PITCH + 1;
       this.black(24, top, 15, BOX_ROWS);
-      if (p) {
-        // The arrows of "Who?" take the box's end columns; the text moves in a column to make room.
-        const left = selected ? 25 : 24;
-        const right = selected ? 38 : 39;
+      // The arrows of "Who?" sit on the frame either side of the box; the frame comes back when it is unmarked.
+      for (const row of [top, top + 1]) {
         if (selected) {
-          this.drawText('>', 24, top);
-          this.drawText('>', 24, top + 1);
-          this.drawText('<', 38, top);
-          this.drawText('<', 38, top + 1);
+          this.black(23, row, 1, 1);
+          this.drawText('>', 23, row);
+          this.black(39, row, 1, 1);
+          this.drawText('<', 39, row);
+        } else {
+          this.piece(Piece.Vertical, 23, row);
+          this.piece(Piece.Vertical, 39, row);
         }
+      }
+      if (p) {
         const nameColour = memberColour(p, due);
-        this.drawText(p.name, left, top, nameColour);
+        this.drawText(p.name, 24, top, nameColour);
         // Dead or ashes: the whole box takes the name's grey. Otherwise hit points warn by colour.
         const gone = p.status === 'D' || p.status === 'A';
         const hp = p.hitPoints;
         const max = Math.max(1, p.maxHitPoints);
         const hpColour = gone ? nameColour : hp < max / 10 ? '#ff4040' : hp < max / 4 ? '#ffe040' : undefined;
-        this.drawText(`${hp}/${p.maxHitPoints}`, left, top + 1, hpColour);
+        this.drawText(`${hp}/${p.maxHitPoints}`, 24, top + 1, hpColour);
         if (hasMagic(this.world, p)) {
           const mana = `M:${p.mana}`;
-          this.drawText(mana, right - mana.length, top + 1, gone ? nameColour : undefined);
+          this.drawText(mana, 39 - mana.length, top + 1, gone ? nameColour : undefined);
         }
       }
       if (this.highlighted.has(m)) this.invert(24, top, 15, BOX_ROWS);

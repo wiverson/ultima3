@@ -319,8 +319,8 @@ save contains except the pooled gold and food.
   level) with the spell-book name, cost and effect on the hint line
   beneath; the Apple II showed only the book names the manual explained.
 - **Member pickers** ("Who?") are answered in the stats boxes: Up and
-  Down move a pair of arrows (">" and "<" around the box's two rows)
-  through the members offered, Enter or A takes the marked one, Escape or
+  Down move a pair of arrows (">" and "<" on the frame either side of a
+  box) through the members offered, Enter or A takes the marked one, Escape or
   B cancels, and a digit 1-4 still answers at once. The prompt sits on the
   map's bottom border like the direction prompt. A member brought back to
   life during a fight is placed on the nearest open square to where they
