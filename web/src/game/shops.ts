@@ -266,18 +266,34 @@ async function equipmentShop(world: World, io: GameIO, p: PlayerRecord, isWeapon
   const stock: MenuOption[] = [];
   for (let i = 1; i < last; i++) {
     const letter = String.fromCharCode(65 + i);
-    stock.push({ key: letter, label: `${letter} ${names[nameBase + i]} ${names[priceBase + i]}gp`, colour: world.canUse(p, isWeapon, i) ? undefined : UNUSABLE });
+    stock.push({
+      key: letter,
+      label: `${letter} ${names[nameBase + i]} ${names[priceBase + i]}gp`,
+      colour: world.canUse(p, isWeapon, i) ? undefined : UNUSABLE,
+    });
   }
   const owned = (): MenuOption[] => stock.filter((o) => world.party.gear(isWeapon, o.key.charCodeAt(0) - 65) > 0);
   const nothing: MenuOption = { key: ' ', label: 'Nothing' };
 
   io.printMessage(isWeapon ? Msg.WeaponsShop : Msg.ArmourShop);
-  let key = await io.chooseOption([{ key: 'Y', label: 'Yes, list' }, { key: 'N', label: 'No' }], 'none');
+  let key = await io.chooseOption(
+    [
+      { key: 'Y', label: 'Yes, list' },
+      { key: 'N', label: 'No' },
+    ],
+    'none',
+  );
   io.print(key || 'N');
   if (key === 'Y') await priceList(world, io, isWeapon, last);
   io.print(`\n${isWeapon ? 'Readied' : 'Worn'}: ${names[nameBase + p.bytes[inUseBase]]}`);
   io.printMessage(Msg.BuyOrSell);
-  key = await io.chooseOption([{ key: 'B', label: 'Buy' }, { key: 'S', label: 'Sell' }], 'none');
+  key = await io.chooseOption(
+    [
+      { key: 'B', label: 'Buy' },
+      { key: 'S', label: 'Sell' },
+    ],
+    'none',
+  );
   io.print(key || 'S');
 
   let mode = key;
@@ -305,7 +321,13 @@ async function equipmentShop(world: World, io: GameIO, p: PlayerRecord, isWeapon
       // Something new this member can use: offer to put it to use now.
       if (index !== p.bytes[inUseBase] && world.canUse(p, isWeapon, index)) {
         io.print(`\n${isWeapon ? 'Ready' : 'Wear'} it? (Y/N)-`);
-        const yes = await io.chooseOption([{ key: 'Y', label: 'Yes' }, { key: 'N', label: 'No' }], 'none');
+        const yes = await io.chooseOption(
+          [
+            { key: 'Y', label: 'Yes' },
+            { key: 'N', label: 'No' },
+          ],
+          'none',
+        );
         io.print(`${yes || 'N'}\n`);
         if (yes === 'Y') {
           world.equip(p, isWeapon, index);
@@ -359,7 +381,9 @@ async function guild(world: World, io: GameIO): Promise<void> {
       ],
       'none',
     );
-    const item = { T: [30, 'torches', 5], K: [50, 'keys', 1], P: [90, 'powders', 1], G: [75, 'gems', 1] }[key] as [number, 'torches' | 'keys' | 'powders' | 'gems', number] | undefined;
+    const item = { T: [30, 'torches', 5], K: [50, 'keys', 1], P: [90, 'powders', 1], G: [75, 'gems', 1] }[key] as
+      | [number, 'torches' | 'keys' | 'powders' | 'gems', number]
+      | undefined;
     if (!item) {
       io.print('N\n\n');
       io.printMessage(Msg.GuildThanks);
@@ -392,7 +416,10 @@ async function oracle(world: World, io: GameIO): Promise<void> {
   io.printMessage(Msg.Radrion);
   for (;;) {
     io.printMessage(Msg.Offering);
-    const key = await io.chooseOption(letterOptions('0123456789', (d) => (d === '0' ? '0 (nothing)' : `${d} = ${d}00 gold`)), 'none');
+    const key = await io.chooseOption(
+      letterOptions('0123456789', (d) => (d === '0' ? '0 (nothing)' : `${d} = ${d}00 gold`)),
+      'none',
+    );
     const digit = key ? key.charCodeAt(0) - '0'.charCodeAt(0) : 0;
     io.print(`${digit}\n\n`);
     const cost = digit * 100;

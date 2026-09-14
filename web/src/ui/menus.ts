@@ -214,7 +214,12 @@ export function drawMenu(ctx: CanvasRenderingContext2D, gfx: GraphicsSet, cell: 
         ctx.save();
         ctx.globalCompositeOperation = 'multiply';
         ctx.fillStyle = tint;
-        ctx.fillRect((index === menu.cursor ? px - 1 : px) * cell, py * cell, (label.length + (index === menu.cursor ? 1 : 0)) * cell, cell);
+        ctx.fillRect(
+          (index === menu.cursor ? px - 1 : px) * cell,
+          py * cell,
+          (label.length + (index === menu.cursor ? 1 : 0)) * cell,
+          cell,
+        );
         ctx.restore();
       }
     }

@@ -54,9 +54,7 @@ export function heading(value: number): number {
 export function monsterCanEnter(terrain: number, monsterType: number): boolean {
   const isSeaMonster = monsterType > 0x28 && monsterType < 0x40;
   if (isSeaMonster) return terrain === MapValue.Water;
-  return (
-    terrain === MapValue.Grass || terrain === MapValue.Brush || terrain === MapValue.Forest || terrain === MapValue.Floor
-  );
+  return terrain === MapValue.Grass || terrain === MapValue.Brush || terrain === MapValue.Forest || terrain === MapValue.Floor;
 }
 
 /** Result of `getMonsterDirection()`: the step a monster would take toward the party. */

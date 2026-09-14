@@ -32,10 +32,24 @@ describe('QuickTime music parser', () => {
   });
 
   it('decodes every shipped song', () => {
-    for (const file of ['Song_1.mov', 'Song_2.mov', 'Song_3.mov', 'Song_4.mov', 'Song_5.mov', 'Song_6.mov', 'Song_7.mov', 'Song_8.mov', 'Song_A.mov', 'Song_B.mov']) {
+    for (const file of [
+      'Song_1.mov',
+      'Song_2.mov',
+      'Song_3.mov',
+      'Song_4.mov',
+      'Song_5.mov',
+      'Song_6.mov',
+      'Song_7.mov',
+      'Song_8.mov',
+      'Song_A.mov',
+      'Song_B.mov',
+    ]) {
       const tune = parseQuickTimeMusic(loadSong(file));
       expect(tune.notes.length, file).toBeGreaterThan(10);
-      expect(tune.notes.every((n) => n.volume > 0 && n.volume <= 127), file).toBe(true);
+      expect(
+        tune.notes.every((n) => n.volume > 0 && n.volume <= 127),
+        file,
+      ).toBe(true);
       for (const n of tune.notes) {
         expect(n.pitch, file).toBeGreaterThan(20);
         expect(n.pitch, file).toBeLessThan(110);

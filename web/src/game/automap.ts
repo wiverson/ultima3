@@ -91,7 +91,10 @@ export class AutoMap {
       const data = JSON.parse(raw) as Record<string, string>;
       for (const [key, flags] of Object.entries(data)) {
         if (typeof flags !== 'string' || flags.length !== LEVEL_CELLS) continue;
-        this.seen.set(key, Uint8Array.from(flags, (ch) => (ch === '1' ? 1 : 0)));
+        this.seen.set(
+          key,
+          Uint8Array.from(flags, (ch) => (ch === '1' ? 1 : 0)),
+        );
       }
     } catch {
       /* a bad store is an empty map */

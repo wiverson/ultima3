@@ -145,7 +145,10 @@ export async function organize(world: World, io: GameIO): Promise<void> {
       { key: 'M', label: mm(world, MM.MainMenu) },
     ];
     const key = await io.chooseFromList(options, { row: MENU_ROW, title: mm(world, MM.Options), cursor });
-    cursor = Math.max(0, options.findIndex((o) => o.key === key));
+    cursor = Math.max(
+      0,
+      options.findIndex((o) => o.key === key),
+    );
     switch (key || 'M') {
       case 'C':
         await createCharacter(world, io);
@@ -462,7 +465,13 @@ export async function disperseParty(world: World, io: GameIO): Promise<void> {
 export async function terminateCharacter(world: World, io: GameIO): Promise<void> {
   io.clearBottom();
   io.centreText(11, mm(world, MM.Terminate));
-  const slot = await pickEntry(world, io, 'Terminate whom?', (p) => p.exists && !p.inParty, 'No one can be terminated (a party member must be dispersed first).');
+  const slot = await pickEntry(
+    world,
+    io,
+    'Terminate whom?',
+    (p) => p.exists && !p.inParty,
+    'No one can be terminated (a party member must be dispersed first).',
+  );
   if (slot < 0) return;
   const p = world.roster.get(slot);
   io.clearBottom();

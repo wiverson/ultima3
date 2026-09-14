@@ -29,13 +29,13 @@ renderer's tables by `sheetRegions()`.
 The sheet is five 600-pixel panels. The view is 600x512, so a panel is
 one screen.
 
-| Panel | Sheet x | Holds |
-| --- | --- | --- |
-| A | 0..599 | Side walls on the left, seen at an angle, for the adjacent cell (1), one cell ahead (7, 17, 29, 30 ...) and deeper. Cut by the mask. |
-| B | 600..1199 | Side walls on the right (6, 9, 15, 16, 19, 20, 28, 31 ...), cut by the mask, plus the chest and the two ladder textures at the bottom left. |
-| C | 1200..1799 | The facing wall filling the whole view (position 0: a wall directly ahead). |
-| D | 1800..2399 | The empty corridor: ceiling, floor and the dark far end. Drawn first, everything else lands on top. |
-| E | 2400..2999 | Facing walls one, two and three cells away, in three bands (y 0..255, 260..387, 392..455) cut into left, centre and right pieces. |
+| Panel | Sheet x    | Holds                                                                                                                                       |
+| ----- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| A     | 0..599     | Side walls on the left, seen at an angle, for the adjacent cell (1), one cell ahead (7, 17, 29, 30 ...) and deeper. Cut by the mask.        |
+| B     | 600..1199  | Side walls on the right (6, 9, 15, 16, 19, 20, 28, 31 ...), cut by the mask, plus the chest and the two ladder textures at the bottom left. |
+| C     | 1200..1799 | The facing wall filling the whole view (position 0: a wall directly ahead).                                                                 |
+| D     | 1800..2399 | The empty corridor: ceiling, floor and the dark far end. Drawn first, everything else lands on top.                                         |
+| E     | 2400..2999 | Facing walls one, two and three cells away, in three bands (y 0..255, 260..387, 392..455) cut into left, centre and right pieces.           |
 
 Doors are not in the sheet: the renderer fills a black trapezoid over
 the wall piece. The chest (150x64) is drawn whole or as a left or right
@@ -47,49 +47,49 @@ stretched.
 Source rectangles in sheet pixels, and where each lands in the 600x512
 view. Positions follow the original's numbering of the 32 visible cells.
 
-| Piece | x | y | w | h | Lands at | Masked |
-| --- | --- | --- | --- | --- | --- | --- |
-| wall 0 | 1200 | 0 | 600 | 512 | (0, 0) |  |
-| wall 1 | 0 | 0 | 150 | 512 | (0, 0) | yes |
-| wall 2 | 450 | 0 | 150 | 512 | (450, 0) | yes |
-| wall 3 | 2400 | 0 | 150 | 256 | (0, 128) |  |
-| wall 4 | 2550 | 0 | 300 | 256 | (150, 128) |  |
-| wall 5 | 2850 | 0 | 150 | 256 | (450, 128) |  |
-| wall 6 | 600 | 0 | 150 | 256 | (0, 128) | yes |
-| wall 7 | 150 | 130 | 76 | 252 | (150, 130) | yes |
-| wall 8 | 374 | 130 | 76 | 252 | (374, 130) | yes |
-| wall 9 | 1050 | 0 | 150 | 256 | (450, 128) | yes |
-| wall 10 | 2400 | 260 | 150 | 128 | (0, 192) |  |
-| wall 11 | 2550 | 260 | 76 | 128 | (150, 192) |  |
-| wall 12 | 2626 | 260 | 148 | 128 | (226, 192) |  |
-| wall 13 | 2774 | 260 | 76 | 128 | (374, 192) |  |
-| wall 14 | 2850 | 260 | 150 | 128 | (450, 192) |  |
-| wall 15 | 600 | 260 | 148 | 128 | (0, 192) | yes |
-| wall 16 | 750 | 64 | 74 | 128 | (150, 192) | yes |
-| wall 17 | 226 | 194 | 34 | 124 | (226, 194) | yes |
-| wall 18 | 340 | 194 | 34 | 124 | (340, 194) | yes |
-| wall 19 | 976 | 64 | 74 | 128 | (376, 192) | yes |
-| wall 20 | 1052 | 260 | 148 | 128 | (452, 192) | yes |
-| wall 21 | 2400 | 392 | 150 | 64 | (0, 224) |  |
-| wall 22 | 2550 | 392 | 74 | 64 | (150, 224) |  |
-| wall 23 | 2624 | 392 | 36 | 64 | (224, 224) |  |
-| wall 24 | 2660 | 392 | 80 | 64 | (260, 224) |  |
-| wall 25 | 2740 | 392 | 36 | 64 | (340, 224) |  |
-| wall 26 | 2776 | 392 | 74 | 64 | (376, 224) |  |
-| wall 27 | 2850 | 392 | 150 | 64 | (450, 224) |  |
-| wall 28 | 824 | 96 | 40 | 64 | (224, 224) | yes |
-| wall 29 | 260 | 224 | 36 | 64 | (260, 224) | yes |
-| wall 30 | 304 | 224 | 36 | 64 | (304, 224) | yes |
-| wall 31 | 936 | 96 | 40 | 64 | (336, 224) | yes |
-| chest | 600 | 416 | 150 | 64 | stretched |  |
-| ladder rung | 750 | 416 | 4 | 8 | stretched |  |
-| ladder rail | 754 | 416 | 8 | 96 | stretched |  |
-| corridor background | 1800 | 0 | 600 | 512 | (0, 0) |  |
+| Piece               | x    | y   | w   | h   | Lands at   | Masked |
+| ------------------- | ---- | --- | --- | --- | ---------- | ------ |
+| wall 0              | 1200 | 0   | 600 | 512 | (0, 0)     |        |
+| wall 1              | 0    | 0   | 150 | 512 | (0, 0)     | yes    |
+| wall 2              | 450  | 0   | 150 | 512 | (450, 0)   | yes    |
+| wall 3              | 2400 | 0   | 150 | 256 | (0, 128)   |        |
+| wall 4              | 2550 | 0   | 300 | 256 | (150, 128) |        |
+| wall 5              | 2850 | 0   | 150 | 256 | (450, 128) |        |
+| wall 6              | 600  | 0   | 150 | 256 | (0, 128)   | yes    |
+| wall 7              | 150  | 130 | 76  | 252 | (150, 130) | yes    |
+| wall 8              | 374  | 130 | 76  | 252 | (374, 130) | yes    |
+| wall 9              | 1050 | 0   | 150 | 256 | (450, 128) | yes    |
+| wall 10             | 2400 | 260 | 150 | 128 | (0, 192)   |        |
+| wall 11             | 2550 | 260 | 76  | 128 | (150, 192) |        |
+| wall 12             | 2626 | 260 | 148 | 128 | (226, 192) |        |
+| wall 13             | 2774 | 260 | 76  | 128 | (374, 192) |        |
+| wall 14             | 2850 | 260 | 150 | 128 | (450, 192) |        |
+| wall 15             | 600  | 260 | 148 | 128 | (0, 192)   | yes    |
+| wall 16             | 750  | 64  | 74  | 128 | (150, 192) | yes    |
+| wall 17             | 226  | 194 | 34  | 124 | (226, 194) | yes    |
+| wall 18             | 340  | 194 | 34  | 124 | (340, 194) | yes    |
+| wall 19             | 976  | 64  | 74  | 128 | (376, 192) | yes    |
+| wall 20             | 1052 | 260 | 148 | 128 | (452, 192) | yes    |
+| wall 21             | 2400 | 392 | 150 | 64  | (0, 224)   |        |
+| wall 22             | 2550 | 392 | 74  | 64  | (150, 224) |        |
+| wall 23             | 2624 | 392 | 36  | 64  | (224, 224) |        |
+| wall 24             | 2660 | 392 | 80  | 64  | (260, 224) |        |
+| wall 25             | 2740 | 392 | 36  | 64  | (340, 224) |        |
+| wall 26             | 2776 | 392 | 74  | 64  | (376, 224) |        |
+| wall 27             | 2850 | 392 | 150 | 64  | (450, 224) |        |
+| wall 28             | 824  | 96  | 40  | 64  | (224, 224) | yes    |
+| wall 29             | 260  | 224 | 36  | 64  | (260, 224) | yes    |
+| wall 30             | 304  | 224 | 36  | 64  | (304, 224) | yes    |
+| wall 31             | 936  | 96  | 40  | 64  | (336, 224) | yes    |
+| chest               | 600  | 416 | 150 | 64  | stretched  |        |
+| ladder rung         | 750  | 416 | 4   | 8   | stretched  |        |
+| ladder rail         | 754  | 416 | 8   | 96  | stretched  |        |
+| corridor background | 1800 | 0   | 600 | 512 | (0, 0)     |        |
 
 ## Making a sheet for a set
 
 1. Start from `dungeon-sheet-guide.png` so the pieces line up.
-2. Keep the perspective: pieces in A and B are the *same* wall surface
+2. Keep the perspective: pieces in A and B are the _same_ wall surface
    seen at an angle, so a brick course should run toward the vanishing
    point at the sheet's centre line (y 256), as the Lairware art does.
 3. Draw the corridor background in D as a complete empty corridor. Panels

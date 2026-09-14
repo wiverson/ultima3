@@ -445,7 +445,9 @@ export type DungeonDrawOp =
  * (`offsetX`, `offsetY` in `DungeonBlock()`)
  */
 const OFFSET_X = [0, -1, 1, -1, 0, 1, -2, -1, 1, 2, -2, -1, 0, 1, 2, -3, -2, -1, 1, 2, 3, -3, -2, -1, 0, 1, 2, 3, -2, -1, 1, 2];
-const OFFSET_Y = [0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3];
+const OFFSET_Y = [
+  0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3,
+];
 
 /** The dungeon cell at a view location, turned to face the party's heading. */
 export function cellAtLocation(world: World, location: number): number {
@@ -516,4 +518,3 @@ export function secretMessage(world: World): string | null {
   const text = world.resources.strings.Messages[which - 1];
   return text && text.length ? text : null;
 }
-

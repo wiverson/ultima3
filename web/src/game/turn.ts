@@ -127,10 +127,7 @@ export async function ageChars(world: World, io: GameIO): Promise<void> {
 
   const careers = world.resources.misc.careerTable;
   const classAt = (i: number) => String.fromCharCode(careers[i]);
-  const [, cleric, wizard, , paladin, , lark, illusionist, druid, alchemist, ranger] = Array.from(
-    { length: 11 },
-    (_, i) => classAt(i),
-  );
+  const [, cleric, wizard, , paladin, , lark, illusionist, druid, alchemist, ranger] = Array.from({ length: 11 }, (_, i) => classAt(i));
 
   let starving = false;
   for (let m = 3; m >= 0; m--) {

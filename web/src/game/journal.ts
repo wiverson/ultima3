@@ -41,7 +41,16 @@ export interface JournalState {
 
 export function emptyJournal(): JournalState {
   // `seen` starts as the opening page, so the first clue heard does not announce an update of nothing.
-  return { lordBritish: false, ambrosia: false, timeLord: false, wordKnown: false, serpentParted: false, clues: [], hints: [], seen: ['king:open'] };
+  return {
+    lordBritish: false,
+    ambrosia: false,
+    timeLord: false,
+    wordKnown: false,
+    serpentParted: false,
+    clues: [],
+    hints: [],
+    seen: ['king:open'],
+  };
 }
 
 export interface Entry {
@@ -78,7 +87,11 @@ export const ENTRIES: Entry[] = [
     title: 'The Mark of Fire',
     hint: 'On the deepest level of the Perinian Depths, the Fires of Hell or the Mines of Morinia. Every member should bear it before crossing lava.',
   },
-  { id: 'force', title: 'The Mark of Force', hint: 'On level 8 of Doom or of the Fires of Hell. Every member, for the force fields in Exodus\' castle.' },
+  {
+    id: 'force',
+    title: 'The Mark of Force',
+    hint: "On level 8 of Doom or of the Fires of Hell. Every member, for the force fields in Exodus' castle.",
+  },
   {
     id: 'snake',
     title: 'The Silver Snake',
@@ -147,7 +160,7 @@ const TOWN_CLUES: Record<string, string[]> = {
 const OTHER_CLUES: Record<string, { from: string; text: string; entries: string[] }> = {
   'LB:mark': { from: 'Lord British', text: 'SEEK YE, THE MARK OF KINGS!', entries: ['kings'] },
   'Yew:pray': { from: 'Yew, the circle of light', text: "YELL 'EVOCARE'", entries: ['snake'] },
-  'TimeLord': { from: 'The Time Lord', text: 'THE ONE WAY IS LOVE, SOL, MOONS & DEATH, ALL ELSE FAILS.', entries: ['order', 'exodus'] },
+  TimeLord: { from: 'The Time Lord', text: 'THE ONE WAY IS LOVE, SOL, MOONS & DEATH, ALL ELSE FAILS.', entries: ['order', 'exodus'] },
 };
 
 export interface JournalLine {

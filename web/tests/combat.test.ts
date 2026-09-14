@@ -1,6 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { newWorld, FakeIO } from './helpers.ts';
-import { combat, chooseArena, loadArena, planMonster, handleMove, memberShape, monsterName, attackMonster, placeRevived, combatAttackForTest } from '../src/game/combat.ts';
+import {
+  combat,
+  chooseArena,
+  loadArena,
+  planMonster,
+  handleMove,
+  memberShape,
+  monsterName,
+  attackMonster,
+  placeRevived,
+  combatAttackForTest,
+} from '../src/game/combat.ts';
 import { MapValue, Shape } from '../src/game/tiles.ts';
 import { Location } from '../src/game/party.ts';
 import { Key } from '../src/game/io.ts';
@@ -270,10 +281,23 @@ describe('balanced experience', () => {
     const { newWorld } = await import('./helpers.ts');
     const { shareExperience } = await import('../src/game/combat.ts');
     const world = newWorld();
-    expect(shareExperience(world, 2, 3)).toEqual([[2, 1], [0, 1], [1, 1]]); // the fourth gets nothing this time
-    expect(shareExperience(world, 0, 20)).toEqual([[0, 5], [1, 5], [2, 5], [3, 5]]);
+    expect(shareExperience(world, 2, 3)).toEqual([
+      [2, 1],
+      [0, 1],
+      [1, 1],
+    ]); // the fourth gets nothing this time
+    expect(shareExperience(world, 0, 20)).toEqual([
+      [0, 5],
+      [1, 5],
+      [2, 5],
+      [3, 5],
+    ]);
     world.member(3).status = 'D';
-    expect(shareExperience(world, 0, 10)).toEqual([[0, 4], [1, 3], [2, 3]]);
+    expect(shareExperience(world, 0, 10)).toEqual([
+      [0, 4],
+      [1, 3],
+      [2, 3],
+    ]);
     world.balancedXp = false;
     expect(shareExperience(world, 1, 15)).toEqual([[1, 15]]);
   });

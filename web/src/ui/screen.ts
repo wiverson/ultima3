@@ -571,7 +571,11 @@ export class Screen implements GameIO {
    */
   private async runMenu(title: string, options: MenuOption[], columns = 1, place?: MenuPlacement, cursor = 0): Promise<number> {
     const visible = options.filter((o) => !o.hidden);
-    const menu = layoutMenu(title, visible.map((o) => o.label), columns);
+    const menu = layoutMenu(
+      title,
+      visible.map((o) => o.label),
+      columns,
+    );
     if (visible.some((o) => o.hint)) menu.hints = visible.map((o) => o.hint);
     if (visible.some((o) => o.disabled)) menu.disabled = visible.map((o) => !!o.disabled);
     if (visible.some((o) => o.colour)) menu.colours = visible.map((o) => o.colour);
@@ -921,7 +925,11 @@ export class Screen implements GameIO {
     const x = menu.hints ? 1 : menu.x;
     const w = menu.hints ? COLUMNS - 2 : menu.width;
     const h = menu.visibleRows + 2 + (menu.hints ? HINT_ROWS : 0);
-    this.underMenu = { image: this.ctx.getImageData(x * cell, menu.y * cell, w * cell, Math.min(h, ROWS - menu.y) * cell), x: x * cell, y: menu.y * cell };
+    this.underMenu = {
+      image: this.ctx.getImageData(x * cell, menu.y * cell, w * cell, Math.min(h, ROWS - menu.y) * cell),
+      x: x * cell,
+      y: menu.y * cell,
+    };
     this.menu = menu;
     this.showMenuNow();
   }
@@ -1113,7 +1121,10 @@ export class Screen implements GameIO {
       }
     }
     if (words && words.length) {
-      const picked = await this.runMenu('Word', words.map((w) => ({ key: w[0], label: w })));
+      const picked = await this.runMenu(
+        'Word',
+        words.map((w) => ({ key: w[0], label: w })),
+      );
       return picked < 0 ? '' : words[picked];
     }
     // On-screen keyboard.
@@ -1122,7 +1133,11 @@ export class Screen implements GameIO {
     const options = keys.map((k) => ({ key: k, label: k }));
     let text = '';
     for (;;) {
-      const menu = layoutMenu(text || 'Type', options.map((o) => o.label), columns);
+      const menu = layoutMenu(
+        text || 'Type',
+        options.map((o) => o.label),
+        columns,
+      );
       this.openMenu(menu);
       let picked = -1;
       try {
@@ -1364,7 +1379,6 @@ export class Screen implements GameIO {
     }
   }
 
-
   private invert(x: number, y: number, w: number, h: number): void {
     const { ctx, cell } = this;
     ctx.save();
@@ -1555,7 +1569,7 @@ export class Screen implements GameIO {
     this.viewCovered = true;
     this.view = null;
     for (let i = 0; i <= 20; i++) {
-      ctx.fillStyle = `rgb(${Math.random() * 255 | 0},${Math.random() * 255 | 0},${Math.random() * 255 | 0})`;
+      ctx.fillStyle = `rgb(${(Math.random() * 255) | 0},${(Math.random() * 255) | 0},${(Math.random() * 255) | 0})`;
       ctx.fillRect(cell, cell, 22 * cell, 22 * cell);
       this.sound('Hit');
       await this.pause(120);
@@ -1683,7 +1697,6 @@ export class Screen implements GameIO {
   }
 }
 
-
 /**
  * The colour that tells a member's state: green poisoned, light grey dead,
  * dark grey ashes, blue when a raise is due, undefined (white) otherwise.
@@ -1694,5 +1707,3 @@ function memberColour(p: PlayerRecord, due = false): string | undefined {
   if (p.status === 'A') return '#606060';
   return due ? '#60a0ff' : undefined;
 }
-
-

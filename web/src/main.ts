@@ -38,7 +38,17 @@ interface Prefs {
   dungeonMap: MapMode;
 }
 
-const DEFAULT_PREFS: Prefs = { inputMode: 'keyboard', tiles: 'Standard', autoCombat: false, poisonKills: false, starvation: 'mild', balancedXp: true, sound: true, music: true, dungeonMap: 'off' };
+const DEFAULT_PREFS: Prefs = {
+  inputMode: 'keyboard',
+  tiles: 'Standard',
+  autoCombat: false,
+  poisonKills: false,
+  starvation: 'mild',
+  balancedXp: true,
+  sound: true,
+  music: true,
+  dungeonMap: 'off',
+};
 
 function loadPrefs(): Prefs {
   try {

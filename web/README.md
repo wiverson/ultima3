@@ -388,7 +388,7 @@ src/main.ts       bootstrap
 ### Semantic prompts
 
 Game logic never reads raw keys for a decision. It asks the `GameIO` for a
-*member*, a *direction*, an *option* from a list, a *number* or a *word*
+_member_, a _direction_, an _option_ from a list, a _number_ or a _word_
 (`chooseMember`, `chooseDirection`, `chooseOption`, `inputText`, and
 `waitCommand` for the top-level command). The keyboard implementation
 answers each the way the Apple II did; the controller implementation
@@ -412,9 +412,12 @@ explained in `tiles.ts`, and the music event format in `ui/music.ts`.
 
 ### Testing
 
-`npm test` runs 68 Vitest tests against the real extracted data: records,
+`npm test` runs the Vitest suite (157 tests) against the real extracted data: records,
 viewport line of sight, movement, monsters, turn processing, combat,
 spells, shops, dialogue, doors and chests, dungeons, menus, save
 round-trips and the music decoder. The renderer is exercised in headless
 Chromium (Playwright is preinstalled in the development environment) by
-driving the keyboard and taking screenshots.
+driving the keyboard and taking screenshots. `npm run format` applies
+Prettier (single quotes, 140 columns; see `.prettierrc.json`) and
+`npm run format:check` is the first step of the CI workflow, before the
+tests and the build.

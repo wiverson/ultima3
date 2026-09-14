@@ -347,8 +347,6 @@ class Planner {
     if (closest < 0) return null;
     return directionKey(Math.sign(this.futureX[closest] - x), Math.sign(this.futureY[closest] - y));
   }
-
-
 }
 
 /**

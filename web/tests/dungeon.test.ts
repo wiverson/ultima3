@@ -150,7 +150,7 @@ describe('fountain prompts', () => {
 });
 
 describe('party torches', () => {
-  it('ignites one of the party\'s torches without asking whose', async () => {
+  it("ignites one of the party's torches without asking whose", async () => {
     const { world, io } = dungeonWorld();
     world.party.torches = 3;
     io.keys = [];

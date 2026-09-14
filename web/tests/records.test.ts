@@ -39,7 +39,6 @@ describe('player records', () => {
     expect(p.status).toBe('D');
     expect(p.alive).toBe(false);
   });
-
 });
 
 describe('party record', () => {
@@ -68,7 +67,7 @@ describe('party record', () => {
 });
 
 describe('the party bag', () => {
-  it('pools each member\'s gear on forming, keeping what is in hand, and deals it out on dispersing', async () => {
+  it("pools each member's gear on forming, keeping what is in hand, and deals it out on dispersing", async () => {
     const { newWorld } = await import('./helpers.ts');
     const world = newWorld();
     // A new game already pooled the default party: four daggers in hand, none spare.

@@ -288,7 +288,9 @@ export function healPlan(world: World): HealPlan | null {
   if (wounded.length === 0) return null;
   const target = wounded[0];
   const careers = String.fromCharCode(...world.resources.misc.careerTable);
-  const casters = living.filter((m) => CLERIC_CASTERS.includes(careers.indexOf(world.member(m).classLetter))).sort((a, b) => world.member(b).mana - world.member(a).mana);
+  const casters = living
+    .filter((m) => CLERIC_CASTERS.includes(careers.indexOf(world.member(m).classLetter)))
+    .sort((a, b) => world.member(b).mana - world.member(a).mana);
   const order = gap(target) > HEAL_TYPICAL ? [GREAT_HEAL, HEAL] : [HEAL, GREAT_HEAL];
   for (const spell of order) {
     const caster = casters.find((m) => world.member(m).mana >= spellCost(spell));

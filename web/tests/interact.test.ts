@@ -438,7 +438,7 @@ describe('Lord British', () => {
   });
 });
 
-describe('a new game\'s first question', () => {
+describe("a new game's first question", () => {
   it('sets Classic or Modern rules at the first Journey onward, and can be backed out of', async () => {
     const { chooseRules } = await import('../src/game/menu.ts');
     const { world, io } = townWorld();

@@ -48,7 +48,18 @@ export interface DungeonStyle {
   doorLine?: string;
 }
 
-const VGA: DungeonStyle = { kind: 'brick', bg: '#0c0c10', line: '#2a2a30', face: '#7c7c84', side: '#5c5c64', variation: 0.22, floor: '#3a3a40', floorLine: '#4a4a50', ceiling: '#1a1a20', wood: '#9a6a3a' };
+const VGA: DungeonStyle = {
+  kind: 'brick',
+  bg: '#0c0c10',
+  line: '#2a2a30',
+  face: '#7c7c84',
+  side: '#5c5c64',
+  variation: 0.22,
+  floor: '#3a3a40',
+  floorLine: '#4a4a50',
+  ceiling: '#1a1a20',
+  wood: '#9a6a3a',
+};
 
 /**
  * A style for every tile set but Lairware, which keeps the Mac's
@@ -59,14 +70,65 @@ export const DUNGEON_STYLES: Record<string, DungeonStyle> = {
   'PC VGA': VGA,
   'Apple II Mono': { kind: 'wire', bg: '#000', line: '#fff', wood: '#fff', doorFill: '#000', doorLine: '#fff' },
   'Apple II Color': { kind: 'wire', bg: '#000', line: '#fff', wood: '#ff8000', doorFill: '#000', doorLine: '#fff' },
-  'Apple II Color TV': { kind: 'wire', bg: '#000', line: '#f0f0f0', fringe: ['#20d020', '#c040ff'], wood: '#ff8000', doorFill: '#000', doorLine: '#f0f0f0' },
+  'Apple II Color TV': {
+    kind: 'wire',
+    bg: '#000',
+    line: '#f0f0f0',
+    fringe: ['#20d020', '#c040ff'],
+    wood: '#ff8000',
+    doorFill: '#000',
+    doorLine: '#f0f0f0',
+  },
   'Commodore 64': { kind: 'wire', bg: '#000', line: '#8e8dff', wood: '#a57a4c', doorFill: '#000', doorLine: '#8e8dff' },
   'Macintosh B&W': { kind: 'wire', bg: '#fff', line: '#000', wood: '#000', doorFill: '#000' },
   'PC CGA': { kind: 'wire', bg: '#000', line: '#55ffff', fill: '#0000aa', wood: '#ffffff', doorFill: '#000', doorLine: '#55ffff' },
-  'PC EGA': { kind: 'brick', bg: '#000', line: '#000', face: '#aa5500', side: '#aa5500', dither: true, floor: '#555555', floorLine: '#aaaaaa', ceiling: '#000', wood: '#ffff55' },
-  Nintendo: { kind: 'brick', bg: '#000', line: '#301810', face: '#a84030', side: '#782c20', floor: '#404040', floorLine: '#585858', ceiling: '#000', wood: '#d09050' },
-  'PC MCGA': { kind: 'brick', bg: '#101010', line: '#3a2a1a', face: '#8a6a4a', side: '#66503a', variation: 0.18, floor: '#484848', floorLine: '#585858', ceiling: '#202020', wood: '#b07a3a' },
-  'PC Ultima V': { kind: 'brick', bg: '#0a0c10', line: '#1a2028', face: '#5c6c7c', side: '#44505c', variation: 0.2, floor: '#2c3038', floorLine: '#3c4048', ceiling: '#101418', wood: '#8a5a2a' },
+  'PC EGA': {
+    kind: 'brick',
+    bg: '#000',
+    line: '#000',
+    face: '#aa5500',
+    side: '#aa5500',
+    dither: true,
+    floor: '#555555',
+    floorLine: '#aaaaaa',
+    ceiling: '#000',
+    wood: '#ffff55',
+  },
+  Nintendo: {
+    kind: 'brick',
+    bg: '#000',
+    line: '#301810',
+    face: '#a84030',
+    side: '#782c20',
+    floor: '#404040',
+    floorLine: '#585858',
+    ceiling: '#000',
+    wood: '#d09050',
+  },
+  'PC MCGA': {
+    kind: 'brick',
+    bg: '#101010',
+    line: '#3a2a1a',
+    face: '#8a6a4a',
+    side: '#66503a',
+    variation: 0.18,
+    floor: '#484848',
+    floorLine: '#585858',
+    ceiling: '#202020',
+    wood: '#b07a3a',
+  },
+  'PC Ultima V': {
+    kind: 'brick',
+    bg: '#0a0c10',
+    line: '#1a2028',
+    face: '#5c6c7c',
+    side: '#44505c',
+    variation: 0.2,
+    floor: '#2c3038',
+    floorLine: '#3c4048',
+    ceiling: '#101418',
+    wood: '#8a5a2a',
+  },
 };
 
 const VP_X = 300;
@@ -176,7 +238,10 @@ class SheetPainter {
     ctx.lineCap = 'butt';
     ctx.lineJoin = 'miter';
     if (style.fringe) {
-      for (const [dx, colour] of [[-1, style.fringe[0]], [1, style.fringe[1]]] as const) {
+      for (const [dx, colour] of [
+        [-1, style.fringe[0]],
+        [1, style.fringe[1]],
+      ] as const) {
         ctx.save();
         ctx.translate(dx, 0);
         ctx.strokeStyle = colour;

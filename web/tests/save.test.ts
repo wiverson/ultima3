@@ -54,7 +54,7 @@ describe('save and restore', () => {
 });
 
 describe('save migration', () => {
-  it('pools a version 2 save\'s member bags into the party\'s, keeping items in hand', () => {
+  it("pools a version 2 save's member bags into the party's, keeping items in hand", () => {
     const a = newWorld();
     a.member(0).bytes[48 + 6] = 2; // two swords in the old per-member bag ...
     a.member(0).bytes[48] = 6; // ... one in hand
@@ -69,7 +69,7 @@ describe('save migration', () => {
     expect(b.party.armour(3)).toBe(1);
   });
 
-  it('pools a version 3 save\'s gems, keys, powders and torches', () => {
+  it("pools a version 3 save's gems, keys, powders and torches", () => {
     const a = newWorld();
     a.member(0).bytes[37] = 2; // gems
     a.member(1).bytes[38] = 1; // a key

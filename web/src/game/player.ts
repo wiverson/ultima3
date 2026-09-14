@@ -223,7 +223,6 @@ export class PlayerRecord {
     this.hitPoints = hp;
     return false;
   }
-
 }
 
 /** The whole roster: 20 records in one buffer, so saving is a single copy. */

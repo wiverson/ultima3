@@ -331,7 +331,7 @@ describe('walking into a monster on the surface', () => {
 });
 
 describe('peer at gem', () => {
-  it('spends one of the party\'s gems without asking whose', async () => {
+  it("spends one of the party's gems without asking whose", async () => {
     const { world, io } = flatWorld();
     world.party.gems = 2;
     io.keys = [];

@@ -78,7 +78,7 @@ describe('the journal', () => {
     expect(kings.clues).toEqual([{ from: 'Lord British', text: 'SEEK YE, THE MARK OF KINGS!' }]);
   });
 
-  it('records a townsperson\'s clue as spoken, shown only once its entry is revealed', async () => {
+  it("records a townsperson's clue as spoken, shown only once its entry is revealed", async () => {
     const { world, io } = inTown(MapId.FirstTown);
     personEast(world, 3); // "only with exotic arms can you win"
     await talkTo(world, io, 0, 0);

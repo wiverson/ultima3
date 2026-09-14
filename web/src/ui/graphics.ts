@@ -51,14 +51,7 @@ export type ImageMap = Map<string, HTMLImageElement>;
 
 /** Load the pictures used in play (title, dungeon walls, shrines, fountains ...). */
 export async function loadImages(baseUrl = 'images/'): Promise<ImageMap> {
-  const files = [
-    'Exodus.png',
-    'Fountain.jpg',
-    'Rod.jpg',
-    'Shrine.jpg',
-    'TimeLord.jpg',
-    'SosariaMap.jpg',
-  ];
+  const files = ['Exodus.png', 'Fountain.jpg', 'Rod.jpg', 'Shrine.jpg', 'TimeLord.jpg', 'SosariaMap.jpg'];
   const images: ImageMap = new Map();
   await Promise.all(
     files.map(async (file) => {
@@ -176,7 +169,8 @@ export class GraphicsSet {
     const dungeonMasks = await tryLoad('DungeonMasks', ['png', 'gif']);
     const ownShapes = await tryLoad('DungeonShapes', ['png', 'jpg'], false);
     const style = ownShapes ? null : (DUNGEON_STYLES[name] ?? null);
-    const dungeonShapes = ownShapes ?? (style && dungeonMasks ? paintDungeonSheet(style, dungeonMasks) : await tryLoad('DungeonShapes', ['png', 'jpg']));
+    const dungeonShapes =
+      ownShapes ?? (style && dungeonMasks ? paintDungeonSheet(style, dungeonMasks) : await tryLoad('DungeonShapes', ['png', 'jpg']));
     return new GraphicsSet(tiles, applyMask(tiles, mask), font, ui, dungeonShapes, dungeonMasks, style);
   }
 
@@ -208,8 +202,7 @@ export class GraphicsSet {
     const src: CanvasImageSource = opts.masked ? this.maskedTiles : this.opaqueTiles;
     // Doors are the alternate frame of the letter "I"; `altFrame` forces the
     // second frame (used for the "HIT" balls).
-    const rect =
-      shape === Shape.Door ? this.tileRect(Shape.Door >> 1, true) : this.tileRect(shape >> 1, opts.altFrame ? true : undefined);
+    const rect = shape === Shape.Door ? this.tileRect(Shape.Door >> 1, true) : this.tileRect(shape >> 1, opts.altFrame ? true : undefined);
     const scrollPx = this.scroll.get(shape) ?? 0;
     const flip = opts.flip ?? false;
     if (flip) {

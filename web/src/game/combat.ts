@@ -229,15 +229,7 @@ export async function showBall(world: World, io: GameIO, x: number, y: number, s
  * Mirrors `Shoot()`: fly a ball from (x, y) in the direction (dx, dy) until
  * it leaves the arena or reaches a monster. Returns the monster's index or -1.
  */
-export async function shoot(
-  world: World,
-  io: GameIO,
-  x: number,
-  y: number,
-  dx: number,
-  dy: number,
-  shape: number,
-): Promise<number> {
+export async function shoot(world: World, io: GameIO, x: number, y: number, dx: number, dy: number, shape: number): Promise<number> {
   const c = world.combat!;
   for (;;) {
     x += dx;
@@ -602,7 +594,15 @@ export function handleMove(world: World, io: GameIO, member: number, dx: number,
   const p = c.members[member];
   const xs = p.x + dx;
   const ys = p.y + dy;
-  if (xs < 0 || xs > 10 || ys < 0 || ys > 10 || !memberCanStand(arenaTile(c, xs, ys)) || monsterAt(c, xs, ys) >= 0 || memberAt(c, xs, ys) >= 0) {
+  if (
+    xs < 0 ||
+    xs > 10 ||
+    ys < 0 ||
+    ys > 10 ||
+    !memberCanStand(arenaTile(c, xs, ys)) ||
+    monsterAt(c, xs, ys) >= 0 ||
+    memberAt(c, xs, ys) >= 0
+  ) {
     io.printMessage(CmdMsg.InvalidMove);
     io.sound(Sound.Bump);
     return;
@@ -620,12 +620,7 @@ export const combatAttackForTest = (world: World, io: GameIO, member: number) =>
  * Mirrors `CombatAttack()`. With `preset` the direction is already known
  * (the member walked into a monster) and is echoed instead of asked for.
  */
-async function combatAttack(
-  world: World,
-  io: GameIO,
-  member: number,
-  preset?: { dx: number; dy: number; message: number },
-): Promise<void> {
+async function combatAttack(world: World, io: GameIO, member: number, preset?: { dx: number; dy: number; message: number }): Promise<void> {
   const c = world.combat!;
   const p = world.member(member);
   const me = c.members[member];

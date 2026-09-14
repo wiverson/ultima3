@@ -275,12 +275,7 @@ export interface Direction {
  * possible with a controller; the keyboard original could not cancel). In
  * combat `allowSpace` lets the space bar mean "no direction" (dx = dy = 0).
  */
-export async function getDirection(
-  world: World,
-  io: GameIO,
-  allowSpace = false,
-  allowDiagonal?: boolean,
-): Promise<Direction | null> {
+export async function getDirection(world: World, io: GameIO, allowSpace = false, allowDiagonal?: boolean): Promise<Direction | null> {
   // Diagonals follow the diagonal-moves setting unless the command says otherwise.
   allowDiagonal ??= world.diagonalMoves;
   const key = await io.chooseDirection(allowSpace, allowDiagonal);

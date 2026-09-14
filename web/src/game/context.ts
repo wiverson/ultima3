@@ -81,8 +81,22 @@ export function commandAvailability(world: World, scope: CommandScope): Map<stri
   let door = false;
   let counter = false;
   const steps: [number, number][] = world.diagonalMoves
-    ? [[0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]]
-    : [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    ? [
+        [0, -1],
+        [0, 1],
+        [-1, 0],
+        [1, 0],
+        [-1, -1],
+        [1, -1],
+        [-1, 1],
+        [1, 1],
+      ]
+    : [
+        [0, -1],
+        [0, 1],
+        [-1, 0],
+        [1, 0],
+      ];
   for (const [dx, dy] of steps) {
     const xs = world.constrain(world.x + dx);
     const ys = world.constrain(world.y + dy);
@@ -128,7 +142,9 @@ export function commandAvailability(world: World, scope: CommandScope): Map<stri
  */
 export function commandMenu(world: World, scope: CommandScope, template: MenuOption[]): MenuOption[] {
   const availability = commandAvailability(world, scope);
-  const shown = template.filter((o) => availability.get(o.key) !== 'hidden').map((o) => ({ ...o, disabled: availability.get(o.key) === 'disabled' }));
+  const shown = template
+    .filter((o) => availability.get(o.key) !== 'hidden')
+    .map((o) => ({ ...o, disabled: availability.get(o.key) === 'disabled' }));
   if (scope === 'combat' && world.combat) return combatMenu(world, shown);
   // Outside combat, a wounded member a caster can help puts "Cast (Heal)" first (see healPlan).
   const plan = healPlan(world);
@@ -163,7 +179,11 @@ function combatMenu(world: World, shown: MenuOption[]): MenuOption[] {
   const spell = hasMagic(world, world.member(me)) ? quickSpell(world, me) : null;
   let options = shown.map((o) => (o.key === 'A' && ranged ? { ...o, label: `Attack (${ranged})` } : o));
   if (spell !== null) {
-    const quick: MenuOption = { key: QUICK_CAST_KEY, label: `Cast (${spellName(spell)})`, disabled: spellCost(spell) > world.member(me).mana };
+    const quick: MenuOption = {
+      key: QUICK_CAST_KEY,
+      label: `Cast (${spellName(spell)})`,
+      disabled: spellCost(spell) > world.member(me).mana,
+    };
     options = [quick, ...options];
   }
   const casting = spell !== null ? [QUICK_CAST_KEY, 'C'] : [];
