@@ -175,6 +175,14 @@ async function start(): Promise<void> {
   });
   screen.onGamepadPress = () => pad.show(false);
 
+  // Development shortcut, not in the help: Option-Shift-6 (Alt-Shift-6, the ^ key) steps to the next tile set.
+  window.addEventListener('keydown', (e) => {
+    if (e.altKey && e.shiftKey && e.code === 'Digit6') {
+      e.preventDefault();
+      void screen.nextTileSet();
+    }
+  });
+
   const game = new Game(world, screen, { save: (w) => localSave.write(w), load: (w) => localSave.read(w) });
   // Debug hook: lets the console (and the browser tests) inspect and poke the game.
   (window as unknown as { u3: unknown }).u3 = { world, screen, game };

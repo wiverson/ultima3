@@ -733,13 +733,25 @@ export class Screen implements GameIO {
     const place: MenuPlacement | undefined = this.frameShown ? undefined : { row: 13, title: 'Tiles', cursor: current };
     const picked = await this.runMenu('Tiles', options, 1, place, current);
     if (picked < 0) return;
+    await this.loadTiles(TILE_SETS[picked]);
+  }
+
+  /** Switch to the named set, keeping the current one if it fails to load. */
+  private async loadTiles(name: string): Promise<void> {
     try {
-      const gfx = await GraphicsSet.load(TILE_SETS[picked]);
-      this.tileSetName = TILE_SETS[picked];
+      const gfx = await GraphicsSet.load(name);
+      this.tileSetName = name;
       this.setGraphics(gfx);
     } catch {
       /* keep the current set */
     }
+  }
+
+  /** Step to the next tile set, round and round (a development shortcut, not in the help; see main.ts). */
+  async nextTileSet(): Promise<void> {
+    const next = TILE_SETS[(TILE_SETS.indexOf(this.tileSetName) + 1) % TILE_SETS.length];
+    await this.loadTiles(next);
+    this.onSettingsChange?.();
   }
 
   // -------------------------------------------------------------------------
