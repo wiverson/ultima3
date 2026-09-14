@@ -68,17 +68,17 @@ export const ENTRIES: Entry[] = [
   {
     id: 'ambrosia',
     title: 'Lost Ambrosia',
-    hint: 'Sail a frigate into the whirlpool. The ship is lost; the party wakes in Ambrosia. Its moongate leads home.',
+    hint: "Sail a frigate into the whirlpool; the ship is lost. Home from Ambrosia is a pirate's ship into the lake's whirlpool.",
   },
   {
     id: 'cards',
     title: 'The Four Cards',
-    hint: 'At each of the four shrines in Ambrosia, Other and say SEARCH. They lie in the far corners.',
+    hint: "At the four shrines, Other and say SEARCH. Two lie past locked doors: bring keys and take a pirate's ship.",
   },
   {
     id: 'exotics',
     title: 'Exotic Arms',
-    hint: 'Dawn shows south of the Montors while both moons are new. Then Other, DIG on the far north isle and the western isle.',
+    hint: 'Both moons new, Dawn shows west of the Montors and tells of them. Other, DIG on the far north isle and the western isle, once per member.',
   },
   {
     id: 'fire',
@@ -103,7 +103,7 @@ export const ENTRIES: Entry[] = [
   {
     id: 'exodus',
     title: 'Exodus',
-    hint: "Exodus' castle: the south-west isle, past the serpent, across lava. Only exotics bite. INSERT the cards in the Time Lord's order.",
+    hint: "Exodus' castle: the south-west isle, past the serpent. Only exotics bite. INSERT the cards left to right in the Time Lord's order.",
   },
 ];
 
