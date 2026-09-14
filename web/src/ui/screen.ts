@@ -695,9 +695,7 @@ export class Screen implements GameIO {
           w.soundEnabled = !w.soundEnabled;
           break;
         case 'M':
-          this.musicPlayer.enabled = !this.musicPlayer.enabled;
-          if (this.musicPlayer.enabled) this.musicPlayer.play(w.music);
-          else this.musicPlayer.play(0);
+          this.musicPlayer.enabled = !this.musicPlayer.enabled; // the player stops or resumes the current track itself
           break;
         case 'H':
           await this.showHelp();

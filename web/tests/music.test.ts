@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseQuickTimeMusic } from '../src/ui/music.ts';
+import { parseQuickTimeMusic, MusicPlayer } from '../src/ui/music.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -55,5 +55,52 @@ describe('QuickTime music parser', () => {
         expect(n.pitch, file).toBeLessThan(110);
       }
     }
+  });
+});
+
+describe('the music player', () => {
+  /** A stand-in AudioContext: the player only needs a gain node and a state. */
+  class FakeContext {
+    state = 'running';
+    currentTime = 0;
+    destination = {};
+    createGain() {
+      return { gain: { value: 0 }, connect() {} };
+    }
+    resume() {
+      return Promise.resolve();
+    }
+  }
+
+  async function player(): Promise<MusicPlayer> {
+    (globalThis as { AudioContext?: unknown }).AudioContext = FakeContext;
+    (globalThis as { fetch?: unknown }).fetch = () => Promise.reject(new Error('no files in tests'));
+    return new MusicPlayer();
+  }
+
+  it('stays silent while off, whatever the game asks for, and resumes the wanted track when turned on', async () => {
+    const m = await player();
+    m.enabled = false;
+    m.play(1); // Sosaria, asked for while music is off
+    m.unlock(); // the first key press
+    expect(m.active).toBe(0); // off means off, even after the unlock
+    m.enabled = true;
+    expect(m.active).toBe(1); // on resumes the track the game wanted
+    m.enabled = false;
+    expect(m.active).toBe(0);
+  });
+
+  it('waits for the unlock, then follows the track the game wants', async () => {
+    const m = await player();
+    m.play(2);
+    expect(m.active).toBe(0); // no audio before a user gesture
+    m.unlock();
+    expect(m.active).toBe(2);
+    m.play(2);
+    expect(m.active).toBe(2); // asking again changes nothing
+    m.play(5);
+    expect(m.active).toBe(5);
+    m.play(0);
+    expect(m.active).toBe(0);
   });
 });

@@ -142,22 +142,47 @@ const SCHEDULER_MS = 250;
 /**
  * Plays tunes on a simple polyphonic synthesizer: one triangle oscillator
  * per note with a short attack and release. Tunes loop until stopped.
+ *
+ * The game says which track it wants (`play`), the player says whether
+ * music is on (`enabled`), and the browser says whether audio may start
+ * yet (`unlock`); `sync` makes what sounds match all three, so a track
+ * asked for while music was off, or before the first key, starts the
+ * moment it may.
  */
 export class MusicPlayer {
   private context: AudioContext | null = null;
   private master: GainNode | null = null;
   private tunes = new Map<number, Promise<Tune | null>>();
+  /** The track the game wants, 0 for silence. */
   private current = 0;
+  /** The track playing or loading, 0 while silent. */
+  private activeTrack = 0;
+  /** Bumped by every start and stop, so a load that finishes late is dropped. */
+  private startToken = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
   private tune: Tune | null = null;
   private loopStart = 0;
   private nextNote = 0;
   private playing = new Set<AudioScheduledSourceNode>();
-  enabled = true;
+  private on = true;
   /** 0..1 */
   volume = 0.35;
 
   constructor(private readonly baseUrl = 'music/') {}
+
+  /** Music on or off (the Settings toggle). Turning it on resumes the wanted track. */
+  get enabled(): boolean {
+    return this.on;
+  }
+  set enabled(on: boolean) {
+    this.on = on;
+    this.sync();
+  }
+
+  /** The track playing or loading, 0 while silent. */
+  get active(): number {
+    return this.activeTrack;
+  }
 
   /** Create the AudioContext. Call from a user-gesture handler. */
   unlock(): void {
@@ -168,7 +193,16 @@ export class MusicPlayer {
       this.master.connect(this.context.destination);
     }
     if (this.context.state === 'suspended') void this.context.resume();
-    if (this.current && !this.timer) this.start(this.current);
+    this.sync();
+  }
+
+  /** Start or stop so that what sounds is the wanted track, if music is on and audio unlocked, else nothing. */
+  private sync(): void {
+    const wanted = this.on && this.context ? this.current : 0;
+    if (wanted === this.activeTrack) return;
+    this.stopScheduling();
+    this.activeTrack = wanted;
+    if (wanted) this.start(wanted);
   }
 
   private load(track: number): Promise<Tune | null> {
@@ -186,18 +220,16 @@ export class MusicPlayer {
     return p;
   }
 
-  /** Switch to a track (0 = silence). Safe to call before audio is unlocked. */
+  /** Switch to a track (0 = silence). Safe to call before audio is unlocked or while music is off: the track is remembered. */
   play(track: number): void {
-    if (track === this.current) return;
     this.current = track;
-    this.stopScheduling();
-    if (track === 0 || !this.enabled) return;
-    if (this.context) this.start(track);
+    this.sync();
   }
 
   private start(track: number): void {
+    const token = ++this.startToken;
     void this.load(track).then((tune) => {
-      if (!tune || this.current !== track || !this.context) return;
+      if (!tune || token !== this.startToken || this.activeTrack !== track || !this.context) return;
       this.tune = tune;
       this.loopStart = this.context.currentTime + 0.1;
       this.nextNote = 0;
@@ -207,6 +239,8 @@ export class MusicPlayer {
   }
 
   private stopScheduling(): void {
+    this.startToken++;
+    this.activeTrack = 0;
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
     this.tune = null;
