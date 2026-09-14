@@ -26,6 +26,10 @@ export class Keyboard {
   onResume: ((pausedMs: number) => void) | null = null;
   /** Called on every key from any source, the gamepad included (audio is unlocked from here). */
   onInput: (() => void) | null = null;
+  /** True while the game is blocked on a key press and none is queued (a driver script can wait on this). */
+  get waiting(): boolean {
+    return this.waiter !== null && this.queue.length === 0;
+  }
   private pausedAt = 0;
 
   constructor(target: EventTarget = window) {
