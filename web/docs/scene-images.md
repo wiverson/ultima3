@@ -5,7 +5,10 @@ and the Exodus logo on the title screen. The logo is `<Set>-Exodus.png`,
 **944 by 268 pixels** on an opaque black ground, drawn at that size on
 the title screen (29.5 by 8.375 cells at the canvas's 32-pixel cell), so
 draw it at exactly that size; it changes as the tile set is changed in
-Settings. The rest of this note is about the four scenes.
+Settings. The Lairware set has no logo file of its own: it shows the
+original LairWare logo from `public/images/Exodus.png`, which any set
+without a logo falls back to. The rest of this note is about the four
+scenes.
 
 The game shows four full-window pictures at fixed moments:
 
