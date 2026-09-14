@@ -72,6 +72,15 @@ export class TouchPad {
     window.addEventListener('pointerdown', () => {
       if (!this._shown) this.show(true);
     });
+    // iOS WebKit zooms in on a double-tapped element whatever the CSS and
+    // viewport say, unless the page cancels the tap itself: the pad works
+    // through pointer events, so the touch events can be cancelled outright,
+    // and the pinch gesture with them. Nothing else on the page needs them.
+    const cancel = (e: Event) => e.preventDefault();
+    document.addEventListener('touchend', cancel, { passive: false });
+    document.addEventListener('touchmove', cancel, { passive: false });
+    document.addEventListener('gesturestart', cancel, { passive: false });
+    document.addEventListener('dblclick', cancel);
     window.addEventListener('keydown', (e) => {
       if (this._shown && !e.metaKey && !e.ctrlKey && !e.altKey) this.show(false);
     });
