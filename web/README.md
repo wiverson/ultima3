@@ -435,6 +435,9 @@ save contains except the pooled gold and food.
   crossing the tile as it scrolled; it is now the mean of the rows on
   either side of the wrap. Faint alpha fringe on the cell edges of the
   creature tiles was cleared; figures that reach the edge are untouched.
+  The magic and fire balls of combat, which the Mac drew as glossy
+  spheres with the word HIT on the second frame, are redrawn: an orb
+  with the Apple II's diamond core, and a starburst for the hit.
 - **Tile sheets carry their own transparency.** The Mac shipped a
   separate grey "Mask" image per set for creature transparency, since
   QuickDraw had no alpha channel; those masks are baked into the alpha of
