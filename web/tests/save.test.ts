@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { newWorld, savedCopy } from './helpers.ts';
-import { serialize, restore } from '../src/game/save.ts';
+import { serialize, restore, exportGame, parseExport, EXPORT_FORMAT } from '../src/game/save.ts';
 import { MapValue } from '../src/game/tiles.ts';
 import { Location } from '../src/game/party.ts';
 import { World } from '../src/game/world.ts';
@@ -82,5 +82,29 @@ describe('save migration', () => {
     expect(b.party.keys).toBe(1);
     expect(b.party.torches).toBe(4);
     expect(b.member(2).torches).toBe(0);
+  });
+});
+
+describe('export and import', () => {
+  it('carries the save and the auto-map through text and back', () => {
+    const world = newWorld();
+    world.party.gold = 4321;
+    world.x = 12;
+    world.y = 34;
+    const text = exportGame(world, 'automap-text');
+    const parsed = parseExport(text);
+    expect(parsed.automap).toBe('automap-text');
+    const other = newWorld();
+    expect(restore(other, parsed.save)).toBe(true);
+    expect(other.party.gold).toBe(4321);
+    expect([other.x, other.y]).toEqual([12, 34]);
+    expect(parseExport(exportGame(world, null)).automap).toBeNull();
+  });
+
+  it('refuses text that is not an exported game, with a short reason', () => {
+    expect(() => parseExport('hello')).toThrow('not JSON');
+    expect(() => parseExport('{"game":"other","format":1}')).toThrow('not an Ultima III game');
+    expect(() => parseExport(JSON.stringify({ game: 'ultima3', format: EXPORT_FORMAT + 1, save: {} }))).toThrow('newer');
+    expect(() => parseExport(JSON.stringify({ game: 'ultima3', format: EXPORT_FORMAT, save: { version: 1 } }))).toThrow('incomplete');
   });
 });

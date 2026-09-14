@@ -68,9 +68,27 @@ async function notice(io: GameIO, text: string): Promise<void> {
  * Mirrors `MainMenu()`. `play` runs the game; it returns when the player
  * quits. The menu then shows again until the page is closed.
  */
+/** Export and import of the game as text through the clipboard (this port). */
+export interface Transfer {
+  /** The game as text, or null when there is nothing to export. */
+  export(): string | null;
+  /** Replace the saved game with the text; null when it worked, else a short reason. */
+  import(text: string): string | null;
+  clipboard: { write(text: string): Promise<void>; read(): Promise<string> };
+}
+
+/** A new version of the app, downloaded and waiting (the installed app). */
+export interface Update {
+  ready(): boolean;
+  /** Switch to it: the page reloads. */
+  apply(): void;
+}
+
 export interface MenuOptions {
   /** Called after the roster or party changes in the Organize menu, so it can be saved. */
   save?: (world: World) => void;
+  transfer?: Transfer;
+  update?: Update;
 }
 
 export async function mainMenu(world: World, io: GameIO, play: () => Promise<void>, options: MenuOptions = {}): Promise<void> {
@@ -81,16 +99,25 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
     io.centreText(12, mm(world, MM.HeComes));
     io.centreText(22, mm(world, MM.Copyright));
 
-    const key = await io.chooseFromList(
-      [
-        { key: 'J', label: mm(world, MM.JourneyOnwardOption) },
-        { key: 'O', label: mm(world, MM.OrganizeAParty) },
-        { key: 'S', label: 'Settings' },
-      ],
-      { row: 15, title: mm(world, MM.Options) },
-    );
+    const entries = [
+      { key: 'J', label: mm(world, MM.JourneyOnwardOption) },
+      { key: 'O', label: mm(world, MM.OrganizeAParty) },
+    ];
+    if (options.transfer) {
+      if (world.party.formed) entries.push({ key: 'E', label: 'Export game' });
+      entries.push({ key: 'I', label: 'Import game' });
+    }
+    if (options.update?.ready()) entries.push({ key: 'U', label: 'Update: restart' });
+    entries.push({ key: 'S', label: 'Settings' });
+    const key = await io.chooseFromList(entries, { row: 15, title: mm(world, MM.Options) });
     if (key === 'S') {
       await io.showSettings();
+    } else if (key === 'E' && options.transfer) {
+      await exportGameTo(io, options.transfer);
+    } else if (key === 'I' && options.transfer) {
+      await importGameFrom(io, options.transfer);
+    } else if (key === 'U') {
+      options.update?.apply();
     } else if (key === 'J') {
       if (!world.party.formed) {
         await notice(io, mm(world, MM.NotFormed));
@@ -103,6 +130,39 @@ export async function mainMenu(world: World, io: GameIO, play: () => Promise<voi
       options.save?.(world);
     }
   }
+}
+
+/** Export: the game goes to the clipboard as text. */
+async function exportGameTo(io: GameIO, t: Transfer): Promise<void> {
+  const text = t.export();
+  if (!text) return notice(io, 'Nothing to export');
+  try {
+    await t.clipboard.write(text);
+    await notice(io, 'Game copied to the clipboard');
+  } catch {
+    await notice(io, 'The clipboard is not available here');
+  }
+}
+
+/** Import: the clipboard's text replaces the saved game, after a word of warning. */
+async function importGameFrom(io: GameIO, t: Transfer): Promise<void> {
+  let text: string;
+  try {
+    text = (await t.clipboard.read()).trim();
+  } catch {
+    return notice(io, 'The clipboard cannot be read here');
+  }
+  if (!text) return notice(io, 'The clipboard is empty');
+  const answer = await io.chooseFromList(
+    [
+      { key: 'Y', label: 'Replace the saved game' },
+      { key: 'N', label: 'Keep the saved game' },
+    ],
+    { row: 15, title: 'Import?' },
+  );
+  if (answer !== 'Y') return;
+  const reason = t.import(text);
+  await notice(io, reason ? `Not imported: ${reason}` : 'Game imported');
 }
 
 /**

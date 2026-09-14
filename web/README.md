@@ -92,7 +92,11 @@ Prompts for "whom" take a member number 1-4, or Up and Down to move a pair
 of arrows through the stats boxes and Enter to take the marked member; a
 direction is an arrow key.
 Q on the surface saves the game in this browser; it resumes on the next
-visit. The game also saves itself when the journey starts and at every
+visit. The title menu's Export game copies the saved game to the
+clipboard as JSON text, and Import game reads such text back from the
+clipboard and replaces the saved game, after asking; that is how a game
+moves between browsers or machines. The text carries the save and the
+dungeon auto-map, not the settings. The game also saves itself when the journey starts and at every
 town, castle and dungeon door, going in and coming out, and prints
 "(saved)" under the door message when it does. `?new` on the URL starts a
 fresh game.
@@ -146,6 +150,22 @@ leader. Each prints its confirmation to the message
 area, like any other event, where it stays in the scrollback. None of it
 existed in the original; it is there for testing and for anyone who
 wants it.
+
+## Installing and playing offline
+
+The site is a progressive web app. Chrome, Edge and Android offer to
+install it from the address bar or the browser menu; on iOS use Share,
+then Add to Home Screen. On the first visit the service worker caches
+every file the game needs (about six megabytes), so an installed copy,
+or a tab that has been opened once, runs without a network.
+
+Updates arrive on their own: whenever the app starts, and once an hour
+while it runs, it looks for a new build. A new one downloads in the
+background while the old one keeps running, and the title menu then
+shows "Update: restart". Choosing it reloads into the new version. An
+update that is not chosen is applied the next time every tab of the
+game is closed and it is opened again. The saved game, the settings and
+the auto-map live in the browser's storage and survive updates.
 
 ## Differences from the original
 

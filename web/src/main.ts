@@ -12,7 +12,9 @@
 import { loadResources } from './data/resources.ts';
 import { World, STARVATION_MODES, TIMER_MODES, type Starvation, type Timer } from './game/world.ts';
 import { Game } from './game/game.ts';
-import { localSave } from './game/save.ts';
+import { localSave, exportGame, parseExport, restore } from './game/save.ts';
+import { registerSW } from 'virtual:pwa-register';
+import type { Transfer, Update } from './game/menu.ts';
 import { AutoMap, MAP_MODES, type MapMode } from './game/automap.ts';
 import { mainMenu } from './game/menu.ts';
 import { GraphicsSet, loadImages } from './ui/graphics.ts';
@@ -93,6 +95,19 @@ function canvasNotice(text: string): void {
   ctx.textBaseline = 'middle';
   ctx.fillText(text, canvas.width / 40, canvas.height / 2);
 }
+
+// The installed app: a new version downloads in the background and waits; the
+// title menu offers the restart. Long-running pages look again every hour.
+let updateReady = false;
+const applyUpdate = registerSW({
+  onNeedRefresh() {
+    updateReady = true;
+  },
+  onRegisteredSW(_url, registration) {
+    if (registration) setInterval(() => void registration.update(), 60 * 60 * 1000);
+  },
+});
+const update: Update = { ready: () => updateReady, apply: () => void applyUpdate(true) };
 
 async function start(): Promise<void> {
   const canvas = document.getElementById('screen') as HTMLCanvasElement;
@@ -185,8 +200,31 @@ async function start(): Promise<void> {
 
   const game = new Game(world, screen, { save: (w) => localSave.write(w), load: (w) => localSave.read(w) });
   // Debug hook: lets the console (and the browser tests) inspect and poke the game.
-  (window as unknown as { u3: unknown }).u3 = { world, screen, game, keyboard };
-  await mainMenu(world, screen, () => game.run(), { save: (w) => localSave.write(w) });
+  (window as unknown as { u3: unknown }).u3 = { world, screen, game, keyboard, update };
+  // Export and import: the save and the auto-map as text, through the clipboard.
+  const automapStore = () => ({
+    read: () => localStorage.getItem(AUTOMAP_KEY),
+    write: (text: string) => localStorage.setItem(AUTOMAP_KEY, text),
+  });
+  const transfer: Transfer = {
+    export: () => (world.party.formed ? exportGame(world, localStorage.getItem(AUTOMAP_KEY)) : null),
+    import: (text) => {
+      let parsed: ReturnType<typeof parseExport>;
+      try {
+        parsed = parseExport(text);
+      } catch (e) {
+        return (e as Error).message;
+      }
+      if (!restore(world, parsed.save)) return 'the save does not fit';
+      localSave.write(world);
+      if (parsed.automap) localStorage.setItem(AUTOMAP_KEY, parsed.automap);
+      else localStorage.removeItem(AUTOMAP_KEY);
+      world.autoMap = new AutoMap(automapStore());
+      return null;
+    },
+    clipboard: { write: (text) => navigator.clipboard.writeText(text), read: () => navigator.clipboard.readText() },
+  };
+  await mainMenu(world, screen, () => game.run(), { save: (w) => localSave.write(w), transfer, update });
 }
 
 start().catch((err) => {

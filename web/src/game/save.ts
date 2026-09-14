@@ -154,3 +154,51 @@ export const localSave = {
     }
   },
 };
+
+// ---------------------------------------------------------------------------
+// Export and import (this port): the save and the dungeon auto-map as one
+// piece of JSON text, carried through the clipboard between browsers.
+// ---------------------------------------------------------------------------
+
+export const EXPORT_FORMAT = 1;
+
+export interface ExportedGame {
+  game: 'ultima3';
+  format: number;
+  /** When it was exported, ISO 8601. */
+  exported: string;
+  save: SaveData;
+  /** The dungeon auto-map store as text, or null when there is none. */
+  automap: string | null;
+}
+
+/** The current game as text for the clipboard. */
+export function exportGame(world: World, automap: string | null): string {
+  const out: ExportedGame = { game: 'ultima3', format: EXPORT_FORMAT, exported: new Date().toISOString(), save: serialize(world), automap };
+  return JSON.stringify(out);
+}
+
+/**
+ * Read exported text back. Throws an Error whose message says, in a few
+ * words fit for the screen, why the text is not an exported game. The save
+ * inside is checked for shape only; `restore` checks its content.
+ */
+export function parseExport(text: string): { save: SaveData; automap: string | null } {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    throw new Error('not JSON');
+  }
+  if (!raw || typeof raw !== 'object') throw new Error('not a game');
+  const o = raw as Record<string, unknown>;
+  if (o.game !== 'ultima3' || typeof o.format !== 'number') throw new Error('not an Ultima III game');
+  if (o.format > EXPORT_FORMAT) throw new Error('from a newer version');
+  const save = o.save;
+  if (!save || typeof save !== 'object') throw new Error('no save inside');
+  const sv = save as Partial<SaveData>;
+  if (typeof sv.version !== 'number' || sv.version < 1 || sv.version > SAVE_VERSION) throw new Error('save version unknown');
+  for (const k of ['party', 'roster', 'surfaceTiles', 'surfaceMonsters'] as const)
+    if (typeof sv[k] !== 'string') throw new Error('save incomplete');
+  return { save: sv as SaveData, automap: typeof o.automap === 'string' ? o.automap : null };
+}
