@@ -54,6 +54,8 @@ export function paintMoons(style: MoonStyle): HTMLCanvasElement {
   canvas.width = MOON_CELL * 16;
   canvas.height = MOON_CELL;
   const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#000'; // on black, as the sheets' moons are: the cell covers the bar it sits on
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   for (let column = 0; column < 16; column++) {
     const lit = column < 8 ? style.trammel : style.felucca;
     const phase = column & 7;
