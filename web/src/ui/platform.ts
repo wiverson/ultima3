@@ -36,3 +36,10 @@ export const IOS_STORAGE_WARNING =
 export function launchWarning(nav: NavigatorLike, matchMedia?: (query: string) => { matches: boolean }): string | null {
   return isIOS(nav) && !isInstalled(nav, matchMedia) ? IOS_STORAGE_WARNING : null;
 }
+
+export const WARNING_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+/** Whether the warning is due: never shown, or shown a day or more ago (a clock set back counts as due too). */
+export function warningDue(lastShown: number | null, now: number): boolean {
+  return lastShown === null || !Number.isFinite(lastShown) || now - lastShown >= WARNING_INTERVAL_MS || lastShown > now;
+}

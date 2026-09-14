@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isIOS, isInstalled, launchWarning } from '../src/ui/platform.ts';
+import { isIOS, isInstalled, launchWarning, warningDue, WARNING_INTERVAL_MS } from '../src/ui/platform.ts';
 
 const iphone = {
   userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1',
@@ -33,5 +33,17 @@ describe('the iOS storage warning', () => {
     expect(launchWarning(mac)).toBeNull();
     expect(launchWarning(android)).toBeNull();
     expect(isInstalled(iphone, () => ({ matches: false }))).toBe(false);
+  });
+});
+
+describe('once a day', () => {
+  it('is due when never shown, a day or more after the last showing, or when the clock has gone backwards', () => {
+    const now = 1_800_000_000_000;
+    expect(warningDue(null, now)).toBe(true);
+    expect(warningDue(now - 1000, now)).toBe(false);
+    expect(warningDue(now - WARNING_INTERVAL_MS + 1, now)).toBe(false);
+    expect(warningDue(now - WARNING_INTERVAL_MS, now)).toBe(true);
+    expect(warningDue(now + 60_000, now)).toBe(true);
+    expect(warningDue(Number.NaN, now)).toBe(true);
   });
 });

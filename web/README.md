@@ -102,7 +102,8 @@ The game asks the browser for persistent storage, which keeps Chrome,
 Edge and Firefox from clearing the save under disk pressure. Every
 browser on iOS runs on WebKit, which deletes a site's storage after
 seven days of browser use without a visit unless the page has been
-added to the Home Screen; an iOS browser tab is told so at launch. The game also saves itself when the journey starts and at every
+added to the Home Screen; an iOS browser tab is told so at launch, once
+a day. The game also saves itself when the journey starts and at every
 town, castle and dungeon door, going in and coming out, and prints
 "(saved)" under the door message when it does. `?new` on the URL starts a
 fresh game.

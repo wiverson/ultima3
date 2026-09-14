@@ -15,7 +15,18 @@ import { Game } from './game/game.ts';
 import { localSave, exportGame, parseExport, restore } from './game/save.ts';
 import { registerSW } from 'virtual:pwa-register';
 import type { Transfer, Update } from './game/menu.ts';
-import { launchWarning } from './ui/platform.ts';
+import { launchWarning, warningDue } from './ui/platform.ts';
+
+const WARNED_KEY = 'ultima3.warned';
+/** When the storage warning was last shown, or null. */
+function readWarnedAt(): number | null {
+  try {
+    const raw = localStorage.getItem(WARNED_KEY);
+    return raw === null ? null : Number(raw);
+  } catch {
+    return null;
+  }
+}
 import { AutoMap, MAP_MODES, type MapMode } from './game/automap.ts';
 import { mainMenu } from './game/menu.ts';
 import { GraphicsSet, loadImages } from './ui/graphics.ts';
@@ -245,9 +256,16 @@ async function start(): Promise<void> {
 
   // Keep the browser from evicting the saved game under disk pressure (Chrome, Edge, Firefox honour this).
   if (navigator.storage?.persist) void navigator.storage.persist();
-  // An iOS browser tab deletes the saved game after a week away; say so before the title.
+  // An iOS browser tab deletes the saved game after a week away; say so before the title, once a day.
   const warning = launchWarning(navigator, (q) => window.matchMedia(q));
-  if (warning) alert(warning);
+  if (warning && warningDue(readWarnedAt(), Date.now())) {
+    alert(warning);
+    try {
+      localStorage.setItem(WARNED_KEY, String(Date.now()));
+    } catch {
+      /* storage unavailable: the warning will simply show again */
+    }
+  }
 
   const game = new Game(world, screen, { save: (w) => localSave.write(w), load: (w) => localSave.read(w) });
   // Debug hook: lets the console (and the browser tests) inspect and poke the game.
