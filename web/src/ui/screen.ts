@@ -1609,7 +1609,7 @@ export class Screen implements GameIO {
   // -------------------------------------------------------------------------
 
   showImage(name: string): void {
-    const img = this.images.get(name);
+    const img = this.gfx.scenes.get(name) ?? this.images.get(name); // the tile set's own picture first
     this.viewCovered = true;
     this.view = null;
     this.black(1, 1, 22, 22);

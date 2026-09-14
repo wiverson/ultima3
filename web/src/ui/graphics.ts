@@ -46,6 +46,9 @@ export function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
+/** The full-window scenes a tile set may paint in its own style (see docs/scene-images.md). */
+export const SCENE_NAMES = ['Fountain', 'Rod', 'Shrine', 'TimeLord'];
+
 /** The pictures in public/images, by file name without extension. */
 export type ImageMap = Map<string, HTMLImageElement>;
 
@@ -128,6 +131,13 @@ export class GraphicsSet {
     readonly dungeonMasks: HTMLImageElement | null,
     /** The style the sheet was painted from at run time (null for a sheet loaded from a file). */
     readonly dungeonStyle: DungeonStyle | null,
+    /**
+     * The set's own full-window scene pictures (Fountain, Rod, Shrine,
+     * TimeLord), from "<Set>-<Scene>.png" beside its sheets; a scene the
+     * set lacks is drawn from the shared picture in public/images. See
+     * docs/scene-images.md.
+     */
+    readonly scenes: Map<string, HTMLImageElement> = new Map(),
   ) {
     this.tileSize = tiles.width / TILE_COLUMNS;
     this.opaqueTiles = document.createElement('canvas');
@@ -171,7 +181,12 @@ export class GraphicsSet {
     const style = ownShapes ? null : (DUNGEON_STYLES[name] ?? null);
     const dungeonShapes =
       ownShapes ?? (style && dungeonMasks ? paintDungeonSheet(style, dungeonMasks) : await tryLoad('DungeonShapes', ['png', 'jpg']));
-    return new GraphicsSet(tiles, applyMask(tiles, mask), font, ui, dungeonShapes, dungeonMasks, style);
+    const scenes = new Map<string, HTMLImageElement>();
+    for (const scene of SCENE_NAMES) {
+      const own = await tryLoad(scene, ['png', 'jpg', 'gif'], false);
+      if (own) scenes.set(scene, own);
+    }
+    return new GraphicsSet(tiles, applyMask(tiles, mask), font, ui, dungeonShapes, dungeonMasks, style, scenes);
   }
 
   /** Source rectangle of a tile index, honouring the animation frame. (`GetTileRectForIndex`) */
