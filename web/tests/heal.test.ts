@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { newWorld, FakeIO } from './helpers.ts';
-import { healPlan, quickHeal, HEAL, GREAT_HEAL } from '../src/game/spells.ts';
+import { healPlan, quickHeal, HEAL, GREAT_HEAL, safeChestCaster, quickSafeChest, SAFE_CHEST } from '../src/game/spells.ts';
 import { commandMenu, QUICK_CAST_KEY } from '../src/game/context.ts';
 import { COMMAND_MENUS } from '../src/ui/menus.ts';
 import { MapValue } from '../src/game/tiles.ts';
-import { World } from '../src/game/world.ts';
+import { World, DungeonCell } from '../src/game/world.ts';
+import { Location } from '../src/game/party.ts';
+import { MapId } from '../src/data/resources.ts';
 
 /**
  * The default party: 0 Tatiana (thief), 1 Roderic (ranger: cleric and
@@ -105,7 +107,7 @@ describe('the quick heal', () => {
     expect(await quickHeal(world, io)).toBe(true);
     expect(world.member(2).mana).toBe(10);
     expect(world.member(0).hitPoints).toBeGreaterThanOrEqual(40); // Great heal gives 20..100
-    expect(io.output).toContain('Great heal for Tatiana');
+    expect(io.output).toContain('Great heal\non Tatiana');
     expect(io.output).toContain('SANCTU MANI');
     expect(world.lastSpell[2]).toBe(GREAT_HEAL);
   });
@@ -135,5 +137,74 @@ describe('the field and dungeon menus', () => {
     expect(keys.slice(0, 2)).toEqual([QUICK_CAST_KEY, 'E']);
     // Dungeons the same.
     expect(commandMenu(world, 'dungeon', COMMAND_MENUS.dungeon)[0].label).toBe('Cast (Heal)');
+  });
+});
+
+describe('the Safe chest shortcut', () => {
+  const labels = (world: World, scope: 'field' | 'dungeon') => commandMenu(world, scope, COMMAND_MENUS[scope]).map((o) => o.label);
+
+  it('appears under Get chest only on a chest, and only while a cleric-spell caster can pay', () => {
+    const { world } = party();
+    expect(labels(world, 'field')).not.toContain('Cast (Safe chest)');
+    world.putXYVal(MapValue.Chest + 1, world.x, world.y); // a chest left on grass
+    expect(labels(world, 'field')).not.toContain('Cast (Safe chest)'); // nobody has the mana
+    world.member(2).mana = 4;
+    expect(safeChestCaster(world)).toBeNull();
+    world.member(2).mana = 5;
+    expect(safeChestCaster(world)).toBe(2);
+    const menu = labels(world, 'field');
+    expect(menu.indexOf('Cast (Safe chest)')).toBe(menu.indexOf('Get chest') + 1);
+    // The ranger casts cleric spells too; the caster with the most mana is chosen.
+    world.member(1).mana = 9;
+    expect(safeChestCaster(world)).toBe(1);
+    // A hurt member keeps Cast (Heal) first; Safe chest stays under Get chest.
+    hurt(world, 0, 10);
+    world.member(2).mana = 20;
+    const both = labels(world, 'field');
+    expect(both[0]).toBe('Cast (Heal)');
+    expect(both.indexOf('Cast (Safe chest)')).toBe(both.indexOf('Get chest') + 1);
+    // The wizard alone cannot.
+    world.member(1).mana = world.member(2).mana = 0;
+    world.member(3).mana = 50;
+    expect(safeChestCaster(world)).toBeNull();
+  });
+
+  it('appears in a dungeon on a chest cell', () => {
+    const { world } = party();
+    world.enterDungeon(MapId.FirstDungeon);
+    world.party.location = Location.Dungeon;
+    world.dungeon.tiles.fill(DungeonCell.Open);
+    world.x = 3;
+    world.y = 3;
+    world.dungeon.torch = 5;
+    world.member(2).mana = 30;
+    expect(labels(world, 'dungeon')).not.toContain('Cast (Safe chest)');
+    world.putXYDng(DungeonCell.Chest, 3, 3);
+    const menu = labels(world, 'dungeon');
+    expect(menu.indexOf('Cast (Safe chest)')).toBe(menu.indexOf('Get chest') + 1);
+  });
+
+  it('casts at once: pays the caster, disarms the trap, opens the chest, asks nothing', async () => {
+    const { world, io } = party();
+    world.putXYVal(MapValue.Chest + 1, world.x, world.y);
+    world.member(2).mana = 30;
+    world.rng.range = () => 1; // the spell never fails, and the chest holds gold
+    const gold = world.party.gold;
+    expect(await quickSafeChest(world, io)).toBe(true);
+    expect(io.output).toContain('Safe chest\nby Norric');
+    expect(io.output).toContain('APPAR UNEM');
+    expect(world.member(2).mana).toBe(25);
+    expect(world.getXYVal(world.x, world.y)).toBe(MapValue.Grass);
+    expect(world.party.gold).toBeGreaterThan(gold);
+    expect(world.lastSpell[2]).toBe(SAFE_CHEST);
+  });
+
+  it('does nothing off a chest or without a caster', async () => {
+    const { world, io } = party();
+    world.member(2).mana = 30;
+    expect(await quickSafeChest(world, io)).toBe(false);
+    world.putXYVal(MapValue.Chest, world.x, world.y);
+    world.member(2).mana = 0;
+    expect(await quickSafeChest(world, io)).toBe(false);
   });
 });

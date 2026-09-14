@@ -15,7 +15,7 @@ import { MapValue } from './tiles.ts';
 import type { CommandScope, MenuOption } from './io.ts';
 import { PartyShape, counterWithMerchant } from './commands.ts';
 import { monsterAt } from './combat.ts';
-import { quickSpell, spellName, spellCost, healPlan } from './spells.ts';
+import { quickSpell, spellName, spellCost, healPlan, safeChestCaster, SAFE_CHEST } from './spells.ts';
 import type { PlayerRecord } from './player.ts';
 
 /** Fighters, thieves and barbarians have no magic. */
@@ -148,10 +148,17 @@ export function commandMenu(world: World, scope: CommandScope, template: MenuOpt
   if (scope === 'combat' && world.combat) return combatMenu(world, shown);
   // Outside combat, a wounded member a caster can help puts "Cast (Heal)" first (see healPlan).
   const plan = healPlan(world);
-  if (!plan) return prioritise(shown, suggestedCommands(world, scope));
-  const heal: MenuOption = { key: QUICK_CAST_KEY, label: `Cast (${spellName(plan.spell)})` };
-  return prioritise([heal, ...shown], [QUICK_CAST_KEY, ...suggestedCommands(world, scope)]);
+  const heal: MenuOption[] = plan ? [{ key: QUICK_CAST_KEY, label: `Cast (${spellName(plan.spell)})` }] : [];
+  const menu = prioritise([...heal, ...shown], [...heal.map((o) => o.key), ...suggestedCommands(world, scope)]);
+  // On a chest, a caster who can pay for Safe chest puts "Cast (Safe chest)" under Get chest (see safeChestCaster).
+  const get = menu.findIndex((o) => o.key === 'G');
+  if (get >= 0 && safeChestCaster(world) !== null)
+    menu.splice(get + 1, 0, { key: SAFE_CHEST_KEY, label: `Cast (${spellName(SAFE_CHEST)})` });
+  return menu;
 }
+
+/** Key of the "Cast (Safe chest)" shortcut in the field and dungeon menus (this port); casts it on the chest underfoot at once. */
+export const SAFE_CHEST_KEY = '@';
 
 /** The ranged weapons: sling and the bows. A dagger counts only with a spare in the bag, so the last one is never thrown. */
 const RANGED = [3, 5, 9, 13];

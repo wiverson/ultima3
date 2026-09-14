@@ -16,7 +16,7 @@ import { MapValue, Shape } from './tiles.ts';
 import { type GameIO, Sound, inputNumber, type MenuOption } from './io.ts';
 import { getDirection } from './commands.ts';
 import { shoot, showBall, damageMonster } from './combat.ts';
-import { getChest, incapacitated } from './actions.ts';
+import { getChest, incapacitated, chestHere } from './actions.ts';
 
 const Msg = {
   CastByWhom: 119,
@@ -303,11 +303,38 @@ export function healPlan(world: World): HealPlan | null {
 export async function quickHeal(world: World, io: GameIO): Promise<boolean> {
   const plan = healPlan(world);
   if (!plan) return false;
-  io.print(`${spellName(plan.spell)} for ${world.member(plan.target).name}\n`);
+  io.print(`${spellName(plan.spell)}\non ${world.member(plan.target).name}\n`); // two lines: the message area is 16 wide
   if (!payForSpell(world, io, plan.caster, plan.spell)) return true;
   const amount = plan.spell === GREAT_HEAL ? world.rng.range(0, 80) + 20 : world.rng.range(0, 20) + 10;
   await healMember(world, io, plan.spell, amount, plan.target);
   world.lastSpell[plan.caster] = plan.spell;
+  return true;
+}
+
+export const SAFE_CHEST = 17; // Appar Unem: opens a chest without its trap
+
+/**
+ * Who would cast Safe chest for the menu's "Cast (Safe chest)" shortcut
+ * (this port): the living member with cleric spells and the most mana who
+ * can pay for it. Null when nobody can, or the party is not on a chest.
+ */
+export function safeChestCaster(world: World): number | null {
+  if (!chestHere(world)) return null;
+  const careers = String.fromCharCode(...world.resources.misc.careerTable);
+  const casters = [0, 1, 2, 3]
+    .filter((m) => world.memberAlive(m) && CLERIC_CASTERS.includes(careers.indexOf(world.member(m).classLetter)))
+    .filter((m) => world.member(m).mana >= spellCost(SAFE_CHEST))
+    .sort((a, b) => world.member(b).mana - world.member(a).mana);
+  return casters.length ? casters[0] : null;
+}
+
+/** Cast Safe chest on the chest underfoot straight away: no "who casts", no spell menu. False when there is no caster or no chest. */
+export async function quickSafeChest(world: World, io: GameIO): Promise<boolean> {
+  const caster = safeChestCaster(world);
+  if (caster === null) return false;
+  io.print(`${spellName(SAFE_CHEST)}\nby ${world.member(caster).name}\n`);
+  await processMagic(world, io, caster, SAFE_CHEST);
+  world.lastSpell[caster] = SAFE_CHEST;
   return true;
 }
 

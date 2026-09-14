@@ -8,7 +8,7 @@
  * `AddGold()`, `AddItem()` and `StealDisarmFail()` from UltimaMisc.c.
  */
 
-import { World } from './world.ts';
+import { World, DungeonCell } from './world.ts';
 import { Location, GOLD_MAX } from './party.ts';
 import { MapValue } from './tiles.ts';
 import { type GameIO, Key, Sound, deathSound, type MenuOption } from './io.ts';
@@ -134,6 +134,17 @@ export async function bombTrap(world: World, io: GameIO): Promise<void> {
 // ---------------------------------------------------------------------------
 // G: Get chest
 // ---------------------------------------------------------------------------
+
+/** Whether the party stands on a chest: a chest tile on the surface or in a town, a chest cell in a dungeon. */
+export function chestHere(world: World): boolean {
+  if (world.party.location === Location.Dungeon) {
+    const cell = world.getXYDng(world.x, world.y);
+    return cell < DungeonCell.Wall && (cell & DungeonCell.Chest) !== 0;
+  }
+  if (world.party.location === Location.Combat) return false;
+  const tile = world.getXYVal(world.x, world.y);
+  return tile >= MapValue.Chest && tile <= MapValue.Chest + 3;
+}
 
 /**
  * Mirrors `GetChest()`. `how` is "command" (ask who opens it and check for

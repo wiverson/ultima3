@@ -250,7 +250,9 @@ save contains except the pooled gold and food.
   target, a wound over twenty calls for Great heal and a smaller one for
   Heal, the other standing in when it alone can be afforded, and the
   caster is whoever with cleric spells has the most mana. Once nobody
-  can pay, the entry goes.
+  can pay, the entry goes. On a chest, "Cast (Safe chest)" sits under
+  Get chest while a cleric-spell caster can pay for it, and casts Appar
+  Unem on the chest at once, the caster again whoever has the most mana.
 - **A quest journal** (`journal.ts`), the Apple II had none. J opens it
   over the map. The main line is ten entries, revealed one at a time as
   the one before is done: speak to the king, the Mark of Kings, lost
