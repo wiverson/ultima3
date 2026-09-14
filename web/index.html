@@ -19,9 +19,10 @@
       canvas {
         /* Pixel art: never smooth when the browser scales the canvas. */
         image-rendering: pixelated;
-        width: 100%;
-        max-width: 1280px;
-        max-height: 85vh;
+        /* 40 by 24 cells of square pixels (5:3). The width is whichever is
+           least: the page, the native size, or the width that fits 85% of
+           the viewport's height; the height follows, so nothing stretches. */
+        width: min(100%, 1280px, calc(85vh * 40 / 24));
         aspect-ratio: 40 / 24;
         outline: none;
         display: block;
