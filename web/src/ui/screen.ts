@@ -1084,6 +1084,9 @@ export class Screen implements GameIO {
     if (key === Key.X) return shortcuts.X;
     if (key === Key.Y) return shortcuts.Y;
     if (key === Key.A) {
+      // With the menu open the turn cannot pass by itself, so the outline's fade stops where it is.
+      const c = this.world.combat;
+      if (c && c.markedFor > 0 && !c.markedFrozenAt) c.markedFrozenAt = performance.now();
       // The commands the surroundings call for come first.
       const options = [...commandMenu(this.world, scope, COMMAND_MENUS[scope]), { key: Key.Escape, label: 'Settings' }];
       const picked = await this.runMenu('Command', options);
@@ -1392,7 +1395,9 @@ export class Screen implements GameIO {
     const width = 2 * gamePixel;
     const x = (1 + 2 * me.x) * cell - width / 2;
     const y = (1 + 2 * me.y) * cell - width / 2;
-    const elapsed = c.markedFor > 0 ? (performance.now() - c.markedAt) / c.markedFor : 0;
+    // A menu opened during the wait freezes the fade where it was: the turn can no longer expire.
+    const now = c.markedFrozenAt || performance.now();
+    const elapsed = c.markedFor > 0 ? (now - c.markedAt) / c.markedFor : 0;
     // White fading to mid grey on the dark sets; the Macintosh set's ground is white, so there it is black fading to grey.
     const fade = 127 * Math.max(0, Math.min(1, elapsed));
     const level = Math.round(this.tileSetName === 'Macintosh B&W' ? fade : 255 - fade);

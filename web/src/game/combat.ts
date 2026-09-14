@@ -132,6 +132,7 @@ export function loadArena(world: World, id: number): CombatState {
     markedMember: -1,
     markedAt: 0,
     markedFor: 0,
+    markedFrozenAt: 0,
   };
 }
 
@@ -451,6 +452,7 @@ async function waitForCombatKey(world: World, io: GameIO, member: number): Promi
   c.markedAt = performance.now();
   const limit = world.timeLimit(TURN_TIMEOUT_MS);
   c.markedFor = limit ?? 0; // 0: no countdown, the outline stays white
+  c.markedFrozenAt = 0;
   io.redrawMap();
   try {
     const key = await io.waitCommand('combat', limit);

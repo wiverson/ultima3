@@ -100,6 +100,8 @@ export interface CombatState {
   /** When the mark was set (performance.now()) and how long the member has to act, ms; 0 once they have chosen. */
   markedAt: number;
   markedFor: number;
+  /** When the outline's fade was frozen (a menu opened, so the turn can no longer expire), or 0. */
+  markedFrozenAt: number;
 }
 
 /** State while inside a dungeon. */
