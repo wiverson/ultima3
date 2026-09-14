@@ -93,11 +93,11 @@ export interface CombatState {
   /** Member whose turn it is, 0..3. */
   activeMember: number;
   /**
-   * Member waiting for a command, or -1. The UI outlines them; the Apple II
+   * Member whose turn it is, or -1. The UI outlines them; the Apple II
    * blinked the figure instead (`cHide`).
    */
   markedMember: number;
-  /** When the mark was set (performance.now()) and how long the member has to act, ms. */
+  /** When the mark was set (performance.now()) and how long the member has to act, ms; 0 once they have chosen. */
   markedAt: number;
   markedFor: number;
 }

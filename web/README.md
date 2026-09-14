@@ -184,7 +184,12 @@ save contains except the pooled gold and food.
   "HIT" tile; the other tile sets keep their HIT tile.
 - **Combat marker**: the member whose turn it is gets a rounded outline,
   two game pixels wide, fading from white to grey over the four seconds
-  before the turn passes by itself. The Apple II blinked the figure.
+  before the turn passes by itself, then steady white while the chosen
+  command's prompts run. The Apple II blinked the figure.
+- **Direction prompts** sit on the map's bottom border, where the wind
+  line is ("Direction? Esc Cancel", or "B: Cancel" on a controller), so
+  the map and the combat marker stay in view. The wind line comes back
+  when the prompt ends.
 - **No diagonal moves**: as on the Apple II, the party cannot move, attack
   or fire diagonally while monsters always could. The Mac version let the
   party move diagonally and walled Exodus' castle with mountains to

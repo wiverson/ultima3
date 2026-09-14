@@ -393,6 +393,7 @@ export async function combat(world: World, io: GameIO, monsterShape: number, var
         if (world.memberAlive(member)) await memberTurn(world, io, member);
         // Inside Exodus' castle, time cannot be negated.
         if (world.inExodusCastle()) world.timeNegate = 0;
+        c.markedMember = -1;
         io.redrawMap();
         io.highlightMember(member, false);
         io.updateStats();
@@ -453,7 +454,7 @@ async function waitForCombatKey(world: World, io: GameIO, member: number): Promi
     const key = await io.waitCommand('combat', TURN_TIMEOUT_MS);
     return key ?? Key.Space;
   } finally {
-    c.markedMember = -1;
+    c.markedFor = 0; // the outline stays, steady, while the command's prompts run (a direction, a target)
     io.redrawMap();
   }
 }

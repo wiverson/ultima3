@@ -993,13 +993,18 @@ export class Screen implements GameIO {
     return n;
   }
 
+  /**
+   * A direction prompt sits on the map's bottom border, where the wind
+   * line is, so the map stays in view (in combat, the member whose turn it
+   * is). The border comes back when the prompt ends. Space or A answers
+   * "none" when allowed; the label keeps to cancel, which ends the command
+   * the same way.
+   */
   async chooseDirection(allowNone: boolean, allowDiagonal: boolean): Promise<string | null> {
     const accepted = allowDiagonal ? [...DIRECTION_KEYS, '1', '2', '3', '4', '6', '7', '8', '9'] : [...DIRECTION_KEYS, '2', '4', '6', '8'];
-    if (this.promptMode === 'controller') {
-      const hint = layoutMenu('Direction?', [allowNone ? 'd-pad, or A: none' : 'd-pad, B: cancel']);
-      hint.cursor = -1;
-      this.openMenu(hint);
-    }
+    const label = this.promptMode === 'controller' ? 'Direction? B: Cancel' : 'Direction? Esc Cancel';
+    this.black(1, 23, 22, 1);
+    this.drawText(label, 1, 23);
     try {
       for (;;) {
         const key = await this.waitKey();
@@ -1008,7 +1013,8 @@ export class Screen implements GameIO {
         if (key === Key.B || key === Key.Escape) return null;
       }
     } finally {
-      if (this.menu) this.closeMenu();
+      for (let x = 1; x <= 22; x++) this.piece(Piece.Horizontal, x, 23);
+      this.showWind();
     }
   }
 
@@ -1211,7 +1217,8 @@ export class Screen implements GameIO {
    * In combat, a rounded outline around the member whose turn it is, two
    * game pixels wide just outside their tile. It starts white and fades to
    * mid grey over the time the member has before the turn passes by
-   * itself, so the outline doubles as the timer. (The Apple II blinked the
+   * itself, so the outline doubles as the timer; once they have chosen it
+   * stays white through the command's prompts. (The Apple II blinked the
    * figure.)
    */
   private markActiveMember(): void {
@@ -1225,7 +1232,7 @@ export class Screen implements GameIO {
     const width = 2 * gamePixel;
     const x = (1 + 2 * me.x) * cell - width / 2;
     const y = (1 + 2 * me.y) * cell - width / 2;
-    const elapsed = c.markedFor > 0 ? (performance.now() - c.markedAt) / c.markedFor : 1;
+    const elapsed = c.markedFor > 0 ? (performance.now() - c.markedAt) / c.markedFor : 0;
     const level = Math.round(255 - 127 * Math.max(0, Math.min(1, elapsed)));
     ctx.save();
     ctx.beginPath();
