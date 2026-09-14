@@ -31,6 +31,20 @@ describe('cheats', () => {
     expect(world.party.keys).toBe(5);
   });
 
+  it('raises every level: a hundred experience and a hundred hit points each, healed to the new maximum', () => {
+    const world = newWorld();
+    const io = new FakeIO(world.resources);
+    const p = world.member(0);
+    const level = p.level;
+    const max = p.maxHitPoints;
+    p.hitPoints = 5;
+    cheat('L').apply(world, io);
+    expect(p.level).toBe(level + 1);
+    expect(p.maxHitPoints).toBe(max + 100);
+    expect(p.hitPoints).toBe(max + 100);
+    expect(world.member(3).maxHitPoints).toBe(max + 100);
+  });
+
   it('goes home from a town, and asks a dungeon to end', () => {
     const world = newWorld();
     const io = new FakeIO(world.resources);

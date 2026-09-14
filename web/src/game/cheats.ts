@@ -50,6 +50,27 @@ export const CHEATS: Cheat[] = [
     },
   },
   {
+    key: 'L',
+    label: 'Raise every level',
+    available: () => true,
+    apply(world, io) {
+      // What an audience with Lord British gives, to everyone at once: a level's experience and a hundred more hit points.
+      for (let m = 0; m < 4; m++) {
+        if (world.party.memberSlot(m) < 0) continue;
+        const p = world.member(m);
+        const exp = Math.min(9899, p.bytes[30] * 100 + p.bytes[31] + 100);
+        p.bytes[30] = Math.floor(exp / 100);
+        p.bytes[31] = exp % 100;
+        const newMax = Math.min(9950, p.maxHitPoints + 100);
+        p.bytes[28] = Math.floor(newMax / 256);
+        p.bytes[29] = newMax % 256;
+        p.hitPoints = newMax;
+      }
+      io.updateStats();
+      return 'Everyone is a level greater.';
+    },
+  },
+  {
     key: 'H',
     label: 'Go home (Lord British)',
     available: (world) => world.party.location !== Location.Combat,

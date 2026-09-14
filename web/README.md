@@ -137,10 +137,12 @@ included, is drawn on the canvas; the page has nothing else on it.
 ### Cheats
 
 On the Help pages, Y (V on the keyboard in controller mode) opens a
-cheat menu: full restore (everyone healed and alive), go home (back to
-Lord British's gate, leaving any town, castle or dungeon), exit dungeon,
-100 gold or 100 food for the party, and ten gems, five keys or five
-torches for the leader. Each prints its confirmation to the message
+cheat menu: full restore (everyone healed and alive), raise every level
+(what an audience with Lord British gives, to everyone at once: a level
+of experience and a hundred hit points), go home (back to Lord British's
+gate, leaving any town, castle or dungeon), exit dungeon, 100 gold or
+100 food for the party, and ten gems, five keys or five torches for the
+leader. Each prints its confirmation to the message
 area, like any other event, where it stays in the scrollback. None of it
 existed in the original; it is there for testing and for anyone who
 wants it.
