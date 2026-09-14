@@ -87,7 +87,9 @@ takes a turn. Every setting is remembered by the browser.
     Dungeons: up/down advance or retreat, left/right turn, I K D
               ignite, klimb, descend, L cycle the auto-map
 
-Prompts for "whom" take a member number 1-4; a direction is an arrow key.
+Prompts for "whom" take a member number 1-4, or Up and Down to move a pair
+of arrows through the stats boxes and Enter to take the marked member; a
+direction is an arrow key.
 Q on the surface saves the game in this browser; it resumes on the next
 visit. The game also saves itself when the journey starts and at every
 town, castle and dungeon door, going in and coming out, and prints
@@ -316,9 +318,13 @@ save contains except the pooled gold and food.
 - **Spell menus** name spells by what they do (Magic bolt, Heal, Up a
   level) with the spell-book name, cost and effect on the hint line
   beneath; the Apple II showed only the book names the manual explained.
-- **Member pickers** ("Who?") colour each name by state the same way. A
-  member brought back to life during a fight is placed on the nearest open
-  square to where they fell.
+- **Member pickers** ("Who?") are answered in the stats boxes: Up and
+  Down move a pair of arrows (">" and "<" around the box's two rows)
+  through the members offered, Enter or A takes the marked one, Escape or
+  B cancels, and a digit 1-4 still answers at once. The prompt sits on the
+  map's bottom border like the direction prompt. A member brought back to
+  life during a fight is placed on the nearest open square to where they
+  fell.
 - **A party wipe** offers a choice: try again from the last save (the
   autosave at the last door, with everything since undone) or flee to Lord
   British as the Apple II did, resurrected with daggers, cloth, 150 gold a

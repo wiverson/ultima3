@@ -170,6 +170,8 @@ export class Screen implements GameIO {
 
   /** Last values drawn in each stats box, to avoid redrawing every turn. */
   private statsCache: string[] = ['', '', '', ''];
+  /** Member marked with arrows in the stats boxes while "Who?" is asked, or -1. */
+  private selectedMember = -1;
   private highlighted = new Set<number>();
 
   /**
@@ -966,31 +968,64 @@ export class Screen implements GameIO {
     return key;
   }
 
+  /**
+   * "Who?": the member is picked in the stats boxes. Up and Down move a
+   * pair of arrows (">" and "<" around the box's two rows) among the
+   * members offered; Enter or A takes the marked one, Escape or B cancels
+   * (0), and a digit 1-4 still answers at once as on the Apple II. The
+   * prompt itself sits on the map's bottom border. The answer is echoed
+   * to the message area as the typed digit was.
+   */
   async chooseMember(only?: number[]): Promise<number> {
-    let n: number;
-    for (;;) {
-      if (this.promptMode === 'controller') {
-        const options: MenuOption[] = [];
-        for (let m = 0; m < 4; m++) {
-          const slot = this.world.party.memberSlot(m);
-          if (slot < 0 || (only && !only.includes(m))) continue;
-          const p = this.world.roster.get(slot);
-          options.push({ key: String(m + 1), label: `${m + 1} ${p.name}`, colour: memberColour(p) });
+    const offered = [0, 1, 2, 3].filter((m) => this.world.party.memberSlot(m) >= 0 && (!only || only.includes(m)));
+    if (!this.frameShown) return this.chooseMemberByKey();
+    this.borderPrompt(this.promptMode === 'controller' ? 'Who? B: Cancel' : 'Who? Esc Cancel');
+    let at = 0;
+    let n = 0;
+    try {
+      for (;;) {
+        this.selectedMember = offered[at] ?? -1;
+        this.updateStats();
+        const key = await this.waitKey();
+        if (key === Key.Escape || key === Key.B) break;
+        if (key >= '1' && key <= '4' && key.length === 1) {
+          n = Number(key);
+          break;
         }
-        const picked = await this.runMenu('Who?', options);
-        n = picked < 0 ? 0 : Number(options[picked].key);
-        this.print(picked < 0 ? ' ' : String(n));
-        break;
+        if (!offered.length) continue;
+        if (key === Key.Up) at = (at + offered.length - 1) % offered.length;
+        else if (key === Key.Down) at = (at + 1) % offered.length;
+        else if (key === Key.Enter || key === Key.A) {
+          n = offered[at] + 1;
+          break;
+        }
       }
-      const key = (await this.waitKey()).toUpperCase();
-      // A controller button means the mode just switched: show the menu instead.
-      if (key === Key.A || key === Key.B) continue;
-      this.print(key.length === 1 && key >= ' ' ? key : ' ');
-      n = key.charCodeAt(0) - '0'.charCodeAt(0);
-      break;
+    } finally {
+      this.selectedMember = -1;
+      this.updateStats();
+      this.restoreBorder();
     }
-    this.print('\n');
+    this.print(n ? `${n}\n` : ' \n');
     return n;
+  }
+
+  /** The Apple II prompt as it was, for a screen without stats boxes: the typed digit, echoed. */
+  private async chooseMemberByKey(): Promise<number> {
+    const key = (await this.waitKey()).toUpperCase();
+    this.print(key.length === 1 && key >= ' ' ? key : ' ');
+    this.print('\n');
+    return key.charCodeAt(0) - '0'.charCodeAt(0);
+  }
+
+  /** A one-line prompt on the map's bottom border, over the wind line; restoreBorder() takes it away. */
+  private borderPrompt(label: string): void {
+    this.black(1, 23, 22, 1);
+    this.drawText(label, 1, 23);
+  }
+
+  private restoreBorder(): void {
+    for (let x = 1; x <= 22; x++) this.piece(Piece.Horizontal, x, 23);
+    this.showWind();
   }
 
   /**
@@ -1002,9 +1037,7 @@ export class Screen implements GameIO {
    */
   async chooseDirection(allowNone: boolean, allowDiagonal: boolean): Promise<string | null> {
     const accepted = allowDiagonal ? [...DIRECTION_KEYS, '1', '2', '3', '4', '6', '7', '8', '9'] : [...DIRECTION_KEYS, '2', '4', '6', '8'];
-    const label = this.promptMode === 'controller' ? 'Direction? B: Cancel' : 'Direction? Esc Cancel';
-    this.black(1, 23, 22, 1);
-    this.drawText(label, 1, 23);
+    this.borderPrompt(this.promptMode === 'controller' ? 'Direction? B: Cancel' : 'Direction? Esc Cancel');
     try {
       for (;;) {
         const key = await this.waitKey();
@@ -1013,8 +1046,7 @@ export class Screen implements GameIO {
         if (key === Key.B || key === Key.Escape) return null;
       }
     } finally {
-      for (let x = 1; x <= 22; x++) this.piece(Piece.Horizontal, x, 23);
-      this.showWind();
+      this.restoreBorder();
     }
   }
 
@@ -1620,24 +1652,34 @@ export class Screen implements GameIO {
       const slot = this.world.party.memberSlot(m);
       const p = slot >= 0 ? this.world.roster.get(slot) : null;
       const due = p ? levelUpDue(p) : false;
-      const key = p ? `${p.name}|${p.status}|${due}|${p.hitPoints}|${p.maxHitPoints}|${p.mana}` : '';
+      const selected = m === this.selectedMember;
+      const key = p ? `${p.name}|${p.status}|${due}|${p.hitPoints}|${p.maxHitPoints}|${p.mana}|${selected}` : '';
       if (!force && key === this.statsCache[m]) continue;
       this.statsCache[m] = key;
 
       const top = m * BOX_PITCH + 1;
       this.black(24, top, 15, BOX_ROWS);
       if (p) {
+        // The arrows of "Who?" take the box's end columns; the text moves in a column to make room.
+        const left = selected ? 25 : 24;
+        const right = selected ? 38 : 39;
+        if (selected) {
+          this.drawText('>', 24, top);
+          this.drawText('>', 24, top + 1);
+          this.drawText('<', 38, top);
+          this.drawText('<', 38, top + 1);
+        }
         const nameColour = memberColour(p, due);
-        this.drawText(p.name, 24, top, nameColour);
+        this.drawText(p.name, left, top, nameColour);
         // Dead or ashes: the whole box takes the name's grey. Otherwise hit points warn by colour.
         const gone = p.status === 'D' || p.status === 'A';
         const hp = p.hitPoints;
         const max = Math.max(1, p.maxHitPoints);
         const hpColour = gone ? nameColour : hp < max / 10 ? '#ff4040' : hp < max / 4 ? '#ffe040' : undefined;
-        this.drawText(`${hp}/${p.maxHitPoints}`, 24, top + 1, hpColour);
+        this.drawText(`${hp}/${p.maxHitPoints}`, left, top + 1, hpColour);
         if (hasMagic(this.world, p)) {
           const mana = `M:${p.mana}`;
-          this.drawText(mana, 39 - mana.length, top + 1, gone ? nameColour : undefined);
+          this.drawText(mana, right - mana.length, top + 1, gone ? nameColour : undefined);
         }
       }
       if (this.highlighted.has(m)) this.invert(24, top, 15, BOX_ROWS);
