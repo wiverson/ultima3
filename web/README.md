@@ -292,9 +292,10 @@ save contains except the pooled gold and food.
   tile set's pictures of their phases, Trammel then Felucca, as the Mac
   did and as Ultima IV and V did; the Apple II printed digits. A new moon
   is dark, a full one bright, and the gate open is the one Trammel's
-  picture names. The Commodore 64, Apple II and PC EGA and CGA sets get
-  flat pixel moons painted at run time in their own palettes
-  (`moonArt.ts`); LairWare's shaded moons looked out of place there.
+  picture names. The Standard, Commodore 64, Apple II and PC EGA and CGA
+  sets get flat pixel moons painted at run time in their own palettes
+  (`moonArt.ts`), Standard's the same white and yellow as EGA's;
+  LairWare's shaded moons looked too modern beside the tiles.
 - **Other and Yell are one command.** The Apple II's Yell was Other under
   another name, with one difference: EVOCARE parted the great serpent only
   when yelled, and said "No effect" when typed at Other. EVOCARE now works

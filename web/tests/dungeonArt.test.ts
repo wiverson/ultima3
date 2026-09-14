@@ -30,10 +30,11 @@ describe('dungeon art styles', () => {
 });
 
 describe('painted moons', () => {
-  it('cover the 8-bit and 16-colour sets and leave the rest to their sheets', () => {
-    for (const set of ['Commodore 64', 'Apple II Color', 'Apple II Color TV', 'Apple II Mono', 'PC CGA', 'PC EGA'])
+  it('cover Standard and the 8-bit and 16-colour sets and leave the rest to their sheets', () => {
+    for (const set of ['Standard', 'Commodore 64', 'Apple II Color', 'Apple II Color TV', 'Apple II Mono', 'PC CGA', 'PC EGA'])
       expect(MOON_STYLES[set], set).toBeDefined();
-    for (const set of ['Standard', 'Lairware', 'PC VGA', 'PC MCGA', 'PC Ultima V', 'Nintendo', 'Macintosh B&W'])
+    expect(MOON_STYLES.Standard).toEqual(MOON_STYLES['PC EGA']);
+    for (const set of ['Lairware', 'PC VGA', 'PC MCGA', 'PC Ultima V', 'Nintendo', 'Macintosh B&W'])
       expect(MOON_STYLES[set], set).toBeUndefined();
   });
 

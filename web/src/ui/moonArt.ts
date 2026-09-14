@@ -5,8 +5,8 @@
  * LairWare drew shaded, anti-aliased moons for every UI sheet, which look
  * wrong beside a Commodore 64 or Apple II tile; the sets named here get
  * flat pixel moons in their own palettes instead, on a 16 by 16 grid like
- * the Nintendo and Macintosh sheets' own. Sets not named keep the moons
- * of their UI sheet.
+ * the Nintendo and Macintosh sheets' own. Standard takes the EGA moons
+ * too, by choice. Sets not named keep the moons of their UI sheet.
  *
  * The phases run as the Nintendo and Macintosh sheets draw them: 0 new,
  * 1 to 3 a crescent growing on the left, 4 full, 5 to 7 shrinking on the
@@ -23,6 +23,7 @@ export interface MoonStyle {
 }
 
 export const MOON_STYLES: Record<string, MoonStyle> = {
+  Standard: { trammel: '#ffffff', felucca: '#ffff55', dark: '#555555' }, // as PC EGA: LairWare's shaded moons look too modern beside the tiles
   'Commodore 64': { trammel: '#8e8dff', felucca: '#f3eb5b', dark: '#3b3b3b' },
   'Apple II Color': { trammel: '#15cffd', felucca: '#ff6a3c', dark: '#303030' },
   'Apple II Color TV': { trammel: '#15cffd', felucca: '#ff6a3c', dark: '#303030' },
