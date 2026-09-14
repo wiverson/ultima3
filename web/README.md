@@ -397,11 +397,15 @@ save contains except the pooled gold and food.
   directly. A set that ships a Mask file is still honoured; a set with
   neither draws creatures opaque, as its machine did. LairWare's original
   files remain in `Resources/Graphics` at the root of the repository.
-- **Copper chrome for Standard.** LairWare's frame, caps and cursor are
-  a bright teal that competes with the grass and water; the Standard set
-  (and the PC sets, which borrow its UI sheet) use the same pieces
-  recoloured to a darker copper, a warm complement that recedes behind
-  the map. The Lairware set keeps the teal.
+- **Chrome per tile set.** LairWare's frame, caps and cursor are a bright
+  teal that competes with the grass and water, and only some sets had a
+  UI sheet of their own. The Standard set uses the same pieces recoloured
+  to a darker copper, a warm complement that recedes behind the map; the
+  Lairware set keeps the teal; and the five PC sets, which had borrowed
+  Standard's, get sheets in their own palettes: CGA's cyan and white, EGA
+  blue with light-blue bevels, flat blue for the VGA set, slate for MCGA
+  and stone grey for Ultima V, the limited palettes snapped to their
+  platform's colours.
 - **Appearance**: the classic bitmap-font layout is used throughout; any of
   the thirteen tile sets (with their fonts, borders and dungeon art) can be chosen in
   Settings, Standard by default.
