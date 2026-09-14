@@ -1017,10 +1017,13 @@ export class Screen implements GameIO {
     return key.charCodeAt(0) - '0'.charCodeAt(0);
   }
 
-  /** A one-line prompt on the map's bottom border, over the wind line; restoreBorder() takes it away. */
+  /** A one-line prompt centred on the map's bottom border, the border showing either side; restoreBorder() takes it away. */
   private borderPrompt(label: string): void {
-    this.black(1, 23, 22, 1);
-    this.drawText(label, 1, 23);
+    for (let x = 1; x <= 22; x++) this.piece(Piece.Horizontal, x, 23);
+    const text = label.slice(0, 22);
+    const x = 1 + Math.floor((22 - text.length) / 2);
+    this.black(x, 23, text.length, 1);
+    this.drawText(text, x, 23);
   }
 
   private restoreBorder(): void {
