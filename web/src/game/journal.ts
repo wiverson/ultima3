@@ -6,13 +6,14 @@
  * main line, so a newcomer can play without a walkthrough, and stays out
  * of the way of anyone who never opens it.
  *
- * Entries are revealed one at a time: the first, "Speak to Lord British",
+ * Entries are revealed one at a time: the first, "Speak to the King",
  * is there from the start, and each later one appears once all before it
- * are done. An entry is 'open' (title only), 'heard' (a townsperson's clue
- * about it has been spoken to the party) or 'done'. Clues are recorded
- * whenever heard, shown once the entry is revealed. Every entry also has a
- * hint, a plain line written for this port that the game itself never
- * speaks; it shows only when asked for, and the asking is remembered.
+ * are done. An entry is open or done; the clues heard about it, kept as
+ * spoken, are shown beneath it while it is the one in hand. Every entry
+ * also has a hint, a plain line written for this port that the game
+ * itself never speaks; it is printed to the message area only when asked
+ * for, and nothing remembers the asking. Hints are kept short enough for
+ * that area: sixteen columns, nine lines.
  *
  * Done is computed from the party where it can be (marks, cards, exotics,
  * the ending); the rest are events flagged as they happen. The whole
@@ -23,7 +24,7 @@ import type { World } from './world.ts';
 import { Location } from './party.ts';
 import type { GameIO } from './io.ts';
 
-export type EntryState = 'open' | 'heard' | 'done';
+export type EntryState = 'open' | 'done';
 
 export interface JournalState {
   lordBritish: boolean;
@@ -33,9 +34,7 @@ export interface JournalState {
   serpentParted: boolean;
   /** Clue ids heard, e.g. "Moon#6" or "LB:mark". */
   clues: string[];
-  /** Entry ids whose hint has been asked for. */
-  hints: string[];
-  /** Entry states as last shown to the player, to notice a change ("Journal updated"). */
+  /** The revealed entries as last shown to the player (id, state, clues heard), to notice a change ("Journal updated"). */
   seen: string[];
 }
 
@@ -48,8 +47,7 @@ export function emptyJournal(): JournalState {
     wordKnown: false,
     serpentParted: false,
     clues: [],
-    hints: [],
-    seen: ['king:open'],
+    seen: ['king:open:0'],
   };
 }
 
@@ -61,51 +59,51 @@ export interface Entry {
 
 /** The main line, in the order the journal reveals it. */
 export const ENTRIES: Entry[] = [
-  { id: 'king', title: 'Speak to the King', hint: "Lord British holds court in his castle, north of Britain's town. Walk into him." },
+  { id: 'king', title: 'Speak to the King', hint: "Lord British sits in his castle north of Britain's town. Walk into him." },
   {
     id: 'kings',
     title: 'The Mark of Kings',
-    hint: 'Burned on level 1 of the Perinian Depths, the dungeon north of Britain, by the entrance; each member must step on the rod. Britain sells no torches: a wizard casts Lorum, a cleric Luminae, or buy torches at the guild in Grey or Devil Guard.',
+    hint: 'Level 1 of the Perinian Depths, north of Britain: step on the rod. Light: Lorum, Luminae, or torches from a guild.',
   },
   {
     id: 'ambrosia',
     title: 'Lost Ambrosia',
-    hint: 'Sail a frigate into the whirlpool. The ship is lost and the party wakes on the shore of Ambrosia; a moongate there leads home.',
+    hint: 'Sail a frigate into the whirlpool. The ship is lost; the party wakes in Ambrosia. Its moongate leads home.',
   },
   {
     id: 'cards',
     title: 'The Four Cards',
-    hint: "In Ambrosia four shrines raise stats for gold. At each, use Other and say SEARCH: a card is found. They lie in the land's far corners.",
+    hint: 'At each of the four shrines in Ambrosia, Other and say SEARCH. They lie in the far corners.',
   },
   {
     id: 'exotics',
     title: 'Exotic Arms',
-    hint: 'Dawn appears in the dark forest south of the Montors only while both moons are new. Its people say to dig on isles: Other, DIG on the small isle in the far north for a weapon and the isle in the western sea for armour, once per member.',
+    hint: 'Dawn shows south of the Montors while both moons are new. Then Other, DIG on the far north isle and the western isle.',
   },
   {
     id: 'fire',
     title: 'The Mark of Fire',
-    hint: 'On the deepest level of the Perinian Depths, the Fires of Hell or the Mines of Morinia. Every member should bear it before crossing lava.',
+    hint: 'Level 8 of the Perinian Depths, the Fires of Hell or Morinia. Each member needs it to cross lava.',
   },
   {
     id: 'force',
     title: 'The Mark of Force',
-    hint: "On level 8 of Doom or of the Fires of Hell. Every member, for the force fields in Exodus' castle.",
+    hint: "Level 8 of Doom or the Fires of Hell. Each member, for the force fields in Exodus' castle.",
   },
   {
     id: 'snake',
     title: 'The Silver Snake',
-    hint: "The Mark of Snake is on level 8 of Clues, east of Death Gulch. Pray (Other, PRAY) in the circle of light in Yew to learn the word, then stand beside the serpent south of Exodus' castle and Yell it, with a marked member.",
+    hint: 'Mark of Snake: level 8 of Clues. PRAY in the circle of light in Yew for the word. Yell it beside the serpent.',
   },
   {
     id: 'order',
     title: 'Order of the Cards',
-    hint: 'The Time Lord waits on level 8 of Time Awaits, in the north-east near Death Gulch. He names the order the cards go in.',
+    hint: 'The Time Lord waits on level 8 of Time Awaits, near Death Gulch. He names the order of the cards.',
   },
   {
     id: 'exodus',
     title: 'Exodus',
-    hint: "Exodus' castle stands on the south-western isle, past the serpent and across lava. Inside, only exotic arms bite. Insert each card into its panel in the Time Lord's order; a mistake kills the member.",
+    hint: "Exodus' castle: the south-west isle, past the serpent, across lava. Only exotics bite. INSERT the cards in the Time Lord's order.",
   },
 ];
 
@@ -167,12 +165,11 @@ export interface JournalLine {
   id: string;
   title: string;
   state: EntryState;
-  /** A short progress note for the list ("2 of 4"). */
+  /** A short progress note ("2 of 4"). */
   note: string;
   /** Clues heard about it, as spoken, with the speaker's town. */
   clues: { from: string; text: string }[];
   hint: string;
-  hintSeen: boolean;
 }
 
 /** The living members' names, for a holder list. */
@@ -256,8 +253,7 @@ export function journalLines(world: World): JournalLine[] {
   for (const entry of ENTRIES) {
     const { done, note } = progress(world, entry.id);
     const clues = cluesFor(world, entry.id);
-    const state: EntryState = done ? 'done' : clues.length ? 'heard' : 'open';
-    out.push({ id: entry.id, title: entry.title, state, note, clues, hint: entry.hint, hintSeen: world.journal.hints.includes(entry.id) });
+    out.push({ id: entry.id, title: entry.title, state: done ? 'done' : 'open', note, clues, hint: entry.hint });
     if (!done) break; // the next entry stays hidden until this one is done
   }
   return out;
@@ -276,15 +272,11 @@ export function hearClue(world: World, id: string): void {
   if (OTHER_CLUES[id] && !world.journal.clues.includes(id)) world.journal.clues.push(id);
 }
 
-export function markHintSeen(world: World, id: string): void {
-  if (!world.journal.hints.includes(id)) world.journal.hints.push(id);
-}
-
 /**
  * After anything that may move the journal on: compare the revealed
- * entries' states with those last noted and, on a change, note the new
- * ones and print "Journal updated". Clues alone do not count unless they
- * turn an entry from open to heard, which is a state change too.
+ * entries (their states and the clues heard about them) with those last
+ * noted and, on a change, note the new ones and print "Journal updated".
+ * A clue for an entry not yet revealed changes nothing visible.
  */
 export function journalCheck(world: World, io: GameIO): boolean {
   if (!journalSnapshot(world)) return false;
@@ -294,7 +286,7 @@ export function journalCheck(world: World, io: GameIO): boolean {
 
 /** Note the revealed entries' states as seen; true if they differed from the last note. */
 export function journalSnapshot(world: World): boolean {
-  const now = journalLines(world).map((l) => `${l.id}:${l.state}`);
+  const now = journalLines(world).map((l) => `${l.id}:${l.state}:${l.clues.length}`);
   const before = world.journal.seen;
   if (now.length === before.length && now.every((s, i) => s === before[i])) return false;
   world.journal.seen = now;

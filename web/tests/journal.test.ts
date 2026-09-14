@@ -4,7 +4,8 @@ import { World } from '../src/game/world.ts';
 import { Location } from '../src/game/party.ts';
 import { MapValue } from '../src/game/tiles.ts';
 import { MapId } from '../src/data/resources.ts';
-import { journalLines, journalCheck, hearClue, markHintSeen, emptyJournal, ENTRIES } from '../src/game/journal.ts';
+import { journalLines, journalCheck, hearClue, emptyJournal, ENTRIES } from '../src/game/journal.ts';
+import { wrapText } from '../src/ui/menus.ts';
 import { talkTo, transactToward, otherCommand } from '../src/game/interact.ts';
 import { restore, SAVE_VERSION, type SaveData } from '../src/game/save.ts';
 
@@ -60,7 +61,7 @@ describe('the journal', () => {
     expect(io.output).not.toContain('Journal updated'); // nothing changed the second time
   });
 
-  it('"seek ye the Mark of Kings" is a clue from Lord British, so the entry reads heard', async () => {
+  it('"seek ye the Mark of Kings" is a clue from Lord British, kept under the entry', async () => {
     const { world, io } = inTown(MapId.LordBritishCastle);
     const m = world.monsters;
     m.setType(0, MapValue.LordBritish);
@@ -74,7 +75,7 @@ describe('the journal', () => {
     await transactToward(world, io, 1, 0);
     expect(io.output).toContain('SEEK YE');
     const kings = journalLines(world)[1];
-    expect(kings.state).toBe('heard');
+    expect(kings.state).toBe('open');
     expect(kings.clues).toEqual([{ from: 'Lord British', text: 'SEEK YE, THE MARK OF KINGS!' }]);
   });
 
@@ -95,7 +96,7 @@ describe('the journal', () => {
     world.journal.lordBritish = world.journal.ambrosia = true;
     world.member(0).bytes[14] |= 0x8f;
     const exotics = journalLines(world).find((l) => l.id === 'exotics')!;
-    expect(exotics.state).toBe('heard');
+    expect(exotics.state).toBe('open');
     expect(exotics.clues).toEqual([{ from: 'LCB Towne', text: world.townLine('LCB Towne', 3) }]);
     expect(exotics.clues[0].text.toUpperCase()).toContain('EXOTIC');
     expect(exotics.clues[0].text).not.toContain('\n');
@@ -155,21 +156,19 @@ describe('the journal', () => {
     expect(io.output.match(/Journal updated/g)).toHaveLength(1);
   });
 
-  it('hints show only once asked for, and the asking is remembered', () => {
-    const world = newWorld();
-    expect(journalLines(world)[0].hintSeen).toBe(false);
-    markHintSeen(world, 'king');
-    markHintSeen(world, 'king');
-    expect(world.journal.hints).toEqual(['king']);
-    expect(journalLines(world)[0].hintSeen).toBe(true);
-    expect(journalLines(world)[0].hint).toContain('Lord British');
+  it('keeps every hint short enough for the message area: sixteen columns, nine lines', () => {
+    for (const entry of ENTRIES) {
+      const lines = wrapText(entry.hint, 16, 20);
+      expect(lines.length, entry.id).toBeLessThanOrEqual(9);
+      expect(lines.join(' ').length, entry.id).toBe(entry.hint.length); // nothing cut off
+    }
+    expect(journalLines(newWorld())[0].hint).toContain('Lord British');
   });
 
   it('is saved with the game, and an older save starts it empty', () => {
     const a = newWorld();
     a.journal.lordBritish = true;
     a.journal.clues.push('LB:mark', 'Moon#6');
-    a.journal.hints.push('kings');
     journalCheck(a, new FakeIO(a.resources));
     const data = savedCopy(a);
     expect(data.version).toBe(SAVE_VERSION);
@@ -184,7 +183,7 @@ describe('the journal', () => {
     expect(restore(c, old)).toBe(true);
     expect(c.journal).toEqual(emptyJournal());
 
-    const odd = { ...data, journal: { lordBritish: 'yes', clues: [1, 'Moon#6'], hints: null } } as unknown as SaveData;
+    const odd = { ...data, journal: { lordBritish: 'yes', clues: [1, 'Moon#6'], seen: null } } as unknown as SaveData;
     const d = new World(a.resources);
     expect(restore(d, odd)).toBe(true);
     expect(d.journal).toEqual({ ...emptyJournal(), clues: ['Moon#6'] });

@@ -33,7 +33,7 @@ import { PlayerRecord, levelUpDue } from '../game/player.ts';
 import { commandMenu, hasMagic } from '../game/context.ts';
 import { memberShape } from '../game/combat.ts';
 import { TILE_SETS, KEYBOARD_HELP, CONTROLLER_HELP } from './help.ts';
-import { journalLines, journalSnapshot, markHintSeen, type JournalLine } from '../game/journal.ts';
+import { journalLines, journalSnapshot } from '../game/journal.ts';
 import { CHEATS } from '../game/cheats.ts';
 import { Location } from '../game/party.ts';
 import { buildViewport, VIEW_SIZE, type Viewport } from '../game/viewport.ts';
@@ -823,32 +823,51 @@ export class Screen implements GameIO {
   }
 
   /**
-   * The quest journal (J): the revealed entries as a list, each marked
-   * open, heard or done; choosing one shows its page with its state, the
-   * clues heard about it and, on request, its hint. What the player has
-   * seen is noted on closing, so "Journal updated" only marks real change.
+   * The quest journal (J): one page over the map. Entries done are a
+   * marked title; the entry in hand is its title, its progress note and
+   * every clue heard about it. Up and Down scroll, H (Y) prints the entry
+   * in hand's hint to the message area, Escape (B) closes. What was shown
+   * is noted on closing, so "Journal updated" only marks real change.
    */
   async showJournal(): Promise<void> {
     const controller = this.inputMode === 'controller';
     const wasCovered = this.openPage();
-    let cursor = 0;
+    let top = 0;
     try {
       for (;;) {
         const entries = journalLines(this.world);
-        const marks = { open: '-', heard: '?', done: '*' };
-        const lines = entries.map((e) => `${marks[e.state]} ${e.title}`);
-        const footer = [controller ? 'A open  B close' : 'Enter opens  Esc', '- open ? heard *done'];
-        this.drawPage('Journal', lines, footer, '', cursor);
+        const current = entries.find((e) => e.state !== 'done');
+        const lines: string[] = [];
+        for (const e of entries) {
+          if (lines.length) lines.push('');
+          lines.push(`${e.state === 'done' ? '*' : '-'} ${e.title}`);
+          if (e !== current) continue;
+          if (e.note) lines.push(...wrapText(e.note, PAGE_WIDTH, 4));
+          for (const clue of e.clues) {
+            lines.push('');
+            lines.push(...wrapText(`${clue.from}: ${clue.text}`, PAGE_WIDTH, 12));
+          }
+        }
+        const maxTop = Math.max(0, lines.length - PAGE_ROWS);
+        top = Math.min(top, maxTop);
+        const footer = [controller ? 'Y hint  B close' : 'H hint  Esc close', ''];
+        this.drawPage('Journal', lines.slice(top), footer, maxTop > 0 ? 'Up/Down for more' : '');
         const key = await this.readKey();
         if (key === Key.Escape || key === Key.B) break;
-        if (key === Key.Up && cursor > 0) cursor--;
-        else if (key === Key.Down && cursor < entries.length - 1) cursor++;
-        else if (key === Key.Enter || key === Key.A) await this.journalEntry(entries[cursor]);
+        if (key === Key.Up) top = Math.max(0, top - 1);
+        else if (key === Key.Down) top = Math.min(maxTop, top + 1);
+        else if (current && (key === Key.Y || key === 'h' || key === 'H')) this.printHint(current.hint);
       }
     } finally {
       journalSnapshot(this.world);
       this.closePage(wasCovered);
     }
+  }
+
+  /** A journal hint, wrapped to the message area's sixteen columns. */
+  private printHint(hint: string): void {
+    this.print('\n');
+    for (const line of wrapText(hint, TEXT_RIGHT - TEXT_LEFT, TEXT_BOTTOM - TEXT_TOP - 2)) this.print(`${line}\n`);
   }
 
   /**
@@ -952,39 +971,6 @@ export class Screen implements GameIO {
     ctx.fillRect(left, 0, size, size);
     this.markGates(left, size); // over the tube effects, so the moons read clearly
     ctx.restore();
-  }
-
-  /** One journal entry's page; Up and Down scroll when it runs long. */
-  private async journalEntry(entry: JournalLine): Promise<void> {
-    const controller = this.inputMode === 'controller';
-    let top = 0;
-    for (;;) {
-      const state = entry.state === 'done' ? 'Done.' : entry.state === 'heard' ? 'Heard of.' : 'Not yet.';
-      const lines: string[] = [state];
-      if (entry.note) lines.push(...wrapText(entry.note, PAGE_WIDTH, 4));
-      for (const clue of entry.clues) {
-        lines.push('');
-        lines.push(...wrapText(`${clue.from}: ${clue.text}`, PAGE_WIDTH, 12));
-      }
-      const hintSeen = this.world.journal.hints.includes(entry.id);
-      if (hintSeen) {
-        lines.push('');
-        lines.push(...wrapText(`Hint: ${entry.hint}`, PAGE_WIDTH, 12));
-      }
-      const maxTop = Math.max(0, lines.length - PAGE_ROWS);
-      top = Math.min(top, maxTop);
-      const scroll = [top > 0 && 'Up', top < maxTop && 'Down'].filter(Boolean).join('/');
-      const footer = [controller ? 'B back' : 'Esc back', hintSeen ? '' : controller ? 'Y for a hint' : 'H for a hint'];
-      this.drawPage(entry.title, lines.slice(top), footer, scroll && `${scroll} for more`);
-      const key = await this.readKey();
-      if (key === Key.Escape || key === Key.B) return;
-      if (key === Key.Up) top = Math.max(0, top - 1);
-      else if (key === Key.Down) top = Math.min(maxTop, top + 1);
-      else if (!hintSeen && (key === Key.Y || key === 'h' || key === 'H')) {
-        markHintSeen(this.world, entry.id);
-        top = lines.length; // scroll to the hint (clamped next time round)
-      }
-    }
   }
 
   /** The cheat menu over the help page. Returns a confirmation line, or '' when nothing was done. */

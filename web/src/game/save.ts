@@ -62,7 +62,7 @@ function restoreJournal(j: unknown): JournalState {
   if (!j || typeof j !== 'object') return out;
   const r = j as Record<string, unknown>;
   for (const flag of ['lordBritish', 'ambrosia', 'timeLord', 'wordKnown', 'serpentParted'] as const) out[flag] = r[flag] === true;
-  for (const list of ['clues', 'hints', 'seen'] as const) {
+  for (const list of ['clues', 'seen'] as const) {
     if (Array.isArray(r[list])) out[list] = (r[list] as unknown[]).filter((s): s is string => typeof s === 'string');
   }
   return out;
@@ -83,7 +83,7 @@ export function serialize(world: World): SaveData {
     moonPhase: [...world.moonPhase],
     moonTimer: [...world.moonTimer],
     windDirection: world.windDirection,
-    journal: { ...world.journal, clues: [...world.journal.clues], hints: [...world.journal.hints], seen: [...world.journal.seen] },
+    journal: { ...world.journal, clues: [...world.journal.clues], seen: [...world.journal.seen] },
     moongates: [...world.gatesKnown],
   };
 }

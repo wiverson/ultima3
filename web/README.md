@@ -284,16 +284,17 @@ save contains except the pooled gold and food.
   over the map. The main line is ten entries, revealed one at a time as
   the one before is done: speak to the king, the Mark of Kings, lost
   Ambrosia, the four cards, exotic arms, the Marks of Fire and Force, the
-  silver snake, the order of the cards, Exodus. Each is open, heard or
-  done: heard once a townsperson, the king, the prayer in Yew or the Time
-  Lord has said something about it, and their words are kept as spoken,
-  with the town's name, and shown on the entry's page; done is read from
-  the party (who bears a mark, cards found "2 of 4", exotics in the bag,
-  Exodus destroyed) or flagged as it happens (the audience, the shore of
-  Ambrosia, the word learned, the serpent parted, the Time Lord). Every
-  entry also has a hint written for this port, shown only when asked for
-  (H, or Y on a controller), and the asking is remembered. "Journal
-  updated" prints when a revealed entry changes state, and only then; a
+  silver snake, the order of the cards, Exodus. It is one page: entries
+  done are a marked title, and the entry in hand shows its progress note
+  and every clue heard about it, the words of a townsperson, the king,
+  the prayer in Yew or the Time Lord kept as spoken with the town's name.
+  Done is read from the party (who bears a mark, cards found "2 of 4",
+  exotics in the bag, Exodus destroyed) or flagged as it happens (the
+  audience, the shore of Ambrosia, the word learned, the serpent parted,
+  the Time Lord). Every entry also has a short hint written for this
+  port; H (Y on a controller) prints the entry in hand's hint to the
+  message area, and nothing remembers the asking. "Journal updated"
+  prints when a revealed entry is done or gains a clue, and only then; a
   clue for an entry not yet revealed waits quietly. The journal lives in
   the save file (version 5); older saves start it empty.
 - **View map** (# on the keyboard, View map in the controller menu, not
