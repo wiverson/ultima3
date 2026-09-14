@@ -423,3 +423,20 @@ describe('moongates come out of', () => {
     expect(world.gatesKnown).toEqual([]);
   });
 });
+
+describe('walking into table entries that are not creatures', () => {
+  it('steps onto the Floor entries in front of Exodus, as the original did, instead of talking to them', async () => {
+    const world = newWorld();
+    const io = new FakeIO(world.resources);
+    world.enterMap(401);
+    world.party.location = Location.Castle;
+    world.x = 31;
+    world.y = 15;
+    world.putXYVal(MapValue.Floor, 31, 15);
+    expect(world.monsters.at(31, 14)).toBeGreaterThanOrEqual(0);
+    expect(world.monsters.type(world.monsters.at(31, 14))).toBe(MapValue.Floor);
+    const bump = await move(world, io, 'north');
+    expect(bump).toBeNull();
+    expect([world.x, world.y]).toEqual([31, 14]);
+  });
+});

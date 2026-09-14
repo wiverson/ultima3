@@ -212,8 +212,12 @@ export async function move(world: World, io: GameIO, name: MoveName): Promise<Bu
   }
   const xs = world.constrain(world.x + spec.dx);
   const ys = world.constrain(world.y + spec.dy);
+  // Walking into a creature does what a player would have typed next. The table also holds things that are not
+  // creatures (a horse, a chest, and the four Floor entries in front of Exodus, which the original walked over
+  // since it only looked at the tile); those are walked onto like any other square.
   const who = world.monsters.at(xs, ys);
-  if (who >= 0) return world.inTownOrCastle ? { kind: 'person', index: who } : { kind: 'monster', dx: spec.dx, dy: spec.dy };
+  if (who >= 0 && world.monsters.type(who) >= MapValue.Serpent)
+    return world.inTownOrCastle ? { kind: 'person', index: who } : { kind: 'monster', dx: spec.dx, dy: spec.dy };
   if (world.inTownOrCastle) {
     if (counterWithMerchant(world, xs, ys, spec.dx, spec.dy)) return { kind: 'counter', dx: spec.dx, dy: spec.dy };
     // Doors only open sideways, as the Unlock command requires.
