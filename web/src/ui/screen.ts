@@ -1370,7 +1370,9 @@ export class Screen implements GameIO {
    * game pixels wide just outside their tile. It starts white and fades to
    * mid grey over the time the member has before the turn passes by
    * itself, so the outline doubles as the timer; once they have chosen, or
-   * with the timer off, it stays white. (The Apple II blinked the figure.)
+   * with the timer off, it stays white. On the Macintosh set, whose ground
+   * is white, it runs black to grey instead. (The Apple II blinked the
+   * figure.)
    */
   private markActiveMember(): void {
     const c = this.world.combat;
@@ -1384,7 +1386,9 @@ export class Screen implements GameIO {
     const x = (1 + 2 * me.x) * cell - width / 2;
     const y = (1 + 2 * me.y) * cell - width / 2;
     const elapsed = c.markedFor > 0 ? (performance.now() - c.markedAt) / c.markedFor : 0;
-    const level = Math.round(255 - 127 * Math.max(0, Math.min(1, elapsed)));
+    // White fading to mid grey on the dark sets; the Macintosh set's ground is white, so there it is black fading to grey.
+    const fade = 127 * Math.max(0, Math.min(1, elapsed));
+    const level = Math.round(this.tileSetName === 'Macintosh B&W' ? fade : 255 - fade);
     ctx.save();
     ctx.beginPath();
     ctx.rect(cell, cell, 22 * cell, 22 * cell); // never paint over the border

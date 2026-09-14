@@ -189,7 +189,8 @@ save contains except the pooled gold and food.
 - **Combat marker**: the member whose turn it is gets a rounded outline,
   two game pixels wide, fading from white to grey over the time the turn
   timer allows, then steady white while the chosen command's prompts run
-  (and throughout, with the timer off). The Apple II blinked the figure.
+  (and throughout, with the timer off). On the Macintosh B&W set, whose
+  ground is white, it runs black to grey instead. The Apple II blinked the figure.
 - **Direction prompts** sit on the map's bottom border, where the wind
   line is ("Direction? Esc Cancel", or "B: Cancel" on a controller), so
   the map and the combat marker stay in view. The wind line comes back
