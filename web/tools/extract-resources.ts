@@ -175,7 +175,9 @@ function main(): void {
     for (const file of readdirSync(join(RESOURCES, src))) {
       if (file.startsWith('_') || file.startsWith('.')) continue;
       // "&" cannot travel in a URL safely: "Macintosh B&W-Tiles.gif" is served as "Macintosh BW-Tiles.gif" (see fileStem in graphics.ts).
-      copyFileSync(join(RESOURCES, src, file), join(OUT, dst, file.replace(/&/g, '')));
+      // LairWare's teal UI sheet is the Lairware set's; the Standard set's is a copper recolour of it kept in public/graphics.
+      const name = file === 'Standard-UI.png' ? 'Lairware-UI.png' : file.replace(/&/g, '');
+      copyFileSync(join(RESOURCES, src, file), join(OUT, dst, name));
     }
   }
 
