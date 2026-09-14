@@ -805,14 +805,14 @@ export class Screen implements GameIO {
     const pages = this.inputMode === 'controller' ? CONTROLLER_HELP : KEYBOARD_HELP;
     const footer = this.inputMode === 'controller' ? ['A next  B close', 'Y cheats'] : ['Any key next  Esc', 'Y cheats'];
     const wasCovered = this.openPage();
-    let note = '';
     try {
       for (let index = 0; index < pages.length; ) {
-        this.drawPage(pages[index].title, pages[index].lines, footer, note);
+        this.drawPage(pages[index].title, pages[index].lines, footer);
         const key = await this.readKey();
         if (key === Key.Escape || key === Key.B) break;
         if (key === Key.Y || key === 'y' || key === 'Y') {
-          note = await this.cheatMenu();
+          const done = await this.cheatMenu();
+          if (done) this.printWrapped(done); // to the message area, as any other event
           continue;
         }
         index++;
@@ -856,7 +856,7 @@ export class Screen implements GameIO {
         if (key === Key.Escape || key === Key.B) break;
         if (key === Key.Up) top = Math.max(0, top - 1);
         else if (key === Key.Down) top = Math.min(maxTop, top + 1);
-        else if (current && (key === Key.Y || key === 'h' || key === 'H')) this.printHint(current.hint);
+        else if (current && (key === Key.Y || key === 'h' || key === 'H')) this.printWrapped(current.hint);
       }
     } finally {
       journalSnapshot(this.world);
@@ -864,10 +864,10 @@ export class Screen implements GameIO {
     }
   }
 
-  /** A journal hint, wrapped to the message area's sixteen columns. */
-  private printHint(hint: string): void {
+  /** Print a sentence to the message area, wrapped to its sixteen columns (journal hints, cheat confirmations). */
+  private printWrapped(text: string): void {
     this.print('\n');
-    for (const line of wrapText(hint, TEXT_RIGHT - TEXT_LEFT, TEXT_BOTTOM - TEXT_TOP - 2)) this.print(`${line}\n`);
+    for (const line of wrapText(text, TEXT_RIGHT - TEXT_LEFT, TEXT_BOTTOM - TEXT_TOP - 2)) this.print(`${line}\n`);
   }
 
   /**
@@ -973,7 +973,7 @@ export class Screen implements GameIO {
     ctx.restore();
   }
 
-  /** The cheat menu over the help page. Returns a confirmation line, or '' when nothing was done. */
+  /** The cheat menu over the help page. Returns a confirmation line for the message area, or '' when nothing was done. */
   private async cheatMenu(): Promise<string> {
     const cheats = CHEATS.filter((c) => c.available(this.world));
     const options: MenuOption[] = [...cheats.map((c) => ({ key: c.key, label: c.label })), { key: 'B', label: 'Back' }];
