@@ -20,6 +20,8 @@ export class Keyboard {
   paused = false;
   /** The pending timed wait, so it can be stopped and restarted around a pause. */
   private timed: { remaining: number; started: number; timer: ReturnType<typeof setTimeout> | null; fire: () => void } | null = null;
+  /** Called when the window loses focus (the game pauses). */
+  onPause: (() => void) | null = null;
   /** Called when the window regains focus, with how long it was away (ms). */
   onResume: ((pausedMs: number) => void) | null = null;
   /** Called on every key from any source, the gamepad included (audio is unlocked from here). */
@@ -45,6 +47,7 @@ export class Keyboard {
       t.timer = null;
       t.remaining -= performance.now() - t.started;
     }
+    this.onPause?.();
   }
 
   private resume(): void {

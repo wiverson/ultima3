@@ -64,10 +64,19 @@ describe('the music player', () => {
     state = 'running';
     currentTime = 0;
     destination = {};
+    static last: FakeContext | null = null;
+    constructor() {
+      FakeContext.last = this;
+    }
     createGain() {
       return { gain: { value: 0 }, connect() {} };
     }
     resume() {
+      this.state = 'running';
+      return Promise.resolve();
+    }
+    suspend() {
+      this.state = 'suspended';
       return Promise.resolve();
     }
   }
@@ -88,6 +97,21 @@ describe('the music player', () => {
     expect(m.active).toBe(1); // on resumes the track the game wanted
     m.enabled = false;
     expect(m.active).toBe(0);
+  });
+
+  it('holds the audio clock while the game is paused, and a key during the pause does not restart it', async () => {
+    const m = await player();
+    m.play(1);
+    m.unlock();
+    const ctx = FakeContext.last!;
+    expect(ctx.state).toBe('running');
+    m.pause();
+    expect(ctx.state).toBe('suspended');
+    m.unlock(); // a gamepad press while the window is unfocused
+    expect(ctx.state).toBe('suspended');
+    m.resume();
+    expect(ctx.state).toBe('running');
+    expect(m.active).toBe(1); // the same tune, from where it stopped
   });
 
   it('waits for the unlock, then follows the track the game wants', async () => {

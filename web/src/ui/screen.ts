@@ -221,8 +221,10 @@ export class Screen implements GameIO {
     this.cell = Math.floor(canvas.width / COLUMNS);
     for (let r = 0; r < TEXT_BOTTOM - TEXT_TOP; r++) this.textRows.push(Array<string>(TEXT_RIGHT - TEXT_LEFT).fill(' '));
     this.dungeonRenderer = DungeonRenderer.forSet(gfx);
-    // A pause (window not focused) should not eat into a combat turn's timer.
+    // A pause (window not focused) holds the music and should not eat into a combat turn's timer.
+    keyboard.onPause = () => this.musicPlayer.pause();
     keyboard.onResume = (pausedMs) => {
+      this.musicPlayer.resume();
       if (this.world.combat) this.world.combat.markedAt += pausedMs;
     };
     this.gamepads = new GamepadReader(keyboard, () => {

@@ -165,6 +165,8 @@ export class MusicPlayer {
   private nextNote = 0;
   private playing = new Set<AudioScheduledSourceNode>();
   private on = true;
+  /** While the game is paused (window not focused) the clock stops, so the tune holds its place. */
+  private paused = false;
   /** 0..1 */
   volume = 0.35;
 
@@ -192,8 +194,20 @@ export class MusicPlayer {
       this.master.gain.value = this.volume;
       this.master.connect(this.context.destination);
     }
-    if (this.context.state === 'suspended') void this.context.resume();
+    if (this.context.state === 'suspended' && !this.paused) void this.context.resume();
     this.sync();
+  }
+
+  /** The game paused: stop the audio clock, so the tune holds its place and resumes from it. */
+  pause(): void {
+    this.paused = true;
+    if (this.context?.state === 'running') void this.context.suspend();
+  }
+
+  /** The game resumed: the tune goes on from where it stopped, if music is on. */
+  resume(): void {
+    this.paused = false;
+    if (this.context?.state === 'suspended') void this.context.resume();
   }
 
   /** Start or stop so that what sounds is the wanted track, if music is on and audio unlocked, else nothing. */
