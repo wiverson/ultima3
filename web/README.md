@@ -437,7 +437,11 @@ save contains except the pooled gold and food.
   creature tiles was cleared; figures that reach the edge are untouched.
   The magic and fire balls of combat, which the Mac drew as glossy
   spheres with the word HIT on the second frame, are redrawn: an orb
-  with the Apple II's diamond core, and a starburst for the hit.
+  with the Apple II's diamond core, and a starburst for the hit. The
+  Mac's chrome serpent and rainbow forcefield are redrawn flat: a green
+  serpent with its head to the south, where the party comes to yell at
+  it, and a barrier of violet and blue bands that repeats within the
+  tile so the scroll shows no seam.
 - **Tile sheets carry their own transparency.** The Mac shipped a
   separate grey "Mask" image per set for creature transparency, since
   QuickDraw had no alpha channel; those masks are baked into the alpha of
