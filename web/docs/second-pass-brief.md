@@ -1,5 +1,7 @@
 # Second pass: Pincher, Snatch, Griffon
 
+Status: delivered and integrated; kept as the record of the notes.
+
 Three figures from the first delivery to redraw. Everything else in the pack
 is accepted and in the game. Rules, palette and delivery format are as in
 `figure-art-spec.md`; only the drawing changes. `second-pass-reference.png`
