@@ -169,6 +169,17 @@ builds installers with electron-builder; `.github/workflows/desktop.yml`
 does so on the three platforms for every manual run and every `v*` tag,
 attaching the files to a GitHub Release on a tag. Builds are unsigned.
 
+## The Android app
+
+`../mobile/` wraps the same bundle with Capacitor for Android handhelds
+(see its README). Its `npm run bundle` mirrors the desktop one, `npx cap
+sync android` copies the result into the generated `android/` Gradle
+project, and `./gradlew assembleRelease` makes the APK. The game detects
+Capacitor (`window.Capacitor.isNativePlatform()`) and skips service-worker
+registration there too. The desktop workflow builds the APK in an
+`android` job after the desktop matrix and attaches it to the same
+release.
+
 ## How the code is organised
 
 The port keeps the original module boundaries and function names so that

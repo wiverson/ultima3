@@ -110,19 +110,22 @@ function canvasNotice(text: string): void {
 
 // The installed app: a new version downloads in the background and waits; the
 // title menu offers the restart. Long-running pages look again every hour.
-// The desktop app (desktop/, an app:// origin) ships its own files and has no
-// service worker; its updates are new builds.
+// The desktop app (desktop/, an app:// origin) and the Android app (mobile/,
+// Capacitor) ship their own files and have no service worker; their updates
+// are new builds.
+const native = Boolean((window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.());
 let updateReady = false;
-const applyUpdate = location.protocol.startsWith('http')
-  ? registerSW({
-      onNeedRefresh() {
-        updateReady = true;
-      },
-      onRegisteredSW(_url, registration) {
-        if (registration) setInterval(() => void registration.update(), 60 * 60 * 1000);
-      },
-    })
-  : () => Promise.resolve();
+const applyUpdate =
+  location.protocol.startsWith('http') && !native
+    ? registerSW({
+        onNeedRefresh() {
+          updateReady = true;
+        },
+        onRegisteredSW(_url, registration) {
+          if (registration) setInterval(() => void registration.update(), 60 * 60 * 1000);
+        },
+      })
+    : () => Promise.resolve();
 const update: Update = { ready: () => updateReady, apply: () => void applyUpdate(true) };
 
 /** A download of the text as a JSON file named by the moment. */

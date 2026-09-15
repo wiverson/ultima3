@@ -80,6 +80,20 @@ Inside the app, F11 or Alt+Enter toggles full screen, `--fullscreen` and
 `--windowed` on the command line force one or the other, and `--new` and
 `--controller` do what the web version's `?new` and `?controller` flags do.
 
+### Android handhelds
+
+For Android handhelds like the AYN Odin or the Retroid Pocket, and for
+phones and tablets, the same workflow also builds an APK
+(`Ultima-III-<version>-android.apk`), kept with the desktop installers as
+an artifact and attached to the same draft release. Copy it to the device
+and open it; Android asks once to allow installs from that source. The
+app runs full screen in landscape, the Back button opens Settings as
+Escape does, and built-in controls that Android reports as a gamepad
+switch the game to controller mode on the first press. The APK is signed
+with a key kept in the repository, so a new build installs over the old
+one and keeps the saved game. iOS has no such build on purpose: install
+the web version from Safari's Share menu with Add to Home Screen instead.
+
 ### Controller mode
 
 Chosen in Settings (Escape), or by pressing any gamepad button. A tap on a
@@ -303,7 +317,8 @@ move diagonally and the party may not.
 The port is in [`web/`](web/README.md): how to run it, how the code is
 organised, data formats and testing. The desktop app is in
 [`desktop/`](desktop/), a thin Electron shell around the built game, with
-its own notes in the developer README. The art briefs the new figures and
+its own notes in the developer README, and the Android app in
+[`mobile/`](mobile/README.md), the same game wrapped with Capacitor. The art briefs the new figures and
 dungeon sheets were drawn to are in [`web/docs/`](web/docs/). The
 original Macintosh sources and resources are at the root of the
 repository, unchanged.
