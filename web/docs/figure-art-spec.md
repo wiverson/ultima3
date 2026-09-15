@@ -9,8 +9,8 @@ and must be redrawn the same way, with the rules the game engine imposes.
 Delivered and integrated (`art/figures/`, `npm run figures`). One correction
 to this brief came out of the delivery: tiles 58 and 59 are the top and bottom
 halves of one tall snake drawn on the map, not two animation frames, so the
-delivered pair could not be used and the earlier snake art stays. A future
-pass should draw the snake as one 32 x 64 figure split across the two cells.
+delivered pair could not be used and the earlier snake art stays. The
+redraw is briefed separately in `snake-brief.md`.
 
 ## 1. Why
 
