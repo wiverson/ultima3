@@ -198,7 +198,7 @@ export class Screen implements GameIO {
     this.onModeChange?.();
   }
   /** What the PAUSED box covers, restored when the window regains focus. */
-  private underPaused: { image: ImageData; x: number; y: number } | null = null;
+  private underPaused: { image: HTMLCanvasElement; x: number; y: number } | null = null;
   /** While set, the frame loop paints this instead of the game (the map through its CRT effect). */
   private overlay: ((time: number) => void) | null = null;
   private scanlines: CanvasPattern | null = null;
@@ -1045,7 +1045,20 @@ export class Screen implements GameIO {
   }
 
   /** Pixels under the open menu, restored when it closes over a static screen. */
-  private underMenu: { image: ImageData; x: number; y: number } | null = null;
+  private underMenu: { image: HTMLCanvasElement; x: number; y: number } | null = null;
+
+  /**
+   * A copy of a region of the screen, made canvas to canvas so the GPU
+   * keeps the pixels (a readback through getImageData stalls the pipeline
+   * and makes Chrome suggest willReadFrequently). Put back with drawImage.
+   */
+  private copyRegion(x: number, y: number, w: number, h: number): { image: HTMLCanvasElement; x: number; y: number } {
+    const image = document.createElement('canvas');
+    image.width = w;
+    image.height = h;
+    image.getContext('2d')!.drawImage(this.ctx.canvas, x, y, w, h, 0, 0, w, h);
+    return { image, x, y };
+  }
 
   /** Open a menu window: remember what is under it, then draw it. */
   private openMenu(menu: MenuWindow): void {
@@ -1054,11 +1067,7 @@ export class Screen implements GameIO {
     const x = menu.hints ? 1 : menu.x;
     const w = menu.hints ? COLUMNS - 2 : menu.width;
     const h = menu.visibleRows + 2 + (menu.hints ? HINT_ROWS : 0);
-    this.underMenu = {
-      image: this.ctx.getImageData(x * cell, menu.y * cell, w * cell, Math.min(h, ROWS - menu.y) * cell),
-      x: x * cell,
-      y: menu.y * cell,
-    };
+    this.underMenu = this.copyRegion(x * cell, menu.y * cell, w * cell, Math.min(h, ROWS - menu.y) * cell);
     this.menu = menu;
     this.showMenuNow();
   }
@@ -1066,7 +1075,7 @@ export class Screen implements GameIO {
   /** Close the menu window and restore what it covered. */
   private closeMenu(): void {
     this.menu = null;
-    if (this.underMenu) this.ctx.putImageData(this.underMenu.image, this.underMenu.x, this.underMenu.y);
+    if (this.underMenu) this.ctx.drawImage(this.underMenu.image, this.underMenu.x, this.underMenu.y);
     this.underMenu = null;
     if (!this.viewCovered) this.viewDirty = true;
   }
@@ -1606,20 +1615,20 @@ export class Screen implements GameIO {
    * the map window in play, the gap under the Options box on the title screen.
    */
   private showPaused(): void {
-    const { ctx, cell } = this;
+    const { cell } = this;
     const text = 'PAUSED';
     const w = text.length + 4;
     const h = 3;
     const x = this.frameShown ? Math.floor((1 + VIEW_SIZE * 2) / 2 - w / 2) + 1 : Math.floor((COLUMNS - w) / 2);
     const y = this.frameShown ? Math.floor((1 + VIEW_SIZE * 2) / 2 - h / 2) + 1 : 19;
-    this.underPaused = { image: ctx.getImageData(x * cell, y * cell, w * cell, h * cell), x: x * cell, y: y * cell };
+    this.underPaused = this.copyRegion(x * cell, y * cell, w * cell, h * cell);
     this.black(x, y, w, h);
     this.drawText(text, x + 2, y + 1);
   }
 
   private hidePaused(): void {
     if (!this.underPaused) return;
-    this.ctx.putImageData(this.underPaused.image, this.underPaused.x, this.underPaused.y);
+    this.ctx.drawImage(this.underPaused.image, this.underPaused.x, this.underPaused.y);
     this.underPaused = null;
   }
 
