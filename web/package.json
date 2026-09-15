@@ -6,14 +6,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "node tools/graphics-index.ts && tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "extract": "node tools/extract-resources.ts",
-    "figures": "node tools/compose-figures.ts"
+    "figures": "node tools/compose-figures.ts",
+    "graphics-index": "node tools/graphics-index.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

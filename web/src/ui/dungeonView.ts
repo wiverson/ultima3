@@ -137,12 +137,12 @@ function applyMask(shapes: HTMLImageElement | HTMLCanvasElement, mask: HTMLImage
   const canvas = document.createElement('canvas');
   canvas.width = shapes.width;
   canvas.height = shapes.height;
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   ctx.drawImage(shapes, 0, 0);
   const maskCanvas = document.createElement('canvas');
   maskCanvas.width = mask.width;
   maskCanvas.height = mask.height;
-  const mctx = maskCanvas.getContext('2d')!;
+  const mctx = maskCanvas.getContext('2d', { willReadFrequently: true })!;
   mctx.drawImage(mask, 0, 0);
   const rgba = ctx.getImageData(0, 0, mask.width, mask.height);
   const m = mctx.getImageData(0, 0, mask.width, mask.height).data;
@@ -171,7 +171,7 @@ export class DungeonRenderer {
     this.canvas = document.createElement('canvas');
     this.canvas.width = DUNGEON_VIEW_WIDTH;
     this.canvas.height = DUNGEON_VIEW_HEIGHT;
-    this.ctx = this.canvas.getContext('2d')!;
+    this.ctx = this.canvas.getContext('2d', { willReadFrequently: true })!;
   }
 
   /** Compose the view for the given draw list. `torch` below 3 dims it; `secret` is overlaid text. */

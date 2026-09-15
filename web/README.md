@@ -112,9 +112,14 @@ contains except the pooled gold, food and gear.
   Apple II did; the C port tested for negative values first.
 - **Tile sheets**: 12 columns by 16 rows, two frames per tile, indices
   0-63 the Apple II tiles, 64-67 the shared party figures, 68-78 one
-  figure per class in career-table order (a set without them, detected by
-  an empty cell 68, falls back in `tileRect` to the original
-  `DetermineShape()` grouping), 80-95 the monster variants. The Exodus
+  figure per class in career-table order (only the sets in
+  `CLASS_FIGURE_SETS`, Standard today; the others fill those cells with a
+  flat colour and fall back in `tileRect` to the original
+  `DetermineShape()` grouping), 80-95 the monster variants.
+- **Graphics files** are listed in `public/graphics/index.json`, written
+  by `npm run graphics-index` (and by `npm run build`) and checked by a
+  test; the loader reads it once and asks only for files that exist, so a
+  set without a mask or its own dungeon sheets costs no 404s. The Exodus
   tile is blank; its four light panels sit in column 5, rows 0-3, and
   `tileRect` points at the one whose turn it is. Tiles 58 and 59 are the
   north and south halves of the Great Serpent.

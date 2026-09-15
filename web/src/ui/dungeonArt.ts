@@ -196,14 +196,14 @@ export function paintDungeonSheet(style: DungeonStyle, mask: HTMLImageElement): 
   const sheet = document.createElement('canvas');
   sheet.width = DUNGEON_SHEET_WIDTH;
   sheet.height = DUNGEON_SHEET_HEIGHT;
-  const ctx = sheet.getContext('2d')!;
+  const ctx = sheet.getContext('2d', { willReadFrequently: true })!;
   ctx.fillStyle = style.bg;
   ctx.fillRect(0, 0, sheet.width, sheet.height);
 
   const maskCanvas = document.createElement('canvas');
   maskCanvas.width = mask.width;
   maskCanvas.height = mask.height;
-  const mctx = maskCanvas.getContext('2d')!;
+  const mctx = maskCanvas.getContext('2d', { willReadFrequently: true })!;
   mctx.drawImage(mask, 0, 0);
   const maskData = mctx.getImageData(0, 0, mask.width, mask.height);
 

@@ -86,37 +86,36 @@ export async function loadImages(baseUrl = 'images/'): Promise<ImageMap> {
  * gives transparent creatures for free.
  */
 /**
- * True if the first-frame cell of a tile index holds a drawing: three or
- * more distinct pixel values. An unused cell is one flat colour, whether
- * transparent, the black of an opaque sheet, or a set's fill colour.
+ * The sets whose sheets hold one figure per class in cells 68-78. Every
+ * other set fills those cells with a flat colour and shows the shared
+ * figures instead. A list, not a pixel test: browsers have disagreed about
+ * the pixels.
  */
-function cellDrawn(tiles: HTMLImageElement, size: number, index: number): boolean {
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d')!;
-  ctx.drawImage(tiles, Math.floor(index / TILE_ROWS) * 2 * size, (index % TILE_ROWS) * size, size, size, 0, 0, size, size);
-  const data = ctx.getImageData(0, 0, size, size).data;
-  const seen = new Set<number>();
-  for (let i = 0; i < data.length; i += 4) {
-    seen.add(((data[i] << 24) | (data[i + 1] << 16) | (data[i + 2] << 8) | data[i + 3]) >>> 0);
-    if (seen.size >= 3) return true;
+const CLASS_FIGURE_SETS = new Set(['Standard']);
+
+/** The files in the graphics folder, from index.json; null when there is no index (then every candidate is tried). */
+async function loadIndex(baseUrl: string): Promise<Set<string> | null> {
+  try {
+    const res = await fetch(`${baseUrl}index.json`);
+    if (!res.ok) return null;
+    return new Set((await res.json()) as string[]);
+  } catch {
+    return null;
   }
-  return false;
 }
 
 function applyMask(tiles: HTMLImageElement, mask: HTMLImageElement | null): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = tiles.width;
   canvas.height = tiles.height;
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   ctx.drawImage(tiles, 0, 0);
   if (!mask) return canvas; // the sheet's own alpha (if any) is the mask
 
   const maskCanvas = document.createElement('canvas');
   maskCanvas.width = tiles.width;
   maskCanvas.height = tiles.height;
-  const mctx = maskCanvas.getContext('2d')!;
+  const mctx = maskCanvas.getContext('2d', { willReadFrequently: true })!;
   mctx.drawImage(mask, 0, 0, tiles.width, tiles.height);
 
   const rgba = ctx.getImageData(0, 0, tiles.width, tiles.height);
@@ -159,8 +158,6 @@ export class GraphicsSet {
 
   /** The sheet over black: what terrain is drawn from, so a transparent pixel never shows the last frame. */
   private readonly opaqueTiles: HTMLCanvasElement;
-  /** Whether the sheet draws cells 68-78, one figure per class; if not, `tileRect` shows the shared figures. */
-  readonly hasClassFigures: boolean;
 
   private constructor(
     readonly tiles: HTMLImageElement,
@@ -188,6 +185,8 @@ export class GraphicsSet {
     readonly scenes: Map<string, HTMLImageElement> = new Map(),
     /** Moons painted for the set at run time (moonArt.ts), or null to use the UI sheet's. */
     readonly moons: HTMLCanvasElement | null = null,
+    /** Whether the sheet draws cells 68-78, one figure per class (see CLASS_FIGURE_SETS); if not, `tileRect` shows the shared figures. */
+    readonly hasClassFigures = false,
   ) {
     this.tileSize = tiles.width / TILE_COLUMNS;
     this.opaqueTiles = document.createElement('canvas');
@@ -200,19 +199,23 @@ export class GraphicsSet {
     this.fontSize = font.width / FONT_GLYPHS;
     this.fontHeight = font.height;
     this.uiSize = ui.width / UI_COLUMNS;
-    this.hasClassFigures = cellDrawn(tiles, this.tileSize, FIRST_CLASS_TILE);
   }
 
   /**
    * Load the named set (default "Standard"). Missing optional files fall
-   * back to the Standard set's, as the original did.
+   * back to the Standard set's, as the original did. `index.json` in the
+   * graphics folder lists the files that exist (tools/graphics-index.ts),
+   * so only those are requested; without it every candidate is tried.
    */
   static async load(name = 'Standard', baseUrl = 'graphics/'): Promise<GraphicsSet> {
+    const index = await loadIndex(baseUrl);
     const tryLoad = async (suffix: string, exts: string[], fallback = true): Promise<HTMLImageElement | null> => {
       for (const set of fallback ? [name, 'Standard'] : [name]) {
         for (const ext of exts) {
+          const file = `${fileStem(set)}-${suffix}.${ext}`;
+          if (index && !index.has(file)) continue;
           try {
-            return await loadImage(`${baseUrl}${encodeURIComponent(fileStem(set))}-${suffix}.${ext}`);
+            return await loadImage(`${baseUrl}${encodeURIComponent(file)}`);
           } catch {
             /* try the next candidate */
           }
@@ -239,7 +242,18 @@ export class GraphicsSet {
     }
     const moonStyle = MOON_STYLES[name];
     const moons = moonStyle ? paintMoons(moonStyle) : null;
-    return new GraphicsSet(tiles, applyMask(tiles, mask), font, ui, dungeonShapes, dungeonMasks, style, scenes, moons);
+    return new GraphicsSet(
+      tiles,
+      applyMask(tiles, mask),
+      font,
+      ui,
+      dungeonShapes,
+      dungeonMasks,
+      style,
+      scenes,
+      moons,
+      CLASS_FIGURE_SETS.has(name),
+    );
   }
 
   /** Source rectangle of a tile index, honouring the animation frame. (`GetTileRectForIndex`) */

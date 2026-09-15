@@ -1517,7 +1517,7 @@ export class Screen implements GameIO {
     const off = document.createElement('canvas');
     off.width = size;
     off.height = size;
-    const octx = off.getContext('2d')!;
+    const octx = off.getContext('2d', { willReadFrequently: true })!;
     octx.imageSmoothingEnabled = false;
     this.gfx.drawShape(octx, shape, 0, 0, size, { masked: true });
     const image = octx.getImageData(0, 0, size, size);
