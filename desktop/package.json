@@ -90,7 +90,7 @@
       "provider": "github",
       "owner": "wiverson",
       "repo": "ultima3",
-      "releaseType": "release"
+      "releaseType": "draft"
     }
   },
   "repository": {
