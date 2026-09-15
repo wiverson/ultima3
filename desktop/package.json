@@ -1,0 +1,100 @@
+{
+  "name": "ultima3-desktop",
+  "productName": "Ultima III",
+  "version": "1.0.0",
+  "description": "Ultima III: Exodus, LairWare's Macintosh port rebuilt for the browser, as a desktop app",
+  "author": "Will Iverson",
+  "license": "MIT",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "bundle": "node bundle.cjs",
+    "start": "electron .",
+    "smoke": "node smoke.cjs",
+    "dist": "electron-builder --publish never",
+    "dist:linux": "electron-builder --linux --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:mac": "electron-builder --mac --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.wiverson.ultima3",
+    "productName": "Ultima III",
+    "artifactName": "Ultima-III-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "app/**/*"
+    ],
+    "asar": true,
+    "mac": {
+      "category": "public.app-category.role-playing-games",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "identity": null
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "category": "Game",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "desktop": {
+        "Name": "Ultima III",
+        "Comment": "Ultima III: Exodus"
+      }
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "wiverson",
+      "repo": "ultima3",
+      "releaseType": "release"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wiverson/ultima3.git"
+  }
+}

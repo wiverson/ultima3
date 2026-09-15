@@ -48,6 +48,33 @@ iOS, add the game to the Home Screen: Safari and every other iOS browser
 delete a site's storage after seven days without a visit, and the game
 warns of this once a day in a browser tab.
 
+### Desktop app, and the Steam Deck
+
+The same game is packaged as a desktop app with Electron, for players who
+want a plain window, an icon in the dock, or a Steam shortcut. Builds for
+Windows, macOS and Linux are on the
+[Releases page](https://github.com/wiverson/ultima3/releases) (and, for
+any commit, as artifacts of the "Desktop builds" workflow under Actions).
+The saved game lives in the app's own storage, separate from the
+browser's; Export and Import move a game between them.
+
+- **Windows**: an installer and a portable `.exe`. Both are unsigned, so
+  SmartScreen asks once; choose More info, then Run anyway.
+- **macOS**: a universal `.dmg`. Unsigned as well, so the first launch is
+  refused; right-click the app and choose Open, or run
+  `xattr -cr "/Applications/Ultima III.app"` once.
+- **Linux and SteamOS**: an `AppImage`. Make it executable and run it. On
+  a Steam Deck, copy it to the Deck (say `~/Games`), make it executable
+  in Desktop Mode, add it to Steam as a non-Steam game, and in the
+  shortcut's controller settings pick a Gamepad template. The app sees the
+  controller as a gamepad and switches to controller mode on the first
+  press; it starts full screen when Steam launches it. Nothing needs a
+  Flatpak permission, since it is not a Flatpak.
+
+Inside the app, F11 or Alt+Enter toggles full screen, `--fullscreen` and
+`--windowed` on the command line force one or the other, and `--new` and
+`--controller` do what the web version's `?new` and `?controller` flags do.
+
 ### Controller mode
 
 Chosen in Settings (Escape), or by pressing any gamepad button. A tap on a
@@ -263,7 +290,9 @@ move diagonally and the party may not.
 ## For developers
 
 The port is in [`web/`](web/README.md): how to run it, how the code is
-organised, data formats and testing. The art briefs the new figures and
+organised, data formats and testing. The desktop app is in
+[`desktop/`](desktop/), a thin Electron shell around the built game, with
+its own notes in the developer README. The art briefs the new figures and
 dungeon sheets were drawn to are in [`web/docs/`](web/docs/). The
 original Macintosh sources and resources are at the root of the
 repository, unchanged.

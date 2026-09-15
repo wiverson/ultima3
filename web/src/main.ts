@@ -110,15 +110,19 @@ function canvasNotice(text: string): void {
 
 // The installed app: a new version downloads in the background and waits; the
 // title menu offers the restart. Long-running pages look again every hour.
+// The desktop app (desktop/, an app:// origin) ships its own files and has no
+// service worker; its updates are new builds.
 let updateReady = false;
-const applyUpdate = registerSW({
-  onNeedRefresh() {
-    updateReady = true;
-  },
-  onRegisteredSW(_url, registration) {
-    if (registration) setInterval(() => void registration.update(), 60 * 60 * 1000);
-  },
-});
+const applyUpdate = location.protocol.startsWith('http')
+  ? registerSW({
+      onNeedRefresh() {
+        updateReady = true;
+      },
+      onRegisteredSW(_url, registration) {
+        if (registration) setInterval(() => void registration.update(), 60 * 60 * 1000);
+      },
+    })
+  : () => Promise.resolve();
 const update: Update = { ready: () => updateReady, apply: () => void applyUpdate(true) };
 
 /** A download of the text as a JSON file named by the moment. */
@@ -208,7 +212,8 @@ async function start(): Promise<void> {
   window.addEventListener('pointerdown', unlockAudio);
 
   const screen = new Screen(canvas, gfx, images, keyboard, sounds, music, world);
-  screen.inputMode = prefs.inputMode;
+  // ?controller starts in controller mode whatever was remembered (a Steam shortcut, a kiosk).
+  screen.inputMode = params.has('controller') ? 'controller' : prefs.inputMode;
   screen.tileSetName = prefs.tiles;
   canvas.focus();
 

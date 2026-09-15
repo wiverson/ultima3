@@ -142,6 +142,21 @@ contains except the pooled gold, food and gear.
 - **Cheats** are a table in `cheats.ts`, reached from the Help pages with
   Y (V on a keyboard in controller mode), and print to the message area.
 
+## The desktop app
+
+`../desktop/` wraps the built game in Electron for Windows, macOS and
+Linux (the Steam Deck's target). `npm run bundle` there builds the game
+with `VITE_BASE=./` and copies `dist/` into `desktop/app/`, dropping the
+service worker; `main.cjs` serves that folder over a private `app://`
+scheme, which counts as a secure origin, so storage, the clipboard and
+the Gamepad API behave as on the web. The game skips service-worker
+registration when its origin is not `http(s)`. `npm run smoke` launches
+the app, screenshots it once the game is running and exits with the
+result (`ELECTRON_NO_SANDBOX=1` for a root container). `npm run dist`
+builds installers with electron-builder; `.github/workflows/desktop.yml`
+does so on the three platforms for every manual run and every `v*` tag,
+attaching the files to a GitHub Release on a tag. Builds are unsigned.
+
 ## How the code is organised
 
 The port keeps the original module boundaries and function names so that
