@@ -37,7 +37,7 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm test
-      - run: npm run build
+      - run: VITE_BUILD="${GITHUB_SHA::7}" npm run build
         env:
           VITE_BASE: /ultima3/
       - uses: actions/configure-pages@v5

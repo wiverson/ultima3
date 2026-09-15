@@ -18,7 +18,11 @@ npm run build     # typecheck + production build into dist/
 npm run figures   # writes art/figures/ into the Standard tile sheet
 ```
 
-`npm run extract` only needs to run again if the original resources change.
+The last Help page in the game shows `Build <hash>`, the short commit hash
+the page was built from (`VITE_BUILD`, set by the Pages workflow and the
+desktop bundler; `dev` otherwise), which tells a stale browser cache from a
+real bug. `npm run extract` only needs to run again if the original
+resources change.
 Its output is committed so the game runs straight after `npm install`.
 `?new` on the URL starts a fresh game instead of resuming the last one.
 

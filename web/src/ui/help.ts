@@ -34,6 +34,9 @@ export interface HelpPage {
   lines: string[];
 }
 
+/** The build this page came from: the commit's short hash, set by the build (VITE_BUILD), or "dev". */
+export const BUILD: string = (import.meta.env.VITE_BUILD as string | undefined) || 'dev';
+
 /** How the game works, common to both input modes; the last line differs. */
 const HOW_IT_WORKS = [
   'Walk into a person',
@@ -125,7 +128,7 @@ export const KEYBOARD_HELP: HelpPage[] = [
   },
   {
     title: 'How it works 4/4',
-    lines: [...HOW_IT_WORKS, 'Q saves; the game', 'resumes next visit.'],
+    lines: [...HOW_IT_WORKS, 'Q saves; the game', 'resumes next visit.', '', `Build ${BUILD}`],
   },
 ];
 
@@ -156,6 +159,6 @@ export const CONTROLLER_HELP: HelpPage[] = [
   },
   {
     title: 'How it works 2/2',
-    lines: [...HOW_IT_WORKS, 'Quit (menu) saves;', 'resumes next visit.'],
+    lines: [...HOW_IT_WORKS, 'Quit (menu) saves;', 'resumes next visit.', '', `Build ${BUILD}`],
   },
 ];

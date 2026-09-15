@@ -4,7 +4,13 @@ const { execSync } = require('node:child_process');
 const { cpSync, rmSync, existsSync } = require('node:fs');
 const { join } = require('node:path');
 const web = join(__dirname, '..', 'web');
-execSync('npm run build', { cwd: web, stdio: 'inherit', env: { ...process.env, VITE_BASE: './' } });
+let build = 'dev';
+try {
+  build = execSync('git rev-parse --short HEAD', { cwd: web }).toString().trim();
+} catch {
+  /* not a checkout */
+}
+execSync('npm run build', { cwd: web, stdio: 'inherit', env: { ...process.env, VITE_BASE: './', VITE_BUILD: process.env.VITE_BUILD || build } });
 const app = join(__dirname, 'app');
 if (existsSync(app)) rmSync(app, { recursive: true });
 cpSync(join(web, 'dist'), app, { recursive: true });
