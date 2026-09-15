@@ -4,7 +4,7 @@ import { World } from '../src/game/world.ts';
 import { Location } from '../src/game/party.ts';
 import { MapValue } from '../src/game/tiles.ts';
 import { MapId } from '../src/data/resources.ts';
-import { journalLines, journalCheck, hearClue, emptyJournal, ENTRIES } from '../src/game/journal.ts';
+import { journalLines, journalPage, journalCheck, hearClue, emptyJournal, ENTRIES } from '../src/game/journal.ts';
 import { wrapText } from '../src/ui/menus.ts';
 import { talkTo, transactToward, otherCommand } from '../src/game/interact.ts';
 import { restore, SAVE_VERSION, type SaveData } from '../src/game/save.ts';
@@ -194,5 +194,34 @@ describe('the journal', () => {
     world.journal.lordBritish = true;
     world.newGame();
     expect(world.journal).toEqual(emptyJournal());
+  });
+});
+
+describe('journalPage', () => {
+  const wrap = (text: string, width: number) => [text.slice(0, width)];
+  const entries = [
+    { id: 'king', title: 'Speak to the King', state: 'done' as const, note: '', clues: [], hint: 'h1' },
+    {
+      id: 'kings',
+      title: 'The Mark of Kings',
+      state: 'open' as const,
+      note: 'Not yet',
+      clues: [{ from: 'Yew', text: 'Dig deep' }],
+      hint: 'h2',
+    },
+  ];
+
+  it('expands the selected entry and reports its title line', () => {
+    const page = journalPage(entries, 1, 20, wrap);
+    expect(page.lines).toEqual(['* Speak to the King', '', '- The Mark of Kings', 'Not yet', '', 'Yew: Dig deep']);
+    expect(page.cursorLine).toBe(2);
+    const first = journalPage(entries, 0, 20, wrap);
+    expect(first.lines).toEqual(['* Speak to the King', '', '- The Mark of Kings']);
+    expect(first.cursorLine).toBe(0);
+  });
+
+  it('clamps the selection to the list', () => {
+    expect(journalPage(entries, 7, 20, wrap).cursorLine).toBe(2);
+    expect(journalPage(entries, -3, 20, wrap).cursorLine).toBe(0);
   });
 });

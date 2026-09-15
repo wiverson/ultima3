@@ -33,7 +33,7 @@ import { PlayerRecord, levelUpDue } from '../game/player.ts';
 import { commandMenu, hasMagic } from '../game/context.ts';
 import { memberShape } from '../game/combat.ts';
 import { TILE_SETS, KEYBOARD_HELP, CONTROLLER_HELP } from './help.ts';
-import { journalLines, journalSnapshot } from '../game/journal.ts';
+import { journalLines, journalPage, journalSnapshot } from '../game/journal.ts';
 import { CHEATS } from '../game/cheats.ts';
 import { Location } from '../game/party.ts';
 import { buildViewport, VIEW_SIZE, type Viewport } from '../game/viewport.ts';
@@ -551,7 +551,7 @@ export class Screen implements GameIO {
 
   /**
    * Read a key, translating the controller stand-ins when in controller
-   * mode (WASD to the d-pad, Enter/Z to A, Escape/X to B, C to X, V to Y).
+   * mode (WASD to the d-pad, Enter/Z to A, Escape/X/B to B, C to X, V/Y to Y).
    */
   private async readKey(timeoutMs?: number): Promise<string | null> {
     const scripted = this.macro.shift();
@@ -823,40 +823,45 @@ export class Screen implements GameIO {
   }
 
   /**
-   * The quest journal (J): one page over the map. Entries done are a
-   * marked title; the entry in hand is its title, its progress note and
-   * every clue heard about it. Up and Down scroll, H (Y) prints the entry
-   * in hand's hint to the message area, Escape (B) closes. What was shown
-   * is noted on closing, so "Journal updated" only marks real change.
+   * The quest journal (J): one page over the map. Every revealed entry is
+   * a title, done ones marked; the entry under the cursor is expanded with
+   * its progress note and every clue heard about it. Up and Down move the
+   * cursor (the page scrolls to keep it in view), H (Y) prints that entry's
+   * hint to the message area, Escape (B) closes. The cursor starts on the
+   * entry in hand. What was shown is noted on closing, so "Journal
+   * updated" only marks real change.
    */
   async showJournal(): Promise<void> {
     const controller = this.inputMode === 'controller';
     const wasCovered = this.openPage();
+    let selected = -1;
     let top = 0;
     try {
       for (;;) {
         const entries = journalLines(this.world);
-        const current = entries.find((e) => e.state !== 'done');
-        const lines: string[] = [];
-        for (const e of entries) {
-          if (lines.length) lines.push('');
-          lines.push(`${e.state === 'done' ? '*' : '-'} ${e.title}`);
-          if (e !== current) continue;
-          if (e.note) lines.push(...wrapText(e.note, PAGE_WIDTH, 4));
-          for (const clue of e.clues) {
-            lines.push('');
-            lines.push(...wrapText(`${clue.from}: ${clue.text}`, PAGE_WIDTH, 12));
-          }
-        }
-        const maxTop = Math.max(0, lines.length - PAGE_ROWS);
-        top = Math.min(top, maxTop);
+        if (selected < 0)
+          selected = Math.max(
+            0,
+            entries.findIndex((e) => e.state !== 'done'),
+          );
+        selected = Math.max(0, Math.min(entries.length - 1, selected));
+        const page = journalPage(entries, selected, PAGE_WIDTH, wrapText);
+        const maxTop = Math.max(0, page.lines.length - PAGE_ROWS);
+        // Keep the cursor's title on the page, with a line of context below it where there is one.
+        if (page.cursorLine < top) top = page.cursorLine;
+        if (page.cursorLine >= top + PAGE_ROWS) top = page.cursorLine - PAGE_ROWS + 1;
+        top = Math.max(0, Math.min(maxTop, top));
         const footer = [controller ? 'Y hint  B close' : 'H hint  Esc close', ''];
-        this.drawPage('Journal', lines.slice(top), footer, maxTop > 0 ? 'Up/Down for more' : '');
+        this.drawPage('Journal', page.lines.slice(top), footer, entries.length > 1 ? 'Up/Down: entries' : '', page.cursorLine - top);
         const key = await this.readKey();
         if (key === Key.Escape || key === Key.B) break;
-        if (key === Key.Up) top = Math.max(0, top - 1);
-        else if (key === Key.Down) top = Math.min(maxTop, top + 1);
-        else if (current && (key === Key.Y || key === 'h' || key === 'H')) this.printWrapped(current.hint);
+        if (key === Key.Up) {
+          if (selected > 0) selected--;
+          else top = Math.max(0, top - 1);
+        } else if (key === Key.Down) {
+          if (selected < entries.length - 1) selected++;
+          else top = Math.min(maxTop, top + 1);
+        } else if (key === Key.Y || key === 'h' || key === 'H') this.printWrapped(entries[selected].hint);
       }
     } finally {
       journalSnapshot(this.world);

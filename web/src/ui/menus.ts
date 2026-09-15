@@ -37,12 +37,16 @@ export function controllerKeyFor(key: string): string {
     case Key.Escape:
     case 'x':
     case 'X':
+    case 'b':
+    case 'B':
       return Key.B;
     case 'c':
     case 'C':
       return Key.X;
     case 'v':
     case 'V':
+    case 'y':
+    case 'Y':
       return Key.Y;
     default:
       return key;

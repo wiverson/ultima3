@@ -116,8 +116,9 @@ fresh game.
     X       ztats
     Y       look; attack in combat; ignite a torch in dungeons
 
-Keyboard stand-ins: WASD or arrows for the d-pad, Enter or Z for A, Escape
-or X for B, C for X, V for Y. Pressing a gamepad button switches to
+Keyboard stand-ins: WASD or arrows for the d-pad, Enter or Z for A, Escape,
+X or B for B, C for X, V or Y for Y (ZXCV is the button row on the keyboard;
+B and Y are the letters on the pad). Pressing a gamepad button switches to
 controller mode.
 
 ### Touch screens
@@ -315,16 +316,18 @@ save contains except the pooled gold and food.
   over the map. The main line is ten entries, revealed one at a time as
   the one before is done: speak to the king, the Mark of Kings, lost
   Ambrosia, the four cards, exotic arms, the Marks of Fire and Force, the
-  silver snake, the order of the cards, Exodus. It is one page: entries
-  done are a marked title, and the entry in hand shows its progress note
-  and every clue heard about it, the words of a townsperson, the king,
-  the prayer in Yew or the Time Lord kept as spoken with the town's name.
+  silver snake, the order of the cards, Exodus. It is one page: every
+  revealed entry is a title, done ones marked, and the entry under the
+  cursor is expanded with its progress note and every clue heard about
+  it, the words of a townsperson, the king, the prayer in Yew or the Time
+  Lord kept as spoken with the town's name. Up and Down move the cursor
+  between entries; it starts on the entry in hand.
   Done is read from the party (who bears a mark, cards found "2 of 4",
   exotics in the bag, Exodus destroyed) or flagged as it happens (the
   audience, the shore of Ambrosia, the word learned, the serpent parted,
   the Time Lord). Every entry also has a short hint written for this
-  port; H (Y on a controller) prints the entry in hand's hint to the
-  message area, and nothing remembers the asking. "Journal updated"
+  port; H (Y on a controller) prints the hint of the entry under the
+  cursor to the message area, and nothing remembers the asking. "Journal updated"
   prints when a revealed entry is done or gains a clue, and only then; a
   clue for an entry not yet revealed waits quietly. The journal lives in
   the save file (version 5); older saves start it empty.

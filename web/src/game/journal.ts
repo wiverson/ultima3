@@ -259,6 +259,41 @@ export function journalLines(world: World): JournalLine[] {
   return out;
 }
 
+/** The journal page: every entry's title, the selected one expanded with its note and clues. */
+export interface JournalPage {
+  lines: string[];
+  /** The line of the selected entry's title. */
+  cursorLine: number;
+}
+
+/**
+ * Lay out the journal page for `entries`, expanding the entry at `selected`
+ * (clamped to the list) with its progress note and every clue heard.
+ * `width` is the page's width in characters; `wrap` wraps a paragraph to it.
+ */
+export function journalPage(
+  entries: JournalLine[],
+  selected: number,
+  width: number,
+  wrap: (text: string, width: number, max: number) => string[],
+): JournalPage {
+  const lines: string[] = [];
+  let cursorLine = 0;
+  const pick = Math.max(0, Math.min(entries.length - 1, selected));
+  entries.forEach((e, i) => {
+    if (lines.length) lines.push('');
+    if (i === pick) cursorLine = lines.length;
+    lines.push(`${e.state === 'done' ? '*' : '-'} ${e.title}`);
+    if (i !== pick) return;
+    if (e.note) lines.push(...wrap(e.note, width, 4));
+    for (const clue of e.clues) {
+      lines.push('');
+      lines.push(...wrap(`${clue.from}: ${clue.text}`, width, 12));
+    }
+  });
+  return { lines, cursorLine };
+}
+
 /** Record a townsperson's line. Returns true if it was a new clue. */
 export function hearTownLine(world: World, town: string, speaker: number): boolean {
   const id = `${town}#${speaker}`;
