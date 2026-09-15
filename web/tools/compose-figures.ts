@@ -169,9 +169,12 @@ function blit(src: Rgba, sx: number, sy: number, col: number, row: number): void
 }
 const cellOf = (tile: number, frame: number) => ({ col: Math.floor(tile / TILE_ROWS) * 2 + frame, row: tile % TILE_ROWS });
 let written = 0;
+/** Cells that get the rim (every figure cell written here, plus the balls). */
+const haloCells = new Set<string>();
 const place = (src: Rgba, rect: Rect, tile: number, frame: number) => {
   const { col, row } = cellOf(tile, frame);
   blit(src, rect.x, rect.y, col, row);
+  haloCells.add(`${col},${row}`);
   written++;
 };
 
@@ -201,6 +204,36 @@ for (const row of atlas.rows) {
   }
   const frames = row.frames.length === 1 && !(row.tile >= 32 && row.tile <= 35) ? [row.frames[0], row.frames[0]] : row.frames;
   frames.forEach((rect, frame) => place(figures, rect, row.tile, frame));
+}
+/**
+ * The rim: one sheet pixel of 50% black around every figure, so it stands
+ * off water, stone and lava (it vanishes into Standard's near-black grass).
+ * A transparent pixel with any of its eight neighbours opaque is painted;
+ * rim pixels themselves (alpha 128) count as neither, so a rerun is the
+ * same as one run. --no-halo leaves the art as drawn.
+ */
+const HALO = !process.argv.includes('--no-halo');
+function halo(col: number, row: number): void {
+  const alpha = (x: number, y: number) => sheet.data[((row * CELL + y) * sheet.width + col * CELL + x) * 4 + 3];
+  const opaque = (x: number, y: number) => x >= 0 && y >= 0 && x < CELL && y < CELL && alpha(x, y) >= 200;
+  const paint: number[] = [];
+  for (let y = 0; y < CELL; y++)
+    for (let x = 0; x < CELL; x++) {
+      if (alpha(x, y) !== 0) continue;
+      let near = false;
+      for (let dy = -1; dy <= 1 && !near; dy++) for (let dx = -1; dx <= 1; dx++) if ((dx || dy) && opaque(x + dx, y + dy)) near = true;
+      if (near) paint.push(((row * CELL + y) * sheet.width + col * CELL + x) * 4);
+    }
+  for (const o of paint) sheet.data.set([0, 0, 0, 128], o);
+}
+if (HALO) {
+  for (const ball of [60, 61]) for (const frame of [0, 1]) haloCells.add(`${cellOf(ball, frame).col},${cellOf(ball, frame).row}`);
+  for (const key of haloCells) {
+    const [col, row] = key.split(',').map(Number);
+    if (col === EXODUS_PANEL_COLUMN && row < 4) continue; // the machine's panels fill their cells
+    halo(col, row);
+  }
+  console.log(`rimmed ${haloCells.size} cells`);
 }
 writeFileSync(SHEET, encodePng(sheet));
 console.log(`wrote ${written} cells into ${SHEET}`);

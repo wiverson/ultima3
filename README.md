@@ -142,6 +142,9 @@ look.
   walks at full size with the others in a line behind, as on the NES.
 - The Great Serpent that blocks the pass is one tall figure across two
   tiles, head to the south where the party comes to yell at it.
+- Every figure and object carries a one-pixel rim of half-black, so it
+  stands off water, stone and lava; over the near-black grass it is
+  invisible. It is a build step, not part of the art.
 - The magic and fire balls of combat are flat orbs with the Apple II's
   diamond core, and a hit is a three-frame red burst rather than a HIT
   tile. The forcefield is bands of violet and blue that scroll without a

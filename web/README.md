@@ -117,7 +117,10 @@ contains except the pooled gold, food and gear.
 - **The Standard figures** are two atlases in `art/figures/` with their
   manifests, drawn to `docs/figure-art-spec.md` (with `snake-brief.md`
   and `second-pass-brief.md`); `tools/compose-figures.ts` writes them into
-  `public/graphics/Standard-Tiles.png` doubled to 64 px. The Ranger's
+  `public/graphics/Standard-Tiles.png` doubled to 64 px, then rims every
+  figure cell (and the two balls) with one sheet pixel of 50% black where
+  a transparent pixel has an opaque 8-neighbour; rim pixels count as
+  neither, so a rerun changes nothing, and `--no-halo` skips it. The Ranger's
   second frame in the older Standard art was made by turning the arm of
   the Mac's single frame about the shoulder.
 - **Masks**: the Mac shipped a grey Mask image per set for creature
