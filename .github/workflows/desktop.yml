@@ -8,6 +8,8 @@ on:
   workflow_dispatch:
   push:
     tags: ['v*']
+    branches: [main]
+    paths: ['desktop/**', '.github/workflows/desktop.yml']
 
 permissions:
   contents: write
