@@ -1,8 +1,10 @@
-# Ultima III in the browser
+# Ultima III in the browser: developer notes
 
 A TypeScript port of LairWare's Macintosh remake of Ultima III (the C sources
 in `../Sources`). It renders with plain Canvas 2D, plays sound and music with
-Web Audio, and needs no game engine.
+Web Audio, and needs no game engine. What the game is and what changed for
+the player is in the [root README](../README.md); this file is about the
+code.
 
 ## Running it
 
@@ -13,16 +15,12 @@ npm run extract   # converts ../Resources and ../Images into public/
 npm run dev       # http://localhost:5173
 npm test          # unit tests (Vitest, run in Node)
 npm run build     # typecheck + production build into dist/
+npm run figures   # writes art/figures/ into the Standard tile sheet
 ```
 
 `npm run extract` only needs to run again if the original resources change.
 Its output is committed so the game runs straight after `npm install`.
-
-There are two input modes, keyboard and controller, chosen in the game's
-Settings menu (Escape; a gamepad button press also switches to controller
-mode). The Controls section below lists the keys and buttons; the same
-text is in the game under Settings > Help. `?new` on the URL starts a
-fresh game instead of resuming the last one from the browser's storage.
+`?new` on the URL starts a fresh game instead of resuming the last one.
 
 ## What is ported
 
@@ -48,7 +46,7 @@ Everything the Apple II game had:
   ztats, death and resurrection, save and resume.
 - Music: the original QuickTime music files are decoded and played on a
   small Web Audio synthesizer (`src/ui/music.ts`).
-- Auto-combat, a LairWare addition: see Settings below.
+- Auto-combat, a LairWare addition.
 
 Left out on purpose, all additions LairWare made for the Mac rather than
 parts of the game: the animated intro and attract mode, auto-heal, the
@@ -56,446 +54,93 @@ parts of the game: the animated intro and attract mode, auto-heal, the
 text-to-speech, mouse control, and the Mac dialogs (the Apple II text flow
 is used instead).
 
-## Controls
+## Implementation notes
 
-Escape opens the Settings menu anywhere (on the title screen it is the
-third entry under Options; in controller mode it is the last entry of the
-command menu). Settings holds the input mode, the tile set,
-auto combat, poison kills, starvation, balanced XP, the turn timer, sound
-effects, music, and Help, which shows these controls in the game in a box over the map. J (Journal
-in the controller menu) opens the quest journal the same way, and # (View
-map) shows the cloth map of Sosaria over the whole screen; none of these
-takes a turn. Every setting is remembered by the browser.
+The technical side of the changes listed in the root README. The records
+written are still the Apple II's, so nothing here changes what a save
+contains except the pooled gold, food and gear.
 
-### Keyboard mode (the Apple II commands)
-
-    Arrows       walk; move in combat      Space   pass a turn
-    Escape       settings                  J       journal
-
-    A attack     B board      C cast      E enter     F fire
-    G get chest  I ignite     L look      M modify    N negate
-    O other      P peer gem   Q quit/save R ready     S steal
-    T transact   U unlock     V volume    W wear      X exit craft
-    Y yell       Z ztats
-
-    O and Y are the same prompt: a member and a word (SEARCH, BRIBE,
-    PRAY, EVOCARE, INSERT, DIG, PAXUM, SCREAM).
-
-    Combat:   arrows move (into a monster attacks), A attack in a
-              direction, C N R Z, Escape turns auto combat off
-    V toggles sound effects, as Settings does; the controller menus
-    leave it to Settings
-    Dungeons: up/down advance or retreat, left/right turn, I K D
-              ignite, klimb, descend, L cycle the auto-map
-
-Prompts for "whom" take a member number 1-4, or Up and Down to move a pair
-of arrows through the stats boxes and Enter to take the marked member; a
-direction is an arrow key.
-Q on the surface saves the game in this browser; it resumes on the next
-visit. The title menu's Export game writes the saved game as JSON text
-to the clipboard or to a downloaded file, and Import game reads such
-text back from the clipboard or a chosen file and replaces the saved
-game, after asking; that is how a game moves between browsers or
-machines, and a file is the copy that outlives the browser's storage.
-The text carries the save and the dungeon auto-map, not the settings.
-The game asks the browser for persistent storage, which keeps Chrome,
-Edge and Firefox from clearing the save under disk pressure. Every
-browser on iOS runs on WebKit, which deletes a site's storage after
-seven days of browser use without a visit unless the page has been
-added to the Home Screen; an iOS browser tab is told so at launch, once
-a day. The game also saves itself when the journey starts and at every
-town, castle and dungeon door, going in and coming out, and prints
-"(saved)" under the door message when it does. `?new` on the URL starts a
-fresh game.
-
-### Controller mode (in the spirit of the NES version)
-
-    D-pad   move, or move the cursor in a menu
-    A       open the command menu; choose
-    B       cancel, or pass a turn
-    X       ztats
-    Y       look; attack in combat; ignite a torch in dungeons
-
-Keyboard stand-ins: WASD or arrows for the d-pad, Enter or Z for A, Escape,
-X or B for B, C for X, V or Y for Y (ZXCV is the button row on the keyboard;
-B and Y are the letters on the pad). Pressing a gamepad button switches to
-controller mode.
-
-### Touch screens
-
-A tap (or click) anywhere shows a virtual controller drawn in thin
-lines over the game: a d-pad at the lower left, A and B at the lower
-right, a close button at the upper left and, at the upper right, a
-full-screen button where the browser allows it (gone while full screen)
-with Y below it, for the cheats on the help pages and Look, Attack or
-Ignite in play. It
-works the controller mode and switches to it; holding a direction walks.
-Only the close button hides it, or a physical key or gamepad press. On a
-touch screen it is shown from the first visit, and whether it is shown
-is remembered. The controls are sized in millimetres, so they come out
-about the size of an NES controller's on any screen. The command menu lists the commands the surroundings call
-for first (Enter on a town, Board on a horse, Get on a chest, Attack
-beside a monster), leaves out commands that make no sense where you stand
-(no craft to board, no chest to get), and greys out ones with nothing on
-hand (no gem to peer through, no torch to light, no caster left alive).
-Numbers use a spinner and names an on-screen keyboard.
-
-The game pauses its idle timers, including the combat turn timer, while
-the browser window is not focused, holds the music where it is, and shows
-PAUSED in the middle of the screen until focus returns, when the music
-goes on from the same place. Everything, loading and error messages
-included, is drawn on the canvas; the page has nothing else on it.
-
-### Cheats
-
-On the Help pages, Y (V on the keyboard in controller mode) opens a
-cheat menu: full restore (everyone healed and alive), raise every level
-(what an audience with Lord British gives, to everyone at once: a level
-of experience and a hundred hit points), go home (back to Lord British's
-gate, leaving any town, castle or dungeon), exit dungeon, 100 gold or
-100 food for the party, and ten gems, five keys or five torches for the
-leader. Each prints its confirmation to the message
-area, like any other event, where it stays in the scrollback. None of it
-existed in the original; it is there for testing and for anyone who
-wants it.
-
-## Installing and playing offline
-
-The site is a progressive web app. Chrome, Edge and Android offer to
-install it from the address bar or the browser menu; on iOS use Share,
-then Add to Home Screen. On the first visit the service worker caches
-every file the game needs (about six megabytes), so an installed copy,
-or a tab that has been opened once, runs without a network.
-
-Updates arrive on their own: whenever the app starts, and once an hour
-while it runs, it looks for a new build. A new one downloads in the
-background while the old one keeps running, and the title menu then
-shows "Update: restart". Choosing it reloads into the new version. An
-update that is not chosen is applied the next time every tab of the
-game is closed and it is opened again. The saved game, the settings and
-the auto-map live in the browser's storage and survive updates.
-
-## Differences from the original
-
-Quality-of-life changes this port makes on top of the Apple II game. The
-records written are still the Apple II's, so nothing here changes what a
-save contains except the pooled gold and food.
-
-- **Bumping into things** does what you would have typed next: a
-  townsperson is talked to, a shop counter opens the shop, a locked door
-  beside you asks whose key to use, and a monster, on the surface or in
-  combat, is attacked.
-- **Transact** asks the direction first and "who" only when it matters:
-  the shops that hand something to a member, and Lord British, whose
-  prompt lists only the members due a level (the blue names) when any
-  are, whether you Transact or walk into him.
-  The raise adds the hundred hit points as well as the room for them; the
-  Apple II raised only the maximum.
-- **Gold and food are pooled** for the whole party (the Apple II kept them
-  per member, 0..9999 each). The pool lives in spare bytes of the party
-  record and shows on the top border either side of the moons. Join gold
-  is gone. Members eat a tenth of a
-  ration a turn from the pool and go hungry together when it is empty; the
-  Apple II's food-borrow quirk went with the per-member counters. Forming
-  a party pools the members' purses; dispersing shares the pool out again.
-- **Weapons and armour are pooled** as well: the party carries one bag
-  (spare bytes of the party record again), and a member's record keeps
-  only what they have readied and worn. Ready and Wear draw from the bag
-  and return the old item to it, so one sword cannot arm two members;
-  the lists mark the item in use and grey what the class may not use.
-  Shops still ask who is at the counter: the member's readied weapon or
-  worn armour is announced, stock they cannot use is greyed but still for
-  sale, and after a purchase they can use, the shop offers to ready or
-  wear it there and then. Selling takes from the bag only. Ztats lists the
-  bag on every member's page, under the member's race and class, which
-  the character boxes no longer show. Chest finds, dug exotics and thrown daggers
-  come and go from the bag; a pilfering thief empties one kind from it.
-  Forming a party pools the members' bags (each keeps what is in hand);
-  dispersing deals the bag out, to members who can use each item first.
-  The Hand command, which moved gear between members, is gone.
-- **Character boxes** are two rows: the name, then hit points over max
-  and mana (none for fighters, thieves and barbarians). On the Standard
-  set the name is coloured by state (green poisoned, light grey dead,
-  dark grey ashes, blue when Lord British would raise the member, white
-  otherwise), hit points go yellow under a quarter and red under a tenth,
-  and a dead member's or ashes' whole box takes the name's grey. Every
-  other set does as the Apple II did: the status letter, G good, P
-  poisoned, D dead, A ashes, at the end of the name row, and no colour.
-  The message area gained four rows.
-- **The party on foot** is drawn as its members in two ways. With the
-  Standard tiles, on the overworld they are at half size in a 2x2 grid in
-  marching order, to sell the scale of the map. In towns and castles with
-  the Standard tiles, and everywhere with the Nintendo tiles, the leader
-  stands at full size and the others follow in a line on the squares the
-  leader walked through, as the NES version did; the line is only a
-  drawing, the party's position is still one square, and townspeople and
-  monsters walk over it. A poisoned
-  member is all green, a dead one or ashes is not drawn. On a horse or
-  frigate, and otherwise, the Apple II's single figure is used.
-- **Hits** with the Standard tiles show a three-frame red burst on the
-  16-pixel grid (a small disc, a larger one, then a ring) instead of the
-  "HIT" tile; the other tile sets keep their HIT tile.
-- **Combat marker**: the member whose turn it is gets a rounded outline,
-  two game pixels wide, fading from white to grey over the time the turn
-  timer allows, then steady white while the chosen command's prompts run
-  (and throughout, with the timer off). On the Macintosh B&W set, whose
-  ground is white, it runs black to grey instead. The Apple II blinked the figure.
-- **Direction prompts** sit on the map's bottom border, where the wind
-  line is ("Direction? Esc Cancel", or "B: Cancel" on a controller), so
-  the map and the combat marker stay in view. The wind line comes back
-  when the prompt ends.
-- **No diagonal moves**: as on the Apple II, the party cannot move, attack
-  or fire diagonally while monsters always could. The Mac version let the
-  party move diagonally and walled Exodus' castle with mountains to
-  compensate (`BlockExodus()`); that code remains, behind
-  `World.setDiagonalMoves`, but is no longer offered in Settings.
-- **A new game asks "Choose Thine Adventure!"** when a party is formed,
-  and at Journey onward while the question is still unanswered (the
-  answer is kept with the party, so a reload does not lose it): Modern
-  (recommended) sets poison to stop at one hit point, starvation to Mild,
-  Balanced XP on and the timer Slow; Classic (hardcore) sets poison and
-  starvation to the Apple II's, to the death, Balanced XP off and the
-  timer Fast; Story (relaxed) is Modern with starvation None and the
-  timer Off. Any of them can be changed afterwards in Settings.
-- **Poison kills** (off by default): the Apple II's poison took a hit
-  point every ageing tick until the member died. Off, it stops at one hit
-  point, so a poisoned member limps home rather than dying on the road;
-  on restores the original.
-- **Starvation** has three settings. Classic is the Apple II's: an empty
-  larder costs every member 5 hit points an ageing tick, to the death.
-  Mild (the default) stops at half of maximum hit points. None only says
-  so. With food pooled, "STARVING!" prints once a tick rather than once a
-  member.
-- **Timer** has three settings. Fast is the Apple II's: a combat turn
-  passes by itself after 4 seconds, an idle turn in the field after 5 and
-  in a dungeon after 6. Slow gives 10, 12 and 14. Off waits for a key,
-  however long, so the game is turn-based through and through; the
-  combat outline then stays white instead of fading. Fast is the default
-  for games from before the setting existed.
-- **Balanced XP** (on by default): a kill's experience is shared among the
-  living members, the killer then the others in marching order taking any
-  odd points, so an orc's 3 points go one each to three of four. Off, the
-  killer takes it all, as on the Apple II, where a bow-armed member who
-  finished off wounded foes out-levelled the rest.
-- **Auto combat** (off by default), a LairWare addition: the party fights
-  by itself. As in the Mac version the AI decides a member's turn and
-  "types" it: it queues the keys a player would press (`GameIO.queueKeys`)
-  and the ordinary combat prompts read them. Escape during a fight turns
-  it off, as Cmd-. did. Four departures from the Mac's planner: a member
-  closing to melee follows a breadth-first path to the nearest square
-  they can strike from, round comrades and walls (the Mac headed at a
-  guess of the monster's next step and sidestepped blindly when blocked,
-  which left members milling about); "nearly dead" is a quarter of
-  maximum hit points, at most 50, not a flat 50; a wounded member who
-  cannot get away fights back instead of passing; and Sanctu is cast only
-  when someone is under 60% and down at least 20, not at a flat 75.
-  A monster's square counts as occupied, which the original did not check.
-- **Menus for the title and party screens** in both input modes (the
-  Apple II typed entry numbers and attribute values): the roster is a
-  pick list, the party a multi-select list in marching order, attributes a
-  screen where left and right adjust each value until all 50 points are
-  spent, and a random name is offered from a stock list (`names.ts`).
-  Terminate asks for confirmation.
-- **Controller mode** with pop-up menus, and a command menu ordered by
-  what the surroundings call for (`context.ts`). In combat the menu reads
-  the member's turn: a ranged weapon in hand (sling, bow, or a dagger with
-  a spare in the bag) puts "Attack (Bow)" first, and a caster gets "Cast
-  (spell)", their last spell or Magic bolt (Heal for the cleric classes),
-  ahead of the plain Cast: first of all without a ranged weapon, second
-  with one. Melee needs no entry, since walking into a foe attacks it.
-  Outside combat, when a member is hurt and a cleric-spell caster can pay
-  for it, "Cast (Heal)" or "Cast (Great heal)" leads the menu and casts
-  at once, no prompts: the member missing the most hit points is the
-  target, a wound over twenty calls for Great heal and a smaller one for
-  Heal, the other standing in when it alone can be afforded, and the
-  caster is whoever with cleric spells has the most mana. Once nobody
-  can pay, the entry goes. On a chest, "Cast (Safe chest)" sits under
-  Get chest while a cleric-spell caster can pay for it, and casts Appar
-  Unem on the chest at once, the caster again whoever has the most mana.
-  In a dark dungeon, "Cast (Long light)" or "Cast (Light)" sits under
-  Ignite torch while someone can cast one: the strongest light spell
-  anyone has the book and the mana for, Long light (Dag Lorum or
-  Sominae, 250 turns) over Light (Lorum or Luminae, 10 turns), the caster
-  whoever can cast it with the most mana, a tie going to party order,
-  and the cheaper book when a member has both. It casts at once. On a
-  keyboard the same shortcuts are ! (heal), @ (safe chest) and $ (light).
-- **A quest journal** (`journal.ts`), the Apple II had none. J opens it
-  over the map. The main line is ten entries, revealed one at a time as
-  the one before is done: speak to the king, the Mark of Kings, lost
-  Ambrosia, the four cards, exotic arms, the Marks of Fire and Force, the
-  silver snake, the order of the cards, Exodus. It is one page: every
-  revealed entry is a title, done ones marked, and the entry under the
-  cursor is expanded with its progress note and every clue heard about
-  it, the words of a townsperson, the king, the prayer in Yew or the Time
-  Lord kept as spoken with the town's name. Up and Down move the cursor
-  between entries; it starts on the entry in hand.
-  Done is read from the party (who bears a mark, cards found "2 of 4",
-  exotics in the bag, Exodus destroyed) or flagged as it happens (the
-  audience, the shore of Ambrosia, the word learned, the serpent parted,
-  the Time Lord). Every entry also has a short hint written for this
-  port; H (Y on a controller) prints the hint of the entry under the
-  cursor to the message area, and nothing remembers the asking. "Journal updated"
-  prints when a revealed entry is done or gains a clue, and only then; a
-  clue for an entry not yet revealed waits quietly. The journal lives in
-  the save file (version 5); older saves start it empty.
-- **View map** (# on the keyboard, View map in the controller menu, not
-  in Ambrosia) shows the cloth map of Sosaria that came in the box, over
-  the whole screen through a CRT effect: scanlines, a colour ghost, a
-  rolling band, a flicker, the odd sideways jitter and darkened corners,
-  animated until a key is pressed. The Mac showed the map from a menu item.
-  Every moongate the party has come out of is marked on it with the
-  Trammel moon that opens it, so the gate table builds itself one trip at
-  a time; the Apple II never wrote it down anywhere. The marks are kept in
-  the save file (version 6).
-- **Moon phases as pictures.** The status bar shows the two moons as the
-  tile set's pictures of their phases, Trammel then Felucca, as the Mac
-  did and as Ultima IV and V did; the Apple II printed digits. A new moon
-  is dark, a full one bright, and the gate open is the one Trammel's
-  picture names. The Standard, Commodore 64, Apple II and PC EGA and CGA
-  sets get flat pixel moons painted at run time in their own palettes
-  (`moonArt.ts`), Standard's the same white and yellow as EGA's;
-  LairWare's shaded moons looked too modern beside the tiles.
-- **Other and Yell are one command.** The Apple II's Yell was Other under
-  another name, with one difference: EVOCARE parted the great serpent only
-  when yelled, and said "No effect" when typed at Other. EVOCARE now works
-  from Other too, so the controller menus list Other alone; Y still works
-  on the keyboard.
-- **Repeated turns fold together.** A turn that prints exactly what the
-  previous turn printed, "North" five times, "Pass" eight, or "North" over
-  "POISON!" on a poisoned walk, shows as "North (x5)", "Pass (x8)", or
-  "North (x5)" over "POISON! (x5)" rather than filling the message area;
-  a turn that differs, even partly, is printed in full and starts afresh.
-- **Fountains and the Time Lord** speak only when the party steps onto
-  their cell. The Apple II asked "who will drink?" again on every turn
-  spent standing there, turning on the spot included, and the idle pass
-  timer made that a nag. Step off and back on to drink again.
-- **A dungeon auto-map** (`automap.ts`), the graph paper of old. With a
-  lit torch the 3x3 of cells around the party is recorded as seen; L (Map
-  in the controller menu) cycles between no map, a 5x5 overlay in the top
-  right of the message area with the party centred, and the whole level
-  in place of the first-person view, which turns the dungeon into a
-  top-down crawl: the arrows then move north, south, east and west as on
-  the overworld, the party turns to face each move, and the first-person
-  view shrinks into the corner the small map used. Only seen cells are drawn, with Peer's map pieces from
-  the live level data, so an opened chest shows as opened; a secret door
-  is drawn as a wall with one pixel out of place where Peer shows it
-  plainly. In the dark nothing is recorded, but the 3x3 around the party
-  is still shown so a party without torches can feel its way out. The
-  seen cells live in their own browser store, not the save file: "try
-  again from last save" keeps what was learned, a new game starts blank.
-  The party is drawn as its first living member's figure; there is no
-  facing arrow, the wind line's compass keeps that job. Peer keeps its
-  blinking diamond.
-- **Scene pictures and the logo per tile set.** The full-window
-  pictures for the fountain, the mark rod, the shrine and the Time Lord,
-  and the Exodus logo on the title screen, are drawn for each tile set
-  in its own style and palette, as `<Set>-<Scene>.png` beside its tile
-  sheets; the Lairware set keeps LairWare's 3D scene renders and its
-  original 3D logo. The title logo changes with the set as it is picked
-  in Settings. The spec they
-  were drawn to is `docs/scene-images.md`.
-- **Flat figures in the Standard set** (`art/figures/`,
-  `tools/compose-figures.ts`). Every figure-scale tile in the Standard
-  sheet is now flat 32 px art doubled to its 64 px cells: the eleven
-  class figures, the townspeople, the eight monsters and their sixteen
-  variants, Exodus' four panel states, the horse, ships, whirlpool,
-  chest, moongate and shrine. The art follows the brief in
-  `docs/figure-art-spec.md` (Apple II silhouettes on a 2 px grid, three
-  tones per material, hard alpha) and lives as two atlases with their
-  manifests in `art/figures/`; `npm run figures` writes them into the
-  sheet, so a redrawn atlas is one command away from the game. The Great
-  Serpent that blocks the pass is one 32 x 64 figure split across tiles 58
-  (north) and 59 (south), briefed separately in `docs/snake-brief.md`.
-- **One figure per class.** Cells 68-78 of a sheet hold a figure for each
-  class in career-table order (Fighter, Cleric, Wizard, Thief, Paladin,
-  Barbarian, Lark, Illusionist, Druid, Alchemist, Ranger), and
-  `memberShape` now names that tile for every class. A set without them
-  (every set but Standard so far, detected by an empty cell 68) falls back
-  in `tileRect` to the original `DetermineShape()` grouping: fighters,
-  paladins and barbarians share one figure, clerics and druids another,
-  wizards, illusionists and alchemists a third, thieves their own, the
-  lark is the jester and the ranger the party marker. Class figures
-  animate in step with the shared figure they stand in for. The party
-  grid on the overworld and the line in towns draw the same figures, so a
-  Standard party of a paladin, a druid, an illusionist and an alchemist
-  now looks like one.
-- **Dungeon art per tile set** (`dungeonArt.ts`). LairWare's Mac version
-  drew the first-person dungeon from one photographic sheet whatever tiles
-  were chosen. Here that pairing is the "Lairware" set, and every other
-  set paints its own dungeon at run time in the spirit of its machine:
-  wireframe corridors for the Apple II, Commodore 64 and Macintosh sets,
-  blue and cyan for CGA, flat bricks in each palette for the NES and the
-  EGA, MCGA, VGA and Ultima V sets. Standard, the Mac tiles, takes the
-  VGA stone. The pieces are painted into the Mac sheet's layout and cut
-  by its mask, so the drawing code is unchanged (`docs/dungeon-sheet.md`).
-- **Gems, keys, powders and torches are the party's** too (bytes 56-59
-  of the party record), so Peer, Unlock, Negate time and Ignite never ask
-  whose, the guild sells to the party without asking who is buying, and
-  Ztats shows the same four counts on every page. Forming a party pools
-  them, dispersing deals them out.
-- **Daggers** are thrown only when the member has a spare; with a single
-  dagger an attack at a distant foe just misses. The Apple II let a new
-  character throw away their only weapon.
-- **Spell menus** name spells by what they do (Magic bolt, Heal, Up a
-  level) with the spell-book name, cost and effect on the hint line
-  beneath; the Apple II showed only the book names the manual explained.
-- **Member pickers** ("Who?") are answered in the stats boxes: Up and
-  Down move a pair of arrows (">" and "<" on the frame either side of a
-  box) through the members offered, Enter or A takes the marked one, Escape or
-  B cancels, and a digit 1-4 still answers at once. The prompt sits on the
-  map's bottom border like the direction prompt. A member brought back to
-  life during a fight is placed on the nearest open square to where they
-  fell.
-- **A party wipe** offers a choice: try again from the last save (the
-  autosave at the last door, with everything since undone) or flee to Lord
-  British as the Apple II did, resurrected with daggers, cloth, 150 gold a
-  head and a little food. The overworld is deliberately not autosaved
-  between doors, so a long trek keeps its risk.
+- **Pooled gold and food** live in spare bytes of the party record; the
+  per-member counters (0..9999 each) are no longer used. Members eat a
+  tenth of a ration a turn from the pool.
+- **The bag** of weapons and armour is in spare bytes of the party record
+  as well; a member's record keeps only the readied weapon and worn
+  armour. Gems, keys, powders and torches are bytes 56-59 of the party
+  record. Forming a party pools everything; dispersing deals it out, to
+  members who can use each item first.
+- **The save file** is at version 6: the journal came in at 5 and the
+  moongate marks on the cloth map at 6. Older saves load with those empty.
+  `Export game` writes `{ game, format, exported, save, automap }` as JSON;
+  `parseExport` names what is wrong with a file it will not take.
+- **The dungeon auto-map** keeps seen cells in its own browser store, not
+  the save file, so "try again from last save" keeps what was learned.
+- **Autosave** happens at Journey onward and at every town, castle and
+  dungeon door, in and out. The overworld is deliberately not autosaved
+  between doors.
+- **Persistent storage** is requested from the browser at start
+  (`navigator.storage.persist()`); the iOS seven-day warning is an `alert`
+  once a day, keyed in local storage.
+- **The PWA** uses `vite-plugin-pwa` with `registerType: 'prompt'`: the
+  service worker precaches every file (about six megabytes), a waiting
+  worker sets the "Update: restart" title entry, and `registration.update()`
+  runs hourly.
+- **Auto combat** follows the Mac planner with four departures: a member
+  closing to melee follows a breadth-first path to the nearest square they
+  can strike from, round comrades and walls; "nearly dead" is a quarter
+  of maximum hit points, at most 50; a wounded member who cannot get away
+  fights back; and Sanctu is cast only when someone is under 60% and down
+  at least 20. The planner queues the keys a player would press
+  (`GameIO.queueKeys`) and the ordinary prompts read them.
+- **Diagonal moves** for the party, which the Mac allowed and walled
+  Exodus' castle with mountains to compensate (`BlockExodus()`), remain
+  behind `World.setDiagonalMoves` but are not offered in Settings.
+- **The controller command menu** is built by `context.ts`: availability
+  per scope (hidden, greyed, shown), the surroundings' suggestions first,
+  then the shortcut entries. `healPlan`, `safeChestCaster` and `lightPlan`
+  in `spells.ts` choose the caster and spell; their keys are `!`, `@` and
+  `$`, dispatched in `game.ts`, `dungeon.ts` and `combat.ts`.
+- **The journal** (`journal.ts`) reads "done" from the party where it can
+  (marks borne, cards found, exotics in the bag, Exodus destroyed) and from
+  flags set as things happen (the audience, the shore of Ambrosia, the word
+  learned, the serpent parted, the Time Lord). Clues are ids like
+  `Moon#6` or `LB:mark`. `journalPage` lays the page out for the cursor.
 - **`heading()`** in `monsters.ts` uses true 8-bit wrap-around, as the
-  Apple II did. The C port tested for negative values first, which sent
-  monsters the long way round when the party was far to their west.
-- **The Ranger's figure** in the Standard tiles has a second animation
-  frame of its own, the sword arm raised, made by turning the arm of the
-  Mac's single frame about the shoulder; the Mac sheet's two frames were
-  the same picture, so the Ranger alone stood still. Lairware keeps the
-  Mac sheet untouched, still Ranger and all.
-- **Exodus' lights.** The Exodus tile is blank in every sheet: the Mac
-  kept its four light panels in the second-frame cells of the forcefield,
-  lava, moongate and wall tiles (which scroll or stand still and never
-  swap frames) and copied the next one into the Exodus cell every other
-  tick (`ExodusLights()`). The port draws the panel straight from where it
-  sits, so the machine's lights run in every set.
-- **Standard sheet repairs.** The bottom pixel row of the water, lava and
-  moongate tiles was a shade off the row above it and showed as a line
-  crossing the tile as it scrolled; it is now the mean of the rows on
-  either side of the wrap. Faint alpha fringe on the cell edges of the
-  creature tiles was cleared; figures that reach the edge are untouched.
-  The magic and fire balls of combat, which the Mac drew as glossy
-  spheres with the word HIT on the second frame, are redrawn: an orb
-  with the Apple II's diamond core, and a starburst for the hit. The
-  Mac's chrome serpent and rainbow forcefield are redrawn flat: a green
-  serpent with its head to the south, where the party comes to yell at
-  it, and a barrier of violet and blue bands that repeats within the
-  tile so the scroll shows no seam.
-- **Tile sheets carry their own transparency.** The Mac shipped a
-  separate grey "Mask" image per set for creature transparency, since
-  QuickDraw had no alpha channel; those masks are baked into the alpha of
-  the five sheets that had one, and the loader reads a sheet's alpha
-  directly. A set that ships a Mask file is still honoured; a set with
-  neither draws creatures opaque, as its machine did. LairWare's original
-  files remain in `Resources/Graphics` at the root of the repository.
-- **Chrome per tile set.** LairWare's frame, caps and cursor are a bright
-  teal that competes with the grass and water, and only some sets had a
-  UI sheet of their own. The Standard set uses the same pieces recoloured
-  to a darker copper, a warm complement that recedes behind the map; the
-  Lairware set keeps the teal; and the five PC sets, which had borrowed
-  Standard's, get sheets in their own palettes: CGA's cyan and white, EGA
-  blue with light-blue bevels, flat blue for the VGA set, slate for MCGA
-  and stone grey for Ultima V, the limited palettes snapped to their
-  platform's colours.
-- **Appearance**: the classic bitmap-font layout is used throughout; any of
-  the thirteen tile sets (with their fonts, borders and dungeon art) can be chosen in
-  Settings, Standard by default.
+  Apple II did; the C port tested for negative values first.
+- **Tile sheets**: 12 columns by 16 rows, two frames per tile, indices
+  0-63 the Apple II tiles, 64-67 the shared party figures, 68-78 one
+  figure per class in career-table order (a set without them, detected by
+  an empty cell 68, falls back in `tileRect` to the original
+  `DetermineShape()` grouping), 80-95 the monster variants. The Exodus
+  tile is blank; its four light panels sit in column 5, rows 0-3, and
+  `tileRect` points at the one whose turn it is. Tiles 58 and 59 are the
+  north and south halves of the Great Serpent.
+- **The Standard figures** are two atlases in `art/figures/` with their
+  manifests, drawn to `docs/figure-art-spec.md` (with `snake-brief.md`
+  and `second-pass-brief.md`); `tools/compose-figures.ts` writes them into
+  `public/graphics/Standard-Tiles.png` doubled to 64 px. The Ranger's
+  second frame in the older Standard art was made by turning the arm of
+  the Mac's single frame about the shoulder.
+- **Masks**: the Mac shipped a grey Mask image per set for creature
+  transparency (QuickDraw had no alpha); those are baked into the alpha of
+  the five sheets that had one. A set that ships a Mask file is still
+  honoured. LairWare's originals remain in `Resources/Graphics`.
+- **Dungeon art per set** is painted at run time (`dungeonArt.ts`) into the
+  Mac sheet's layout and cut by its mask, so the first-person renderer is
+  unchanged; `docs/dungeon-sheet.md` documents the layout. Moons likewise
+  (`moonArt.ts`). Scene pictures are `<Set>-<Scene>.png` beside the tile
+  sheets (`docs/scene-images.md`).
+- **Chrome per set**: the Standard frame is LairWare's recoloured to
+  copper; the five PC sets have UI sheets in their own palettes, snapped
+  to their platform's colours.
+- **The combat marker** is a rounded outline two game pixels wide, fading
+  white to grey over the turn timer (black to grey on the Macintosh B&W
+  set).
+- **Hits** on the Standard set are a three-frame burst on the 16-pixel
+  grid; the other sets keep their HIT tile.
+- **Repeated turns** fold when a turn prints exactly what the previous one
+  printed.
+- **Cheats** are a table in `cheats.ts`, reached from the Help pages with
+  Y (V on a keyboard in controller mode), and print to the message area.
 
 ## How the code is organised
 
@@ -527,6 +172,9 @@ src/game/   pure game logic, no DOM, unit tested
   dungeon.ts      the dungeon loop and what is visible in first person
   death.ts        party wipe and resurrection
   menu.ts         title screen, character creation, party organisation (menus)
+  journal.ts      the quest journal: entries, clues, hints
+  automap.ts      the dungeon auto-map
+  cheats.ts       the cheat table
   names.ts        stock of names for the "random name" option
   game.ts         the main loop (Game) and command dispatch
   io.ts           the GameIO interface: how logic talks to screen/keys/sound
@@ -539,9 +187,14 @@ src/ui/     browser only
   dungeonView.ts  the first-person dungeon renderer
   input.ts        keyboard as an awaitable queue
   menus.ts        controller mode: menu windows, command lists, gamepad reader
+  touch.ts        the virtual controller on touch screens
+  dungeonArt.ts   dungeon sheets painted per tile set
+  moonArt.ts      moon phases painted per tile set
+  platform.ts     iOS detection and the storage warning
   sound.ts        Web Audio effects
   music.ts        QuickTime music decoder and synthesizer
-src/main.ts       bootstrap
+src/main.ts       bootstrap, service worker, export/import transfer
+tools/compose-figures.ts   art/figures/ -> the Standard tile sheet
 ```
 
 ### Semantic prompts
@@ -571,7 +224,7 @@ explained in `tiles.ts`, and the music event format in `ui/music.ts`.
 
 ### Testing
 
-`npm test` runs the Vitest suite (157 tests) against the real extracted data: records,
+`npm test` runs the Vitest suite (187 tests) against the real extracted data: records,
 viewport line of sight, movement, monsters, turn processing, combat,
 spells, shops, dialogue, doors and chests, dungeons, menus, save
 round-trips and the music decoder. The renderer is exercised in headless
