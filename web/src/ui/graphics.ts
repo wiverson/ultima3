@@ -85,7 +85,11 @@ export async function loadImages(baseUrl = 'images/'): Promise<ImageMap> {
  * channel comes from the mask (black = opaque). Drawing from this canvas
  * gives transparent creatures for free.
  */
-/** True if the first-frame cell of a tile index has any opaque pixel. */
+/**
+ * True if the first-frame cell of a tile index holds a drawing: three or
+ * more distinct pixel values. An unused cell is one flat colour, whether
+ * transparent, the black of an opaque sheet, or a set's fill colour.
+ */
 function cellDrawn(tiles: HTMLImageElement, size: number, index: number): boolean {
   const canvas = document.createElement('canvas');
   canvas.width = size;
@@ -93,7 +97,11 @@ function cellDrawn(tiles: HTMLImageElement, size: number, index: number): boolea
   const ctx = canvas.getContext('2d')!;
   ctx.drawImage(tiles, Math.floor(index / TILE_ROWS) * 2 * size, (index % TILE_ROWS) * size, size, size, 0, 0, size, size);
   const data = ctx.getImageData(0, 0, size, size).data;
-  for (let i = 3; i < data.length; i += 4) if (data[i] > 0) return true;
+  const seen = new Set<number>();
+  for (let i = 0; i < data.length; i += 4) {
+    seen.add(((data[i] << 24) | (data[i + 1] << 16) | (data[i + 2] << 8) | data[i + 3]) >>> 0);
+    if (seen.size >= 3) return true;
+  }
   return false;
 }
 
