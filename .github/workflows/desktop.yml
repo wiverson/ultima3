@@ -1,11 +1,21 @@
 # Builds the desktop app (desktop/, Electron) for Windows, macOS and Linux.
-# Every run uploads the installers as workflow artifacts; a tag v* also
-# attaches them to a GitHub Release. Builds are unsigned: see the README's
-# Desktop section for what that means on each platform.
+# Every run uploads the installers as workflow artifacts. A tag v*, or a
+# manual run with "release" ticked, also attaches them to a draft GitHub
+# Release named after the app's version. Builds are unsigned: see the
+# README's Desktop section for what that means on each platform.
 name: Desktop builds
 
 on:
   workflow_dispatch:
+    inputs:
+      release:
+        description: 'Attach the builds to a draft GitHub Release'
+        type: boolean
+        default: false
+      version:
+        description: 'Version to build as (blank: the version in desktop/package.json)'
+        type: string
+        default: ''
   push:
     tags: ['v*']
     branches: [main]
@@ -40,9 +50,12 @@ jobs:
         working-directory: web
       - run: npm ci
         working-directory: desktop
+      - if: ${{ inputs.version != '' }}
+        run: npm version --no-git-tag-version "${{ inputs.version }}"
+        working-directory: desktop
       - run: npm run bundle
         working-directory: desktop
-      - run: npx electron-builder --${{ matrix.target }} --publish ${{ startsWith(github.ref, 'refs/tags/v') && 'always' || 'never' }}
+      - run: npx electron-builder --${{ matrix.target }} --publish ${{ (startsWith(github.ref, 'refs/tags/v') || inputs.release) && 'always' || 'never' }}
         working-directory: desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

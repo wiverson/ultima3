@@ -53,8 +53,12 @@ warns of this once a day in a browser tab.
 The same game is packaged as a desktop app with Electron, for players who
 want a plain window, an icon in the dock, or a Steam shortcut. Builds for
 Windows, macOS and Linux are on the
-[Releases page](https://github.com/wiverson/ultima3/releases); a `v*`
-tag builds them on GitHub Actions and attaches them to a draft release.
+[Releases page](https://github.com/wiverson/ultima3/releases). They are
+made by the "Desktop builds" workflow under Actions: every run keeps the
+installers as artifacts for ninety days, and a `v*` tag, or a manual run
+with "release" ticked, attaches them to a draft release named after the
+app's version (from `desktop/package.json`, or the run's "version"
+input), which is published by hand.
 The saved game lives in the app's own storage, separate from the
 browser's; Export and Import move a game between them.
 
