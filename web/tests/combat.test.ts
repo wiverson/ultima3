@@ -47,13 +47,20 @@ describe('arenas', () => {
     for (const m of c.members) expect(c.tiles[m.y * 11 + m.x]).toBe(Shape.Grass);
   });
 
-  it('gives each class its arena figure', () => {
+  it('gives each class its own figure tile, in career-table order', () => {
     const { world } = flatWorld();
-    expect(memberShape(world, 'F')).toBe(0x80);
-    expect(memberShape(world, 'C')).toBe(0x82);
-    expect(memberShape(world, 'W')).toBe(0x84);
-    expect(memberShape(world, 'T')).toBe(0x86);
-    expect(memberShape(world, 'R')).toBe(0x7e);
+    expect(memberShape(world, 'F')).toBe(68 * 2);
+    expect(memberShape(world, 'C')).toBe(69 * 2);
+    expect(memberShape(world, 'W')).toBe(70 * 2);
+    expect(memberShape(world, 'T')).toBe(71 * 2);
+    expect(memberShape(world, 'P')).toBe(72 * 2);
+    expect(memberShape(world, 'B')).toBe(73 * 2);
+    expect(memberShape(world, 'L')).toBe(74 * 2);
+    expect(memberShape(world, 'I')).toBe(75 * 2);
+    expect(memberShape(world, 'D')).toBe(76 * 2);
+    expect(memberShape(world, 'A')).toBe(77 * 2);
+    expect(memberShape(world, 'R')).toBe(78 * 2);
+    expect(memberShape(world, '?')).toBe(0x7e);
   });
 
   it('names monsters and their variants', () => {

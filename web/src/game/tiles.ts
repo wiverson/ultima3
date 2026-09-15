@@ -17,9 +17,10 @@
  *
  * 3. TILE INDEX (0-95) - the position in the tile sheet. Row = index % 16,
  *    column pair = index / 16. Indices 0-63 are the classic Apple II tiles;
- *    64-67 are the party's own figures (fighter, cleric, wizard, thief, see
- *    `memberShape`); 68-79 are empty; 80-95 are the monster variants (see
- *    `monsterVariantShape`).
+ *    64-67 are the shared party figures (fighter, cleric, wizard, thief);
+ *    68-78 are one figure per class in career-table order, in sets that have
+ *    them (see `classTile`, `memberShape`); 79 is empty; 80-95 are the
+ *    monster variants (see `monsterVariantShape`).
  *    The Exodus tile (31) is blank in every sheet: its four light panels sit
  *    in the second-frame cells of 32-35 and `GraphicsSet` shows them in turn.
  *
@@ -134,4 +135,30 @@ export function monsterVariantShape(value: number): number {
 /** True for the 13 letter tiles A..T (used for town signs; "I" may be a door). */
 export function isLetter(value: number): boolean {
   return value >= MapValue.LetterA && value <= MapValue.LetterT;
+}
+
+/**
+ * Cells 68-78 hold one figure per class, in career-table order: Fighter,
+ * Cleric, Wizard, Thief, Paladin, Barbarian, Lark, Illusionist, Druid,
+ * Alchemist, Ranger. A sheet without them (every set but Standard so far)
+ * shows the shared figure from `CLASS_FALLBACK_TILE` instead: the original's
+ * `DetermineShape()` grouping, with Lark as the jester and Ranger as the
+ * party marker.
+ */
+export const FIRST_CLASS_TILE = 68;
+export const CLASS_COUNT = 11;
+export const CLASS_FALLBACK_TILE: readonly number[] = [64, 65, 66, 67, 64, 64, 17, 66, 65, 66, 63];
+
+/** The tile of a class by its index in the career table; the party marker for an unknown class. */
+export function classTile(career: number): number {
+  return career >= 0 && career < CLASS_COUNT ? FIRST_CLASS_TILE + career : Shape.Ranger >> 1;
+}
+
+export function isClassTile(index: number): boolean {
+  return index >= FIRST_CLASS_TILE && index < FIRST_CLASS_TILE + CLASS_COUNT;
+}
+
+/** The shared figure drawn for a class tile when the sheet has no class figures. */
+export function classFallbackTile(index: number): number {
+  return isClassTile(index) ? CLASS_FALLBACK_TILE[index - FIRST_CLASS_TILE] : index;
 }

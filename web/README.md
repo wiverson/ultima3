@@ -384,13 +384,31 @@ save contains except the pooled gold and food.
   original 3D logo. The title logo changes with the set as it is picked
   in Settings. The spec they
   were drawn to is `docs/scene-images.md`.
-- **Figure art brief** (`docs/figure-art-spec.md`). The Standard set's
-  party figures are being replaced by eleven flat 32 px class figures
-  (Apple II silhouettes, three tones per material). The brief lists every
-  monster, townsperson, vehicle and object that shares the screen with
-  them and must be redrawn the same way, with the palette, the cell and
-  frame rules the engine needs, and reference strips of each tile across
-  the Apple II, VGA and Standard sets (`docs/figure-ref-*.png`).
+- **Flat figures in the Standard set** (`art/figures/`,
+  `tools/compose-figures.ts`). Every figure-scale tile in the Standard
+  sheet is now flat 32 px art doubled to its 64 px cells: the eleven
+  class figures, the townspeople, the eight monsters and their sixteen
+  variants, Exodus' four panel states, the horse, ships, whirlpool,
+  chest, moongate and shrine. The art follows the brief in
+  `docs/figure-art-spec.md` (Apple II silhouettes on a 2 px grid, three
+  tones per material, hard alpha) and lives as two atlases with their
+  manifests in `art/figures/`; `npm run figures` writes them into the
+  sheet, so a redrawn atlas is one command away from the game. The two
+  snake tiles (58, 59) keep the earlier art: they stack as one tall snake,
+  which the brief got wrong.
+- **One figure per class.** Cells 68-78 of a sheet hold a figure for each
+  class in career-table order (Fighter, Cleric, Wizard, Thief, Paladin,
+  Barbarian, Lark, Illusionist, Druid, Alchemist, Ranger), and
+  `memberShape` now names that tile for every class. A set without them
+  (every set but Standard so far, detected by an empty cell 68) falls back
+  in `tileRect` to the original `DetermineShape()` grouping: fighters,
+  paladins and barbarians share one figure, clerics and druids another,
+  wizards, illusionists and alchemists a third, thieves their own, the
+  lark is the jester and the ranger the party marker. Class figures
+  animate in step with the shared figure they stand in for. The party
+  grid on the overworld and the line in towns draw the same figures, so a
+  Standard party of a paladin, a druid, an illusionist and an alchemist
+  now looks like one.
 - **Dungeon art per tile set** (`dungeonArt.ts`). LairWare's Mac version
   drew the first-person dungeon from one photographic sheet whatever tiles
   were chosen. Here that pairing is the "Lairware" set, and every other

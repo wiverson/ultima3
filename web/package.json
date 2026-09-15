@@ -12,7 +12,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "extract": "node tools/extract-resources.ts"
+    "extract": "node tools/extract-resources.ts",
+    "figures": "node tools/compose-figures.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

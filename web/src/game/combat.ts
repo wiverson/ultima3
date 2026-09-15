@@ -15,7 +15,7 @@
 
 import { World, type CombatState, type Combatant } from './world.ts';
 import { Location } from './party.ts';
-import { MapValue, Shape } from './tiles.ts';
+import { MapValue, Shape, classTile } from './tiles.ts';
 import { type GameIO, Key, Sound, Music, deathSound } from './io.ts';
 import { getDirection, moveForKey, moveDelta, what2, DIAGONAL_KEYS, Msg as CmdMsg } from './commands.ts';
 import { ageChars } from './turn.ts';
@@ -146,28 +146,14 @@ function extraMonsters(world: World, monsterShape: number): number {
   return 0;
 }
 
-/** Mirrors `DetermineShape()`: the arena figure for a class letter. */
+/**
+ * The figure for a class letter: its own tile (68-78) as a shape. A sheet
+ * without class figures falls back to the original `DetermineShape()`
+ * grouping in `GraphicsSet.tileRect` (see `CLASS_FALLBACK_TILE`).
+ */
 export function memberShape(world: World, classLetter: string): number {
   const careers = String.fromCharCode(...world.resources.misc.careerTable);
-  switch (careers.indexOf(classLetter)) {
-    case 0: // Fighter
-    case 4: // Paladin
-    case 5: // Barbarian
-      return 0x80;
-    case 1: // Cleric
-    case 8: // Druid
-      return 0x82;
-    case 2: // Wizard
-    case 7: // Illusionist
-    case 9: // Alchemist
-      return 0x84;
-    case 3: // Thief
-      return 0x86;
-    case 6: // Lark
-      return 0x22;
-    default: // Ranger
-      return 0x7e;
-  }
+  return classTile(careers.indexOf(classLetter)) * 2;
 }
 
 /** The shape drawn for the monsters, including variant rows. */

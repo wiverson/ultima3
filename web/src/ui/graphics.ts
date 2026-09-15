@@ -23,7 +23,7 @@
 
 import { DUNGEON_STYLES, paintDungeonSheet, type DungeonStyle } from './dungeonArt.ts';
 import { MOON_STYLES, MOON_CELL, paintMoons } from './moonArt.ts';
-import { MapValue, Shape } from '../game/tiles.ts';
+import { MapValue, Shape, CLASS_COUNT, CLASS_FALLBACK_TILE, FIRST_CLASS_TILE, classFallbackTile, isClassTile } from '../game/tiles.ts';
 
 export const TILE_COLUMNS = 12;
 export const TILE_ROWS = 16;
@@ -85,6 +85,18 @@ export async function loadImages(baseUrl = 'images/'): Promise<ImageMap> {
  * channel comes from the mask (black = opaque). Drawing from this canvas
  * gives transparent creatures for free.
  */
+/** True if the first-frame cell of a tile index has any opaque pixel. */
+function cellDrawn(tiles: HTMLImageElement, size: number, index: number): boolean {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  ctx.drawImage(tiles, Math.floor(index / TILE_ROWS) * 2 * size, (index % TILE_ROWS) * size, size, size, 0, 0, size, size);
+  const data = ctx.getImageData(0, 0, size, size).data;
+  for (let i = 3; i < data.length; i += 4) if (data[i] > 0) return true;
+  return false;
+}
+
 function applyMask(tiles: HTMLImageElement, mask: HTMLImageElement | null): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = tiles.width;
@@ -139,6 +151,8 @@ export class GraphicsSet {
 
   /** The sheet over black: what terrain is drawn from, so a transparent pixel never shows the last frame. */
   private readonly opaqueTiles: HTMLCanvasElement;
+  /** Whether the sheet draws cells 68-78, one figure per class; if not, `tileRect` shows the shared figures. */
+  readonly hasClassFigures: boolean;
 
   private constructor(
     readonly tiles: HTMLImageElement,
@@ -178,6 +192,7 @@ export class GraphicsSet {
     this.fontSize = font.width / FONT_GLYPHS;
     this.fontHeight = font.height;
     this.uiSize = ui.width / UI_COLUMNS;
+    this.hasClassFigures = cellDrawn(tiles, this.tileSize, FIRST_CLASS_TILE);
   }
 
   /**
@@ -223,6 +238,7 @@ export class GraphicsSet {
   tileRect(index: number, frameOverride?: boolean): SourceRect {
     const s = this.tileSize;
     if (index === EXODUS_INDEX) return { x: EXODUS_PANEL_COLUMN * s, y: this.exodusFrame * s, w: s, h: s };
+    if (!this.hasClassFigures && isClassTile(index)) index = classFallbackTile(index);
     const swapped = frameOverride ?? this.swapped[index] === 1;
     return {
       x: (Math.floor(index / TILE_ROWS) * 2 + (swapped ? 1 : 0)) * s,
@@ -346,9 +362,11 @@ export class GraphicsSet {
     }
   }
 
-  /** Toggle a shape's animation frame. (`SwapShape`) */
+  /** Toggle a shape's animation frame, and with a shared figure's the class figures that stand in for it. (`SwapShape`) */
   private swap(shape: number): void {
     const index = shape >> 1;
-    if (index < this.swapped.length) this.swapped[index] ^= 1;
+    if (index >= this.swapped.length) return;
+    this.swapped[index] ^= 1;
+    for (let c = 0; c < CLASS_COUNT; c++) if (CLASS_FALLBACK_TILE[c] === index) this.swapped[FIRST_CLASS_TILE + c] ^= 1;
   }
 }

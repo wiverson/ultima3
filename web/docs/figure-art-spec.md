@@ -4,6 +4,14 @@ Brief for the artist. The eleven class figures in `figure-style-reference.png`
 set the style. This spec lists everything else that shares the screen with them
 and must be redrawn the same way, with the rules the game engine imposes.
 
+## 0. Status
+
+Delivered and integrated (`art/figures/`, `npm run figures`). One correction
+to this brief came out of the delivery: tiles 58 and 59 are the top and bottom
+halves of one tall snake drawn on the map, not two animation frames, so the
+delivered pair could not be used and the earlier snake art stays. A future
+pass should draw the snake as one 32 x 64 figure split across the two cells.
+
 ## 1. Why
 
 The class figures are 32 x 32, flat, three tones per material, on Apple II
@@ -58,8 +66,8 @@ script from the atlas.
 - Ships carry the party. Draw no crew: the ship alone is the party's marker.
   The horse likewise has no rider.
 - Exodus is not a figure. It is four panel states drawn in sequence (3, 2, 1, 0) as its lights cycle. See section 6, tile 31.
-- Snake is two tiles (58 and 59) that the game alternates as one animation,
-  each with one frame.
+- Snake is one tall figure drawn as two stacked tiles: 59 on top, 58 below,
+  one frame each. Draw it as a 32 x 64 image and split it.
 
 ## 5. Palette
 
@@ -132,34 +140,34 @@ game a variant reused its base's shape in a different colour. Here each variant
 gets its own drawing, but it must keep the base's silhouette family so a
 player reads Ghoul as a Skeleton kind, Titan as a Giant kind, and so on.
 
-| Index | Name       | Family   | Description and frame 2 action                                                                                                                     |
-| ----- | ---------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 24    | Orc        | Orc      | Green humanoid, leather harness, club or scimitar. Frame 2 raises the weapon                                                                       |
-| 25    | Skeleton   | Skeleton | Bone figure, sword. Frame 2 swings                                                                                                                 |
-| 26    | Giant      | Giant    | Broad tan humanoid, loincloth, axe. Frame 2 lifts the axe                                                                                          |
-| 27    | Daemon     | Daemon   | Winged red-brown devil, horns. Frame 2 spreads wings                                                                                               |
-| 28    | Pincher    | Pincher  | Lilac blob with two claws and eyes. Frame 2 opens claws                                                                                            |
-| 29    | Dragon     | Dragon   | Red dragon in profile, wings up. Frame 2 wings down                                                                                                |
-| 30    | Balron     | Balron   | Large winged flesh-pink demon, whip. Frame 2 raises whip                                                                                           |
-| 58    | Snake (58) | Snake    | Green serpent, head up. One frame                                                                                                                  |
-| 59    | Snake (59) | Snake    | Same serpent, body shifted, tongue out. One frame                                                                                                  |
-| 80    | Brigand    | Thief    | Sea-grey hooded figure, cutlass. Frame 2 lunges                                                                                                    |
-| 81    | Cutpurse   | Thief    | Blue-grey masked figure, dagger. Frame 2 lunges                                                                                                    |
-| 82    | Goblin     | Orc      | Small goblin-tan humanoid, horned helm. Frame 2 raises weapon                                                                                      |
-| 83    | Troll      | Orc      | Troll-green hulk, big hands. Frame 2 raises arms                                                                                                   |
-| 84    | Ghoul      | Skeleton | Bone figure with flesh-pink remnants. Frame 2 reaches                                                                                              |
-| 85    | Zombie     | Skeleton | Ochre bandaged figure, arms out. Frame 2 lurches                                                                                                   |
-| 86    | Golem      | Giant    | Stone-grey giant, blocky. Frame 2 raises fist                                                                                                      |
-| 87    | Titan      | Giant    | Tan giant with orange hair or belt, sword. Frame 2 swings                                                                                          |
-| 88    | Gargoyle   | Daemon   | Coral winged stone devil. Frame 2 spreads wings                                                                                                    |
-| 89    | Mane       | Daemon   | Olive-gold hunched fiend. Frame 2 rears                                                                                                            |
-| 90    | Snatch     | Pincher  | Slate-grey clawed blob, red eyes. Frame 2 opens claws                                                                                              |
-| 91    | Bradle     | Pincher  | Brain-pink lobed blob. Frame 2 pulses (lobes shift)                                                                                                |
-| 92    | Griffon    | Dragon   | Bone-and-gold winged lion. Frame 2 wings down                                                                                                      |
-| 93    | Wyvern     | Dragon   | Olive two-legged dragon, barbed tail. Frame 2 wings down                                                                                           |
-| 94    | Orcus      | Balron   | Orcus-pink winged demon. Frame 2 raises arm                                                                                                        |
-| 95    | Devil      | Balron   | Flesh-pink devil with trident. Frame 2 raises trident                                                                                              |
-| 31    | Exodus     | Machine  | Four panel states, not two frames: a machine face with lights. State 3 all lights on, then 2, 1, 0 fewer each. Deliver four 32 px cells in the row |
+| Index | Name         | Family   | Description and frame 2 action                                                                                                                     |
+| ----- | ------------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 24    | Orc          | Orc      | Green humanoid, leather harness, club or scimitar. Frame 2 raises the weapon                                                                       |
+| 25    | Skeleton     | Skeleton | Bone figure, sword. Frame 2 swings                                                                                                                 |
+| 26    | Giant        | Giant    | Broad tan humanoid, loincloth, axe. Frame 2 lifts the axe                                                                                          |
+| 27    | Daemon       | Daemon   | Winged red-brown devil, horns. Frame 2 spreads wings                                                                                               |
+| 28    | Pincher      | Pincher  | Lilac blob with two claws and eyes. Frame 2 opens claws                                                                                            |
+| 29    | Dragon       | Dragon   | Red dragon in profile, wings up. Frame 2 wings down                                                                                                |
+| 30    | Balron       | Balron   | Large winged flesh-pink demon, whip. Frame 2 raises whip                                                                                           |
+| 58    | Snake bottom | Snake    | Lower half of a tall snake: coils and tail. One frame; stacks under 59                                                                             |
+| 59    | Snake top    | Snake    | Upper half: head with tongue, facing down. One frame; stacks over 58                                                                               |
+| 80    | Brigand      | Thief    | Sea-grey hooded figure, cutlass. Frame 2 lunges                                                                                                    |
+| 81    | Cutpurse     | Thief    | Blue-grey masked figure, dagger. Frame 2 lunges                                                                                                    |
+| 82    | Goblin       | Orc      | Small goblin-tan humanoid, horned helm. Frame 2 raises weapon                                                                                      |
+| 83    | Troll        | Orc      | Troll-green hulk, big hands. Frame 2 raises arms                                                                                                   |
+| 84    | Ghoul        | Skeleton | Bone figure with flesh-pink remnants. Frame 2 reaches                                                                                              |
+| 85    | Zombie       | Skeleton | Ochre bandaged figure, arms out. Frame 2 lurches                                                                                                   |
+| 86    | Golem        | Giant    | Stone-grey giant, blocky. Frame 2 raises fist                                                                                                      |
+| 87    | Titan        | Giant    | Tan giant with orange hair or belt, sword. Frame 2 swings                                                                                          |
+| 88    | Gargoyle     | Daemon   | Coral winged stone devil. Frame 2 spreads wings                                                                                                    |
+| 89    | Mane         | Daemon   | Olive-gold hunched fiend. Frame 2 rears                                                                                                            |
+| 90    | Snatch       | Pincher  | Slate-grey clawed blob, red eyes. Frame 2 opens claws                                                                                              |
+| 91    | Bradle       | Pincher  | Brain-pink lobed blob. Frame 2 pulses (lobes shift)                                                                                                |
+| 92    | Griffon      | Dragon   | Bone-and-gold winged lion. Frame 2 wings down                                                                                                      |
+| 93    | Wyvern       | Dragon   | Olive two-legged dragon, barbed tail. Frame 2 wings down                                                                                           |
+| 94    | Orcus        | Balron   | Orcus-pink winged demon. Frame 2 raises arm                                                                                                        |
+| 95    | Devil        | Balron   | Flesh-pink devil with trident. Frame 2 raises trident                                                                                              |
+| 31    | Exodus       | Machine  | Four panel states, not two frames: a machine face with lights. State 3 all lights on, then 2, 1, 0 fewer each. Deliver four 32 px cells in the row |
 
 ### 6.2 People
 
@@ -215,7 +223,7 @@ the four full-window scenes and the title logo.
 - [ ] Every material has three tones with distinct luminance
 - [ ] Each variant reads as its base family at a glance
 - [ ] Every figure legible on black and on green at 16 px (half size)
-- [ ] Exodus row has four cells, Snake rows one each, singles as marked
+- [ ] Exodus row has four cells, the snake halves one each and stack, singles as marked
 - [ ] Atlas row order and names match section 6
 
 ## Counts
