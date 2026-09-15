@@ -1,12 +1,11 @@
 {
   "name": "ultima3-mobile",
-  "version": "1.0.0",
   "private": true,
   "description": "Ultima III as a Capacitor app: the web build wrapped for Android handhelds.",
   "scripts": {
     "bundle": "node bundle.cjs",
     "sync": "cap sync android",
-    "apk": "cd android && ./gradlew assembleRelease"
+    "apk": "node apk.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^7",

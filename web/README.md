@@ -167,8 +167,10 @@ the app, screenshots it once the game is running and exits with the
 result (`ELECTRON_NO_SANDBOX=1` for a root container). `npm run dist`
 builds installers with electron-builder; `.github/workflows/desktop.yml`
 does so on the three platforms for every push to main that touches the
-game or an app, then publishes a GitHub Release with every file, versioned
-major.minor from `desktop/package.json` plus the run number. Builds are
+game or an app (artifacts only) and for every manual run (published as a
+GitHub Release with every file). `desktop/version.cjs` decides the
+version for every build: major.minor from `desktop/package.json` plus the
+run number in Actions, a timestamped pre-release elsewhere. Builds are
 unsigned; macOS is Apple Silicon only.
 
 ## The Android app

@@ -1,12 +1,14 @@
 # Builds the desktop app (desktop/, Electron) for Windows, macOS and Linux
-# and the Android app (mobile/, Capacitor), then publishes them as a GitHub
-# Release. Every push to main that changes the game or an app is a release:
-# its version is the major.minor from desktop/package.json with the run
-# number as the patch (1.0.37, say), so nothing is versioned by hand. To
-# start a new series, change that major.minor. A manual run does the same.
-# Desktop builds are unsigned: see the README's Desktop section for what
-# that means on each platform. The APK is signed with the committed sideload
-# key unless the ANDROID_KEYSTORE_* secrets provide a release key.
+# and the Android app (mobile/, Capacitor). A push to main that changes the
+# game or an app is a development build: the files stay as workflow
+# artifacts. A manual run (Actions > Run workflow) is a release: the same
+# builds are published as a GitHub Release. Either way the version is the
+# major.minor from desktop/package.json with the run number as the patch
+# (1.0.37, say), decided by desktop/version.cjs; a new series starts by
+# changing that major.minor. Desktop builds are unsigned: see the README's
+# Desktop section for what that means on each platform. The APK is signed
+# with the committed sideload key unless the ANDROID_KEYSTORE_* secrets
+# provide a release key.
 name: Desktop and Android builds
 
 on:
@@ -19,17 +21,7 @@ permissions:
   contents: write
 
 jobs:
-  version:
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.v.outputs.version }}
-    steps:
-      - uses: actions/checkout@v7
-      - id: v
-        run: echo "version=$(node -p "require('./desktop/package.json').version.split('.').slice(0, 2).join('.')").${{ github.run_number }}" >> "$GITHUB_OUTPUT"
-
   build:
-    needs: version
     strategy:
       fail-fast: false
       matrix:
@@ -54,11 +46,9 @@ jobs:
         working-directory: web
       - run: npm ci
         working-directory: desktop
-      - run: npm version --no-git-tag-version "${{ needs.version.outputs.version }}"
-        working-directory: desktop
       - run: npm run bundle
         working-directory: desktop
-      - run: npx electron-builder --${{ matrix.target }} --publish never
+      - run: npm run dist -- --${{ matrix.target }}
         working-directory: desktop
         env:
           # Unsigned macOS builds: skip the notarisation step electron-builder would otherwise attempt.
@@ -73,7 +63,6 @@ jobs:
           if-no-files-found: error
 
   android:
-    needs: version
     runs-on: ubuntu-latest
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -108,22 +97,23 @@ jobs:
             echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}"
             echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}"
           } >> "$GITHUB_ENV"
-      - run: ./gradlew assembleRelease --no-daemon -PversionName="${{ needs.version.outputs.version }}" -PversionCode="${{ github.run_number }}"
-        working-directory: mobile/android
-      - run: cp app/build/outputs/apk/release/app-release.apk "Ultima-III-${{ needs.version.outputs.version }}-android.apk"
-        working-directory: mobile/android
+      - run: npm run apk
+        working-directory: mobile
       - uses: actions/upload-artifact@v7
         with:
           name: ultima3-android
-          path: mobile/android/Ultima-III-*.apk
+          path: mobile/dist/*.apk
           if-no-files-found: error
 
-  # One release with every file, made once all four builds exist; the tag is created on this commit.
+  # A manual run publishes one release with every file once all four builds exist; the tag lands on this commit.
   release:
-    needs: [version, build, android]
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    needs: [build, android]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - id: v
+        run: echo "version=$(node desktop/version.cjs)" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v8
         with:
           path: files
@@ -132,4 +122,4 @@ jobs:
       - run: gh release create "v$VERSION" files/* --title "v$VERSION" --generate-notes --target "$GITHUB_SHA"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ needs.version.outputs.version }}
+          VERSION: ${{ steps.v.outputs.version }}

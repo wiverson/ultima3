@@ -11,10 +11,11 @@
     "bundle": "node bundle.cjs",
     "start": "electron .",
     "smoke": "node smoke.cjs",
-    "dist": "electron-builder --publish never",
-    "dist:linux": "electron-builder --linux --publish never",
-    "dist:win": "electron-builder --win --publish never",
-    "dist:mac": "electron-builder --mac --publish never"
+    "dist": "node dist.cjs",
+    "dist:linux": "node dist.cjs --linux",
+    "dist:win": "node dist.cjs --win",
+    "dist:mac": "node dist.cjs --mac",
+    "version:show": "node version.cjs"
   },
   "devDependencies": {
     "electron": "^33.2.1",

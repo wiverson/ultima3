@@ -13,6 +13,11 @@ npm run dist       # installers for this platform into dist/ (dist:linux, dist:w
 ```
 
 Builds for all three platforms come from the "Desktop and Android builds"
-workflow under Actions: every push to main that touches the game or an
-app publishes a release, versioned by the major.minor of `version` here
-with the run number as the patch. macOS builds are Apple Silicon only.
+workflow under Actions: a push to main that touches the game or an app
+keeps them as artifacts, a manual run publishes them as a release. The
+version comes from `version.cjs`: the major.minor of `version` in
+`package.json` with the run number as the patch in Actions, or a
+timestamped pre-release (`1.0.0-dev.20260915.2214`) for a build made
+anywhere else; `BUILD_VERSION` overrides both. `npm run dist` passes it
+to electron-builder as metadata, so `package.json` is never edited.
+macOS builds are Apple Silicon only.

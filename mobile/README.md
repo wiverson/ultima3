@@ -31,7 +31,7 @@ they are preinstalled).
 cd web && npm ci && cd ../mobile && npm ci
 npm run bundle          # builds ../web with VITE_BASE=./ into app/
 npx cap sync android    # copies app/ and the plugin list into android/
-npm run apk             # android/app/build/outputs/apk/release/app-release.apk
+npm run apk             # dist/Ultima-III-<version>-android.apk
 ```
 
 `node icons.mjs` regenerates the launcher icons and the black launch
@@ -55,10 +55,14 @@ base64), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and
 
 ## Versions
 
-The workflow passes `versionName` (the major.minor from
-`../desktop/package.json` with the run number as the patch) and
-`versionCode` (the run number), so each CI build can update the one
-before it; `package.json` here carries no version of its own. The `android/` folder is Capacitor's
+`apk.cjs` takes the version from `../desktop/version.cjs`, the one source
+for every build: in Actions the major.minor from `desktop/package.json`
+with the run number as the patch, elsewhere a timestamped pre-release.
+Android's `versionCode`, which must rise for a build to install over the
+last, is the run number in Actions and minutes-since-2024 for a local
+build, so a developer's APK installs over any release; going back to a
+release after that means uninstalling first. `package.json` here carries
+no version of its own. The `android/` folder is Capacitor's
 generated project, kept in git as Capacitor intends, with these local
 changes: the version and signing block in `app/build.gradle`,
 `screenOrientation` in the manifest, `MainActivity.java`, the icons, the

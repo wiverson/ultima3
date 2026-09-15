@@ -54,12 +54,14 @@ The same game is packaged as a desktop app with Electron, for players who
 want a plain window, an icon in the dock, or a Steam shortcut. Builds for
 Windows, macOS and Linux are on the
 [Releases page](https://github.com/wiverson/ultima3/releases). They are
-made by the "Desktop and Android builds" workflow under Actions: every
-push to main that changes the game or an app builds all of them and
-publishes a release. Its version is the major.minor from
-`desktop/package.json` with the workflow run number as the patch
-(1.0.37, say), so releases need no hand-numbering; a new series starts by
-changing that major.minor.
+made by the "Desktop and Android builds" workflow under Actions. Every
+push to main that changes the game or an app makes a development build,
+kept as workflow artifacts for ninety days; running the workflow by hand
+makes the same builds and publishes them as a release. Either way the
+version is the major.minor from `desktop/package.json` with the run
+number as the patch (1.0.37, say), so nothing is numbered by hand, and a
+new series starts by changing that major.minor. A build made outside
+Actions is stamped with its time instead (1.0.0-dev.20260915.2214).
 The saved game lives in the app's own storage, separate from the
 browser's; Export and Import move a game between them.
 
