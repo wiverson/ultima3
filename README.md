@@ -54,8 +54,9 @@ The same game is packaged as a desktop app with Electron, for players who
 want a plain window, an icon in the dock, or a Steam shortcut. Builds for
 Windows, macOS and Linux are on the
 [Releases page](https://github.com/wiverson/ultima3/releases). They are
-made by the "Desktop builds" workflow under Actions: every run keeps the
-installers as artifacts for ninety days, and a `v*` tag, or a manual run
+made by the "Desktop builds" workflow under Actions: every push that changes the game
+or the app rebuilds all three, keeping the installers as artifacts for
+ninety days, and a `v*` tag, or a manual run
 with "release" ticked, attaches them to a draft release named after the
 app's version (from `desktop/package.json`, or the run's "version"
 input), which is published by hand.

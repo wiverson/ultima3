@@ -19,7 +19,7 @@ on:
   push:
     tags: ['v*']
     branches: [main]
-    paths: ['desktop/**', '.github/workflows/desktop.yml']
+    paths: ['desktop/**', 'web/**', '.github/workflows/desktop.yml']
 
 permissions:
   contents: write
