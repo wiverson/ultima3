@@ -69,7 +69,11 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Ultima-III-${version}-${os}-${arch}-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "Ultima-III-${version}-${os}-${arch}-portable.${ext}"
     },
     "linux": {
       "category": "Game",
