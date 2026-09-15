@@ -63,7 +63,9 @@ export class TouchPad {
     // A low and B up to its right, each a button's width and a little more apart on the diagonal.
     this.root.appendChild(this.button('A', Key.A, `right:${MARGIN_MM + BUTTON_MM + 1}mm;bottom:${MARGIN_MM}mm`));
     this.root.appendChild(this.button('B', Key.B, `right:${MARGIN_MM}mm;bottom:${MARGIN_MM + BUTTON_MM + 1}mm`));
-    this.root.appendChild(this.button('Y', Key.Y, `right:${MARGIN_MM}mm;bottom:${MARGIN_MM + 2 * (BUTTON_MM + 1)}mm`));
+    // Y above B, with the same clear space between them as between A and B, which sit a button apart on the diagonal.
+    const gap = Math.SQRT2 * (BUTTON_MM + 1) - BUTTON_MM;
+    this.root.appendChild(this.button('Y', Key.Y, `right:${MARGIN_MM}mm;bottom:${(MARGIN_MM + 2 * BUTTON_MM + 1 + gap).toFixed(1)}mm`));
     this.root.appendChild(this.closeButton());
     if (document.fullscreenEnabled) {
       this.fullscreenButton = this.fullscreenToggle();
@@ -190,29 +192,25 @@ export class TouchPad {
     }
   }
 
-  /** The d-pad: a cross outline, its four arms the buttons, with a small arrow in each. */
+  /** The d-pad: a cross outline, its four arms the buttons, with a small circle in each. */
   private dpad(): SVGSVGElement {
     const svg = this.svg(DPAD_MM, `left:${MARGIN_MM}mm;bottom:${MARGIN_MM}mm`);
     const s = DPAD_MM;
     const a = s / 3; // arm width
     const c = s / 2;
-    const w = s / 14; // the arrows' half-width
+    const r = s / 14; // the marks' radius
     this.shape(svg, 'path', {
       d: `M${a} 0 H${2 * a} V${a} H${s} V${2 * a} H${2 * a} V${s} H${a} V${2 * a} H0 V${a} H${a} Z`,
     });
-    const arms: [string, string, string][] = [
-      [Key.Up, `M${a} 0 H${2 * a} V${a} H${a} Z`, `M${c - w} ${a * 0.65} L${c} ${a * 0.35} L${c + w} ${a * 0.65}`],
-      [Key.Down, `M${a} ${2 * a} H${2 * a} V${s} H${a} Z`, `M${c - w} ${s - a * 0.65} L${c} ${s - a * 0.35} L${c + w} ${s - a * 0.65}`],
-      [Key.Left, `M0 ${a} H${a} V${2 * a} H0 Z`, `M${a * 0.65} ${c - w} L${a * 0.35} ${c} L${a * 0.65} ${c + w}`],
-      [
-        Key.Right,
-        `M${2 * a} ${a} H${s} V${2 * a} H${2 * a} Z`,
-        `M${s - a * 0.65} ${c - w} L${s - a * 0.35} ${c} L${s - a * 0.65} ${c + w}`,
-      ],
+    // Each arm's hit zone, and the centre of the circle marking it.
+    const arms: [string, string, number, number][] = [
+      [Key.Up, `M${a} 0 H${2 * a} V${a} H${a} Z`, c, a / 2],
+      [Key.Down, `M${a} ${2 * a} H${2 * a} V${s} H${a} Z`, c, s - a / 2],
+      [Key.Left, `M0 ${a} H${a} V${2 * a} H0 Z`, a / 2, c],
+      [Key.Right, `M${2 * a} ${a} H${s} V${2 * a} H${2 * a} Z`, s - a / 2, c],
     ];
-    for (const [key, hit, arrow] of arms) {
-      const mark = this.shape(svg, 'path', { d: arrow });
-      mark.setAttribute('stroke-linecap', 'round');
+    for (const [key, hit, cx, cy] of arms) {
+      const mark = this.shape(svg, 'circle', { cx: `${cx}`, cy: `${cy}`, r: `${r}` });
       const zone = this.shape(svg, 'path', { d: hit }, false);
       zone.setAttribute('stroke', 'none');
       this.pressable(zone, key, true);
