@@ -148,6 +148,9 @@ function applyOverlays(world: World, shapes: Uint8Array, originX: number, origin
       case Shape.SnakeTop:
       case Shape.Frigate:
       case Shape.Whirlpool:
+      case Shape.Serpent: // the sea creatures are table entries with water under them; a stray value still sits on water
+      case Shape.ManOWar:
+      case Shape.Pirate:
         cells[offset] = { base: Shape.Water, overlay: s };
         break;
       case Shape.Horse:

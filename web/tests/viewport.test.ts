@@ -66,6 +66,18 @@ describe('viewport', () => {
     expect(cell.overlay).toBe(MapValue.Orc >> 1);
   });
 
+  it('puts water under a sea creature value that has no table entry', () => {
+    const world = newWorld();
+    world.current.tiles.fill(MapValue.Grass);
+    world.monsters.bytes.fill(0);
+    world.x = 32;
+    world.y = 32;
+    world.putXYVal(MapValue.Pirate, 34, 32);
+    const cell = buildViewport(world).cells[5 * VIEW_SIZE + 7];
+    expect(cell.base).toBe(Shape.Water);
+    expect(cell.overlay).toBe(Shape.Pirate);
+  });
+
   it('uses the variant tile rows for Goblins and Trolls', () => {
     const world = newWorld();
     world.current.tiles.fill(MapValue.Grass);
