@@ -21,6 +21,15 @@ Add to Home Screen.
   controller mode on the first press; a tap on the screen shows the
   virtual controller instead.
 
+## Obtainium
+
+The root README carries a "Get it on Obtainium" badge (`badge_obtainium.png`
+here, Obtainium's own artwork, trimmed). It is an
+`apps.obtainium.imranr.dev/redirect` link to `obtainium://app/<config>`,
+where the config names this repository as the source, so Obtainium
+installs the APK from the latest release and updates it from later ones.
+The APK is the only `.apk` in a release, so no asset filter is needed.
+
 ## Building
 
 Requirements: Node 22, a JDK (17 or newer) and the Android SDK with

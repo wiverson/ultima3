@@ -88,7 +88,13 @@ For Android handhelds like the AYN Odin or the Retroid Pocket, and for
 phones and tablets, the same workflow also builds an APK
 (`Ultima-III-<version>-android.apk`), published in the same release as
 the desktop installers. Copy it to the device
-and open it; Android asks once to allow installs from that source. The
+and open it; Android asks once to allow installs from that source. Or
+let [Obtainium](https://github.com/ImranR98/Obtainium) install it and
+keep it updated from the releases: tap the badge on the device, or add
+`https://github.com/wiverson/ultima3` in Obtainium by hand.
+
+<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.wiverson.ultima3%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fwiverson%2Fultima3%22%2C%22author%22%3A%22wiverson%22%2C%22name%22%3A%22Ultima%20III%22%7D"><img src="mobile/badge_obtainium.png" alt="Get it on Obtainium" width="161"></a>
+ The
 app runs full screen in landscape, the Back button opens Settings as
 Escape does, and built-in controls that Android reports as a gamepad
 switch the game to controller mode on the first press. The APK is signed
