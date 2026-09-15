@@ -384,6 +384,13 @@ save contains except the pooled gold and food.
   original 3D logo. The title logo changes with the set as it is picked
   in Settings. The spec they
   were drawn to is `docs/scene-images.md`.
+- **Figure art brief** (`docs/figure-art-spec.md`). The Standard set's
+  party figures are being replaced by eleven flat 32 px class figures
+  (Apple II silhouettes, three tones per material). The brief lists every
+  monster, townsperson, vehicle and object that shares the screen with
+  them and must be redrawn the same way, with the palette, the cell and
+  frame rules the engine needs, and reference strips of each tile across
+  the Apple II, VGA and Standard sets (`docs/figure-ref-*.png`).
 - **Dungeon art per tile set** (`dungeonArt.ts`). LairWare's Mac version
   drew the first-person dungeon from one photographic sheet whatever tiles
   were chosen. Here that pairing is the "Lairware" set, and every other
