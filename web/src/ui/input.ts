@@ -4,6 +4,9 @@
  * Keyboard input as an awaitable queue. The game loop calls `nextKey()`;
  * key presses that arrive while nobody is waiting are queued (up to a small
  * limit) so fast typing is not lost, matching the original's event queue.
+ * A queued press goes stale after a moment: presses made while the game was
+ * busy for longer than that (a combat starting, an animation, a load) are
+ * dropped when it next asks, so they cannot pile up and play out later.
  *
  * Keys are normalised to the single-character codes in `Key` (game/io.ts):
  * arrows map to the Mac arrow codes 28..31; letters keep their case.
@@ -12,9 +15,11 @@
 import { Key } from '../game/io.ts';
 
 const MAX_QUEUED = 8;
+/** A queued press older than this when the game asks for a key is dropped. */
+export const STALE_KEY_MS = 300;
 
 export class Keyboard {
-  private queue: string[] = [];
+  private queue: { key: string; at: number }[] = [];
   private waiter: ((key: string) => void) | null = null;
   /** True while the window has lost focus: idle timers stop, so turns do not pass unattended. */
   paused = false;
@@ -32,7 +37,10 @@ export class Keyboard {
   }
   private pausedAt = 0;
 
-  constructor(target: EventTarget = window) {
+  constructor(
+    target: EventTarget = window,
+    private readonly now: () => number = () => performance.now(),
+  ) {
     target.addEventListener('keydown', (e) => this.onKeyDown(e as KeyboardEvent));
     if (typeof window !== 'undefined') {
       window.addEventListener('blur', () => this.pause());
@@ -74,9 +82,16 @@ export class Keyboard {
     this.push(key);
   }
 
+  /** The oldest queued press that is still fresh, dropping any that went stale. */
+  private takeQueued(): string | undefined {
+    const fresh = this.now() - STALE_KEY_MS;
+    while (this.queue.length > 0 && this.queue[0].at < fresh) this.queue.shift();
+    return this.queue.shift()?.key;
+  }
+
   /** Resolve with the next key press. */
   nextKey(): Promise<string> {
-    const queued = this.queue.shift();
+    const queued = this.takeQueued();
     if (queued !== undefined) return Promise.resolve(queued);
     return new Promise((resolve) => {
       this.waiter = resolve;
@@ -85,7 +100,7 @@ export class Keyboard {
 
   /** Resolve with the next key press, or `null` after `ms` milliseconds. */
   nextKeyOrTimeout(ms: number): Promise<string | null> {
-    const queued = this.queue.shift();
+    const queued = this.takeQueued();
     if (queued !== undefined) return Promise.resolve(queued);
     return new Promise((resolve) => {
       const fire = () => {
@@ -119,7 +134,7 @@ export class Keyboard {
       this.waiter = null;
       w(key);
     } else if (this.queue.length < MAX_QUEUED) {
-      this.queue.push(key);
+      this.queue.push({ key, at: this.now() });
     }
   }
 }

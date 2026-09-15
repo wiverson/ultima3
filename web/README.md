@@ -254,7 +254,10 @@ that answers from a key queue.
 The C code waits for keys deep inside call stacks (`WaitKeyMouse()` spins on
 the Mac event loop). A browser cannot block, so every routine that may wait
 is `async` and awaits `io.waitKey()`. The control flow is otherwise the same
-as the original, which keeps the port easy to compare against the C.
+as the original, which keeps the port easy to compare against the C. Keys
+pressed while the game is busy queue up, as the Mac's events did, but a
+queued press older than 300 ms is dropped when the game next asks, so
+presses made during a combat start or an animation do not play out later.
 
 ### Data formats
 
