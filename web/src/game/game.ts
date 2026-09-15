@@ -18,8 +18,8 @@ import * as cmd from './commands.ts';
 import * as act from './actions.ts';
 import * as interact from './interact.ts';
 import { attackMonster, showBall } from './combat.ts';
-import { cast, quickHeal, quickSafeChest } from './spells.ts';
-import { QUICK_CAST_KEY, SAFE_CHEST_KEY, VIEW_MAP_KEY } from './context.ts';
+import { cast, quickHeal, quickSafeChest, quickLight } from './spells.ts';
+import { QUICK_CAST_KEY, SAFE_CHEST_KEY, LIGHT_KEY, VIEW_MAP_KEY } from './context.ts';
 import { journalCheck } from './journal.ts';
 import { runDungeon } from './dungeon.ts';
 import { checkAllDead } from './death.ts';
@@ -204,6 +204,9 @@ export class Game {
         return;
       case SAFE_CHEST_KEY:
         if (!(await quickSafeChest(world, io))) cmd.what2(io);
+        return;
+      case LIGHT_KEY:
+        if (!(await quickLight(world, io))) cmd.what2(io);
         return;
       case 'D':
         io.printMessage(Msg.Descend);

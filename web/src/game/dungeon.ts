@@ -18,8 +18,8 @@ import { nextMapMode } from './automap.ts';
 import { type GameIO, Key, Sound, Music, deathSound } from './io.ts';
 import { what2, noGo } from './commands.ts';
 import { combat } from './combat.ts';
-import { cast, quickHeal, quickSafeChest } from './spells.ts';
-import { QUICK_CAST_KEY, SAFE_CHEST_KEY } from './context.ts';
+import { cast, quickHeal, quickSafeChest, quickLight } from './spells.ts';
+import { QUICK_CAST_KEY, SAFE_CHEST_KEY, LIGHT_KEY } from './context.ts';
 import { ageChars } from './turn.ts';
 import { checkAllDead } from './death.ts';
 import { speech, otherCommand, yell } from './interact.ts';
@@ -271,6 +271,9 @@ async function dispatch(world: World, io: GameIO, key: string): Promise<void> {
       return;
     case SAFE_CHEST_KEY:
       if (!(await quickSafeChest(world, io))) what2(io);
+      return;
+    case LIGHT_KEY:
+      if (!(await quickLight(world, io))) what2(io);
       return;
     case 'D':
       return descend(world, io);

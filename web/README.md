@@ -312,6 +312,13 @@ save contains except the pooled gold and food.
   can pay, the entry goes. On a chest, "Cast (Safe chest)" sits under
   Get chest while a cleric-spell caster can pay for it, and casts Appar
   Unem on the chest at once, the caster again whoever has the most mana.
+  In a dark dungeon, "Cast (Long light)" or "Cast (Light)" sits under
+  Ignite torch while someone can cast one: the strongest light spell
+  anyone has the book and the mana for, Long light (Dag Lorum or
+  Sominae, 250 turns) over Light (Lorum or Luminae, 10 turns), the caster
+  whoever can cast it with the most mana, a tie going to party order,
+  and the cheaper book when a member has both. It casts at once. On a
+  keyboard the same shortcuts are ! (heal), @ (safe chest) and $ (light).
 - **A quest journal** (`journal.ts`), the Apple II had none. J opens it
   over the map. The main line is ten entries, revealed one at a time as
   the one before is done: speak to the king, the Mark of Kings, lost

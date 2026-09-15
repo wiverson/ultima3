@@ -15,7 +15,7 @@ import { MapValue } from './tiles.ts';
 import type { CommandScope, MenuOption } from './io.ts';
 import { PartyShape, counterWithMerchant } from './commands.ts';
 import { monsterAt } from './combat.ts';
-import { quickSpell, spellName, spellCost, healPlan, safeChestCaster, SAFE_CHEST } from './spells.ts';
+import { quickSpell, spellName, spellCost, healPlan, safeChestCaster, lightPlan, SAFE_CHEST } from './spells.ts';
 import type { PlayerRecord } from './player.ts';
 
 /** Fighters, thieves and barbarians have no magic. */
@@ -155,8 +155,17 @@ export function commandMenu(world: World, scope: CommandScope, template: MenuOpt
   const get = menu.findIndex((o) => o.key === 'G');
   if (get >= 0 && safeChestCaster(world) !== null)
     menu.splice(get + 1, 0, { key: SAFE_CHEST_KEY, label: `Cast (${spellName(SAFE_CHEST)})` });
+  // In a dark dungeon, a caster who can light it puts "Cast (Long light)" or "Cast (Light)" under Ignite torch (see lightPlan).
+  const light = lightPlan(world);
+  if (light) {
+    const ignite = menu.findIndex((o) => o.key === 'I');
+    menu.splice(ignite + 1, 0, { key: LIGHT_KEY, label: `Cast (${spellName(light.spell)})` });
+  }
   return menu;
 }
+
+/** Key of the "Cast (Light)" shortcut in the dungeon menu (this port); lights a dark dungeon with the strongest light spell on hand at once. */
+export const LIGHT_KEY = '$';
 
 /** Key of "View map" in the field menu (this port): the cloth map of Sosaria over the whole screen. No turn passes. */
 export const VIEW_MAP_KEY = '#';

@@ -6,6 +6,7 @@ import { DungeonCell } from '../src/game/world.ts';
 import { Location } from '../src/game/party.ts';
 import { MapId } from '../src/data/resources.ts';
 import { Key } from '../src/game/io.ts';
+import { LIGHT_KEY } from '../src/game/context.ts';
 import { World } from '../src/game/world.ts';
 
 function dungeonWorld(): { world: World; io: FakeIO } {
@@ -158,5 +159,24 @@ describe('party torches', () => {
     expect(io.output).not.toContain('Whose torch');
     expect(world.party.torches).toBe(2);
     expect(world.dungeon.torch).toBe(255);
+  });
+});
+
+describe('the light shortcut in the dungeon loop', () => {
+  it('lights the dungeon, and shrugs when nobody can', async () => {
+    const { world, io } = dungeonWorld();
+    world.dungeon.tiles.fill(DungeonCell.Wall, 0, 256);
+    world.putXYDng(DungeonCell.LadderUp, 1, 1);
+    for (let m = 0; m < 4; m++) world.member(m).mana = 0;
+    io.keys = [LIGHT_KEY, 'K'];
+    await runDungeon(world, io);
+    expect(world.dungeon.torch).toBe(0);
+    expect(io.output).toContain('WHAT?');
+    world.dungeon.exit = false;
+    world.member(3).mana = 40;
+    io.keys = [LIGHT_KEY, 'K'];
+    await runDungeon(world, io);
+    expect(world.dungeon.torch).toBeGreaterThan(200);
+    expect(io.output).toContain('Long light');
   });
 });

@@ -1,6 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { newWorld, FakeIO } from './helpers.ts';
-import { healPlan, quickHeal, HEAL, GREAT_HEAL, safeChestCaster, quickSafeChest, SAFE_CHEST } from '../src/game/spells.ts';
+import {
+  healPlan,
+  quickHeal,
+  HEAL,
+  GREAT_HEAL,
+  safeChestCaster,
+  quickSafeChest,
+  SAFE_CHEST,
+  lightPlan,
+  quickLight,
+} from '../src/game/spells.ts';
 import { commandMenu, QUICK_CAST_KEY } from '../src/game/context.ts';
 import { COMMAND_MENUS } from '../src/ui/menus.ts';
 import { MapValue } from '../src/game/tiles.ts';
@@ -206,5 +216,72 @@ describe('the Safe chest shortcut', () => {
     world.putXYVal(MapValue.Chest, world.x, world.y);
     world.member(2).mana = 0;
     expect(await quickSafeChest(world, io)).toBe(false);
+  });
+});
+
+describe('the light shortcut', () => {
+  const labels = (world: World, scope: 'field' | 'dungeon') => commandMenu(world, scope, COMMAND_MENUS[scope]).map((o) => o.label);
+  const dark = () => {
+    const { world, io } = party();
+    world.enterDungeon(MapId.FirstDungeon);
+    world.party.location = Location.Dungeon;
+    world.dungeon.tiles.fill(DungeonCell.Open);
+    world.x = 3;
+    world.y = 3;
+    world.dungeon.torch = 0;
+    return { world, io };
+  };
+
+  it('is nothing on the surface, in a lit dungeon, or when nobody can pay', () => {
+    const { world } = party();
+    world.member(3).mana = 99;
+    expect(lightPlan(world)).toBeNull();
+    const lit = dark().world;
+    lit.member(3).mana = 99;
+    lit.dungeon.torch = 5;
+    expect(lightPlan(lit)).toBeNull();
+    const poor = dark().world;
+    poor.member(3).mana = 9; // the wizard is one short of Lorum
+    poor.member(2).mana = 14; // the cleric one short of Luminae
+    poor.member(0).mana = 99; // the fighter has no book
+    expect(lightPlan(poor)).toBeNull();
+  });
+
+  it('prefers Long light, then the most mana, then party order, and the cheaper book', () => {
+    const { world } = dark();
+    world.member(3).mana = 10; // the wizard can only manage Lorum
+    expect(lightPlan(world)).toEqual({ caster: 3, spell: 2 });
+    world.member(2).mana = 15; // the cleric can manage Luminae; more mana wins the tie of tiers
+    expect(lightPlan(world)).toEqual({ caster: 2, spell: 19 });
+    world.member(3).mana = 40; // Dag Lorum beats any Light
+    expect(lightPlan(world)).toEqual({ caster: 3, spell: 8 });
+    world.member(2).mana = 45; // Sominae: same tier, more mana
+    expect(lightPlan(world)).toEqual({ caster: 2, spell: 25 });
+    world.member(3).mana = 45; // a tie goes to party order
+    expect(lightPlan(world)).toEqual({ caster: 2, spell: 25 });
+    world.member(1).mana = 45; // the ranger has both books and takes the cheaper Dag Lorum
+    expect(lightPlan(world)).toEqual({ caster: 1, spell: 8 });
+  });
+
+  it('sits under Ignite torch in the dungeon menu, and only in the dark', () => {
+    const { world } = dark();
+    world.member(3).mana = 40;
+    const menu = labels(world, 'dungeon');
+    expect(menu.indexOf('Cast (Long light)')).toBe(menu.indexOf('Ignite torch') + 1);
+    world.party.torches = 0; // Ignite torch greyed, the shortcut still under it
+    const none = labels(world, 'dungeon');
+    expect(none.indexOf('Cast (Long light)')).toBe(none.indexOf('Ignite torch') + 1);
+    world.dungeon.torch = 3;
+    expect(labels(world, 'dungeon')).not.toContain('Cast (Long light)');
+  });
+
+  it('casts at once and lights the dungeon', async () => {
+    const { world, io } = dark();
+    expect(await quickLight(world, io)).toBe(false);
+    world.member(3).mana = 50;
+    expect(await quickLight(world, io)).toBe(true);
+    expect(world.dungeon.torch).toBe(250);
+    expect(world.member(3).mana).toBe(10);
+    expect(world.lastSpell[3]).toBe(8);
   });
 });

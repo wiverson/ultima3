@@ -328,6 +328,54 @@ export function safeChestCaster(world: World): number | null {
   return casters.length ? casters[0] : null;
 }
 
+/** The light spells, strongest first: Long light (250 turns) in either book, then Light (10 turns), cheaper book first. */
+export const LIGHT_SPELLS = [8, 25, 2, 19]; // Dag Lorum, Sominae, Lorum, Luminae
+/** Classes with wizard spells: Wizard, Lark, Druid, Alchemist, Ranger. */
+const WIZARD_CASTERS = [2, 6, 8, 9, 10];
+
+export interface LightPlan {
+  caster: number;
+  spell: number;
+}
+
+/** Whether a class (career-table index) has the book a spell is in. */
+function hasBookFor(career: number, spell: number): boolean {
+  return spell < 16 ? WIZARD_CASTERS.includes(career) : CLERIC_CASTERS.includes(career);
+}
+
+/**
+ * Who lights the dungeon for the menu's "Cast (Long light)" or "Cast
+ * (Light)" shortcut (this port), and with what: the strongest light spell
+ * anyone living can cast (has the book and the mana for), Long light over
+ * Light; among members able to cast that spell, the most mana wins and a
+ * tie goes to party order. Null unless the dungeon is dark and someone can.
+ */
+export function lightPlan(world: World): LightPlan | null {
+  if (world.party.location !== Location.Dungeon || world.dungeon.torch > 0) return null;
+  const careers = String.fromCharCode(...world.resources.misc.careerTable);
+  const living = [0, 1, 2, 3].filter((m) => world.memberAlive(m));
+  const canCast = (m: number, spell: number) =>
+    hasBookFor(careers.indexOf(world.member(m).classLetter), spell) && world.member(m).mana >= spellCost(spell);
+  for (const tier of [LIGHT_SPELLS.slice(0, 2), LIGHT_SPELLS.slice(2)]) {
+    // Each member casts the tier's cheaper spell they have the book for.
+    const able = living.map((m) => ({ m, spell: tier.find((spell) => canCast(m, spell)) })).filter((c) => c.spell !== undefined);
+    if (able.length === 0) continue;
+    able.sort((a, b) => world.member(b.m).mana - world.member(a.m).mana); // stable: ties keep party order
+    return { caster: able[0].m, spell: able[0].spell! };
+  }
+  return null;
+}
+
+/** Cast the planned light straight away: no "who casts", no spell menu. False when there is no plan. */
+export async function quickLight(world: World, io: GameIO): Promise<boolean> {
+  const plan = lightPlan(world);
+  if (!plan) return false;
+  io.print(`${spellName(plan.spell)}\nby ${world.member(plan.caster).name}\n`);
+  await processMagic(world, io, plan.caster, plan.spell);
+  world.lastSpell[plan.caster] = plan.spell;
+  return true;
+}
+
 /** Cast Safe chest on the chest underfoot straight away: no "who casts", no spell menu. False when there is no caster or no chest. */
 export async function quickSafeChest(world: World, io: GameIO): Promise<boolean> {
   const caster = safeChestCaster(world);
