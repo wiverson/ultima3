@@ -39,13 +39,7 @@
         {
           "target": "dmg",
           "arch": [
-            "universal"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "universal"
+            "arm64"
           ]
         }
       ],
@@ -89,12 +83,6 @@
         "Name": "Ultima III",
         "Comment": "Ultima III: Exodus"
       }
-    },
-    "publish": {
-      "provider": "github",
-      "owner": "wiverson",
-      "repo": "ultima3",
-      "releaseType": "draft"
     }
   },
   "repository": {

@@ -1,25 +1,17 @@
-# Builds the desktop app (desktop/, Electron) for Windows, macOS and Linux,
-# and the Android app (mobile/, Capacitor) as an APK. Every run uploads the
-# installers as workflow artifacts. A tag v*, or a manual run with "release"
-# ticked, also attaches them to a draft GitHub Release named after the app's
-# version. Desktop builds are unsigned: see the README's Desktop section for
-# what that means on each platform. The APK is signed with the committed
-# sideload key unless the ANDROID_KEYSTORE_* secrets provide a release key.
+# Builds the desktop app (desktop/, Electron) for Windows, macOS and Linux
+# and the Android app (mobile/, Capacitor), then publishes them as a GitHub
+# Release. Every push to main that changes the game or an app is a release:
+# its version is the major.minor from desktop/package.json with the run
+# number as the patch (1.0.37, say), so nothing is versioned by hand. To
+# start a new series, change that major.minor. A manual run does the same.
+# Desktop builds are unsigned: see the README's Desktop section for what
+# that means on each platform. The APK is signed with the committed sideload
+# key unless the ANDROID_KEYSTORE_* secrets provide a release key.
 name: Desktop and Android builds
 
 on:
   workflow_dispatch:
-    inputs:
-      release:
-        description: 'Attach the builds to a draft GitHub Release'
-        type: boolean
-        default: false
-      version:
-        description: 'Version to build as (blank: the version in desktop/package.json and mobile/package.json)'
-        type: string
-        default: ''
   push:
-    tags: ['v*']
     branches: [main]
     paths: ['desktop/**', 'mobile/**', 'web/**', '.github/workflows/desktop.yml']
 
@@ -27,7 +19,17 @@ permissions:
   contents: write
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: v
+        run: echo "version=$(node -p "require('./desktop/package.json').version.split('.').slice(0, 2).join('.')").${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: version
     strategy:
       fail-fast: false
       matrix:
@@ -52,15 +54,13 @@ jobs:
         working-directory: web
       - run: npm ci
         working-directory: desktop
-      - if: ${{ inputs.version != '' }}
-        run: npm version --no-git-tag-version "${{ inputs.version }}"
+      - run: npm version --no-git-tag-version "${{ needs.version.outputs.version }}"
         working-directory: desktop
       - run: npm run bundle
         working-directory: desktop
-      - run: npx electron-builder --${{ matrix.target }} --publish ${{ (startsWith(github.ref, 'refs/tags/v') || inputs.release) && 'always' || 'never' }}
+      - run: npx electron-builder --${{ matrix.target }} --publish never
         working-directory: desktop
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Unsigned macOS builds: skip the notarisation step electron-builder would otherwise attempt.
           CSC_IDENTITY_AUTO_DISCOVERY: false
       - uses: actions/upload-artifact@v7
@@ -70,13 +70,10 @@ jobs:
             desktop/dist/*.AppImage
             desktop/dist/*.exe
             desktop/dist/*.dmg
-            desktop/dist/*.zip
           if-no-files-found: error
 
   android:
-    # After the desktop matrix, so a release run finds the draft Release electron-builder created.
-    needs: build
-    if: ${{ always() && !cancelled() }}
+    needs: version
     runs-on: ubuntu-latest
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -97,12 +94,6 @@ jobs:
         working-directory: web
       - run: npm ci
         working-directory: mobile
-      - if: ${{ inputs.version != '' }}
-        run: npm version --no-git-tag-version "${{ inputs.version }}"
-        working-directory: mobile
-      - id: version
-        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
-        working-directory: mobile
       - run: npm run bundle
         working-directory: mobile
       - run: npx cap sync android
@@ -117,19 +108,28 @@ jobs:
             echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}"
             echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}"
           } >> "$GITHUB_ENV"
-      - run: ./gradlew assembleRelease --no-daemon -PversionName="${{ steps.version.outputs.version }}" -PversionCode="${{ github.run_number }}"
+      - run: ./gradlew assembleRelease --no-daemon -PversionName="${{ needs.version.outputs.version }}" -PversionCode="${{ github.run_number }}"
         working-directory: mobile/android
-      - run: cp app/build/outputs/apk/release/app-release.apk "Ultima-III-${{ steps.version.outputs.version }}-android.apk"
+      - run: cp app/build/outputs/apk/release/app-release.apk "Ultima-III-${{ needs.version.outputs.version }}-android.apk"
         working-directory: mobile/android
       - uses: actions/upload-artifact@v7
         with:
           name: ultima3-android
           path: mobile/android/Ultima-III-*.apk
           if-no-files-found: error
-      - if: ${{ startsWith(github.ref, 'refs/tags/v') || inputs.release }}
-        run: |
-          tag="v${{ steps.version.outputs.version }}"
-          apk="mobile/android/Ultima-III-${{ steps.version.outputs.version }}-android.apk"
-          gh release upload "$tag" "$apk" --clobber || gh release create "$tag" "$apk" --draft --title "$tag"
+
+  # One release with every file, made once all four builds exist; the tag is created on this commit.
+  release:
+    needs: [version, build, android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: files
+          merge-multiple: true
+      - run: ls -la files
+      - run: gh release create "v$VERSION" files/* --title "v$VERSION" --generate-notes --target "$GITHUB_SHA"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.version.outputs.version }}

@@ -55,9 +55,10 @@ base64), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and
 
 ## Versions
 
-`versionName` comes from `package.json` here (or the workflow's "version"
-input) and `versionCode` from the workflow run number, so each CI build
-can update the one before it. The `android/` folder is Capacitor's
+The workflow passes `versionName` (the major.minor from
+`../desktop/package.json` with the run number as the patch) and
+`versionCode` (the run number), so each CI build can update the one
+before it; `package.json` here carries no version of its own. The `android/` folder is Capacitor's
 generated project, kept in git as Capacitor intends, with these local
 changes: the version and signing block in `app/build.gradle`,
 `screenOrientation` in the manifest, `MainActivity.java`, the icons, the

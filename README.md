@@ -54,20 +54,20 @@ The same game is packaged as a desktop app with Electron, for players who
 want a plain window, an icon in the dock, or a Steam shortcut. Builds for
 Windows, macOS and Linux are on the
 [Releases page](https://github.com/wiverson/ultima3/releases). They are
-made by the "Desktop builds" workflow under Actions: every push that changes the game
-or the app rebuilds all three, keeping the installers as artifacts for
-ninety days, and a `v*` tag, or a manual run
-with "release" ticked, attaches them to a draft release named after the
-app's version (from `desktop/package.json`, or the run's "version"
-input), which is published by hand.
+made by the "Desktop and Android builds" workflow under Actions: every
+push to main that changes the game or an app builds all of them and
+publishes a release. Its version is the major.minor from
+`desktop/package.json` with the workflow run number as the patch
+(1.0.37, say), so releases need no hand-numbering; a new series starts by
+changing that major.minor.
 The saved game lives in the app's own storage, separate from the
 browser's; Export and Import move a game between them.
 
 - **Windows**: an installer and a portable `.exe`. Both are unsigned, so
   SmartScreen asks once; choose More info, then Run anyway.
-- **macOS**: a universal `.dmg`. Unsigned as well, so the first launch is
-  refused; right-click the app and choose Open, or run
-  `xattr -cr "/Applications/Ultima III.app"` once.
+- **macOS**: an Apple Silicon `.dmg` (Intel Macs: use the web version).
+  Unsigned as well, so the first launch is refused; right-click the app
+  and choose Open, or run `xattr -cr "/Applications/Ultima III.app"` once.
 - **Linux and SteamOS**: an `AppImage`. Make it executable and run it. On
   a Steam Deck, copy it to the Deck (say `~/Games`), make it executable
   in Desktop Mode, add it to Steam as a non-Steam game, and in the
@@ -84,8 +84,8 @@ Inside the app, F11 or Alt+Enter toggles full screen, `--fullscreen` and
 
 For Android handhelds like the AYN Odin or the Retroid Pocket, and for
 phones and tablets, the same workflow also builds an APK
-(`Ultima-III-<version>-android.apk`), kept with the desktop installers as
-an artifact and attached to the same draft release. Copy it to the device
+(`Ultima-III-<version>-android.apk`), published in the same release as
+the desktop installers. Copy it to the device
 and open it; Android asks once to allow installs from that source. The
 app runs full screen in landscape, the Back button opens Settings as
 Escape does, and built-in controls that Android reports as a gamepad

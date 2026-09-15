@@ -166,8 +166,10 @@ registration when its origin is not `http(s)`. `npm run smoke` launches
 the app, screenshots it once the game is running and exits with the
 result (`ELECTRON_NO_SANDBOX=1` for a root container). `npm run dist`
 builds installers with electron-builder; `.github/workflows/desktop.yml`
-does so on the three platforms for every manual run and every `v*` tag,
-attaching the files to a GitHub Release on a tag. Builds are unsigned.
+does so on the three platforms for every push to main that touches the
+game or an app, then publishes a GitHub Release with every file, versioned
+major.minor from `desktop/package.json` plus the run number. Builds are
+unsigned; macOS is Apple Silicon only.
 
 ## The Android app
 
@@ -177,8 +179,8 @@ sync android` copies the result into the generated `android/` Gradle
 project, and `./gradlew assembleRelease` makes the APK. The game detects
 Capacitor (`window.Capacitor.isNativePlatform()`) and skips service-worker
 registration there too. The desktop workflow builds the APK in an
-`android` job after the desktop matrix and attaches it to the same
-release.
+`android` job beside the desktop matrix, and a final `release` job
+publishes all four files together.
 
 ## How the code is organised
 

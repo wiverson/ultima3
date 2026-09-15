@@ -12,7 +12,7 @@ npm run smoke      # launches it, screenshots the running game, exits 0 on succe
 npm run dist       # installers for this platform into dist/ (dist:linux, dist:win, dist:mac)
 ```
 
-Builds for all three platforms come from the "Desktop builds" workflow
-under Actions: every run keeps them as artifacts, and a `v*` tag or a
-manual run with "release" ticked attaches them to a draft release named
-after `version` in `package.json`.
+Builds for all three platforms come from the "Desktop and Android builds"
+workflow under Actions: every push to main that touches the game or an
+app publishes a release, versioned by the major.minor of `version` here
+with the run number as the patch. macOS builds are Apple Silicon only.
