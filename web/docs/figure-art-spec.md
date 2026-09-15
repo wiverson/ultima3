@@ -9,7 +9,9 @@ and must be redrawn the same way, with the rules the game engine imposes.
 Delivered and integrated (`art/figures/`, `npm run figures`). One correction
 to this brief came out of the first delivery: tiles 58 and 59 are the north
 and south halves of one tall snake drawn on the map, not two animation
-frames. The redraw was briefed in `snake-brief.md` and is in the sheet.
+frames. The redraw was briefed in `snake-brief.md` and is in the sheet. Three figures
+are out for a second pass, briefed in `second-pass-brief.md`: Pincher, Snatch
+and Griffon.
 
 ## 1. Why
 
