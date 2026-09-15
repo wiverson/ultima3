@@ -3,14 +3,15 @@
  *
  * A virtual controller for touch screens (and the mouse): a d-pad at the
  * lower left, A and B at the lower right in the Xbox arrangement (A low,
- * B up and to its right), a close button at the upper left and, at the
- * upper right, a full-screen button where the browser allows it with a Y
- * button below it (Y opens the cheats from the help pages, and is Look,
- * Attack or Ignite in play). Everything
- * is drawn as one-pixel lines at three-quarter white with nothing inside,
- * so the game shows through. Sizes are in millimetres, which CSS scales
- * by the device's pixel ratio, so the pad is about the size of an NES
- * controller's on any screen.
+ * B up and to its right) with Y above B (Y opens the cheats from the help
+ * pages, and is Look, Attack or Ignite in play), a close button at the
+ * upper left and, at the upper right, a full-screen button where the
+ * browser allows it. Everything is drawn as one-pixel lines at
+ * three-quarter white, each with a one-pixel rim of half black on either
+ * side so it reads over any ground, and nothing inside, so the game shows
+ * through. Sizes are in millimetres, which CSS scales by the device's
+ * pixel ratio, so the pad is about the size of an NES controller's on any
+ * screen (the d-pad half as large again, for thumbs on glass).
  *
  * The pad feeds the same Keyboard the game reads, as a gamepad does, and
  * switches the game to controller mode. A tap anywhere shows it; only its
@@ -22,8 +23,8 @@
 import { Key } from '../game/io.ts';
 import type { Keyboard } from './input.ts';
 
-/** Sizes in millimetres: the NES d-pad is about 24 across and its buttons about 10; thumbs on glass want a little more. */
-const DPAD_MM = 28;
+/** Sizes in millimetres: the NES d-pad is about 24 across and its buttons about 10; thumbs on glass want more, the d-pad most. */
+const DPAD_MM = 42;
 const BUTTON_MM = 14;
 const SMALL_MM = 10;
 const MARGIN_MM = 8;
@@ -32,6 +33,9 @@ const REPEAT_FIRST_MS = 250;
 const REPEAT_MS = 120;
 
 const STROKE = 'rgba(255,255,255,0.75)';
+const RIM = 'rgba(0,0,0,0.5)';
+/** One CSS pixel is 0.26 mm (CSS defines the millimetre as 96/25.4 px), whatever the screen's density. */
+const PX = 0.26;
 const SVG = 'http://www.w3.org/2000/svg';
 
 export interface TouchPadOptions {
@@ -59,8 +63,8 @@ export class TouchPad {
     // A low and B up to its right, each a button's width and a little more apart on the diagonal.
     this.root.appendChild(this.button('A', Key.A, `right:${MARGIN_MM + BUTTON_MM + 1}mm;bottom:${MARGIN_MM}mm`));
     this.root.appendChild(this.button('B', Key.B, `right:${MARGIN_MM}mm;bottom:${MARGIN_MM + BUTTON_MM + 1}mm`));
+    this.root.appendChild(this.button('Y', Key.Y, `right:${MARGIN_MM}mm;bottom:${MARGIN_MM + 2 * (BUTTON_MM + 1)}mm`));
     this.root.appendChild(this.closeButton());
-    this.root.appendChild(this.button('Y', Key.Y, `right:${MARGIN_MM}mm;top:${MARGIN_MM + SMALL_MM + 4}mm`));
     if (document.fullscreenEnabled) {
       this.fullscreenButton = this.fullscreenToggle();
       this.root.appendChild(this.fullscreenButton);
@@ -118,15 +122,29 @@ export class TouchPad {
     return svg;
   }
 
-  /** A shape drawn as a line, with a transparent fill so taps inside it count. */
-  private shape(kind: 'path' | 'circle' | 'rect', attrs: Record<string, string>): SVGElement {
-    const el = document.createElementNS(SVG, kind);
-    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
-    el.setAttribute('fill', 'transparent');
-    el.setAttribute('stroke', STROKE);
-    el.setAttribute('stroke-width', '0.26'); // one CSS pixel in millimetres
-    el.setAttribute('vector-effect', 'non-scaling-stroke');
-    el.setAttribute('stroke-linejoin', 'round');
+  /**
+   * A shape drawn as a one-pixel line over a three-pixel rim of half black
+   * (one pixel showing either side), with a transparent fill so taps inside
+   * it count. Both are added to `svg`; the line is returned, since it is
+   * what presses recolour. `rim: false` for hit zones that are never seen.
+   */
+  private shape(svg: SVGSVGElement, kind: 'path' | 'circle' | 'rect', attrs: Record<string, string>, rim = true): SVGElement {
+    const make = (stroke: string, width: number) => {
+      const el = document.createElementNS(SVG, kind);
+      for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+      el.setAttribute('fill', 'transparent');
+      el.setAttribute('stroke', stroke);
+      el.setAttribute('stroke-width', `${width}`);
+      el.setAttribute('stroke-linejoin', 'round');
+      return el;
+    };
+    if (rim) {
+      const under = make(RIM, 3 * PX);
+      under.style.pointerEvents = 'none';
+      svg.appendChild(under);
+    }
+    const el = make(STROKE, PX);
+    svg.appendChild(el);
     return el;
   }
 
@@ -139,7 +157,7 @@ export class TouchPad {
       e.stopPropagation();
       (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
       el.setAttribute('stroke', '#fff');
-      el.setAttribute('stroke-width', '0.52');
+      el.setAttribute('stroke-width', `${2 * PX}`);
       this.press(key);
       if (repeats) {
         this.release();
@@ -150,7 +168,7 @@ export class TouchPad {
     };
     const up = () => {
       el.setAttribute('stroke', STROKE);
-      el.setAttribute('stroke-width', '0.26');
+      el.setAttribute('stroke-width', `${PX}`);
       this.release();
     };
     el.addEventListener('pointerdown', down);
@@ -178,33 +196,30 @@ export class TouchPad {
     const s = DPAD_MM;
     const a = s / 3; // arm width
     const c = s / 2;
-    svg.appendChild(
-      this.shape('path', {
-        d: `M${a} 0 H${2 * a} V${a} H${s} V${2 * a} H${2 * a} V${s} H${a} V${2 * a} H0 V${a} H${a} Z`,
-      }),
-    );
+    const w = s / 14; // the arrows' half-width
+    this.shape(svg, 'path', {
+      d: `M${a} 0 H${2 * a} V${a} H${s} V${2 * a} H${2 * a} V${s} H${a} V${2 * a} H0 V${a} H${a} Z`,
+    });
     const arms: [string, string, string][] = [
-      [Key.Up, `M${a} 0 H${2 * a} V${a} H${a} Z`, `M${c - 2} ${a * 0.65} L${c} ${a * 0.35} L${c + 2} ${a * 0.65}`],
-      [Key.Down, `M${a} ${2 * a} H${2 * a} V${s} H${a} Z`, `M${c - 2} ${s - a * 0.65} L${c} ${s - a * 0.35} L${c + 2} ${s - a * 0.65}`],
-      [Key.Left, `M0 ${a} H${a} V${2 * a} H0 Z`, `M${a * 0.65} ${c - 2} L${a * 0.35} ${c} L${a * 0.65} ${c + 2}`],
+      [Key.Up, `M${a} 0 H${2 * a} V${a} H${a} Z`, `M${c - w} ${a * 0.65} L${c} ${a * 0.35} L${c + w} ${a * 0.65}`],
+      [Key.Down, `M${a} ${2 * a} H${2 * a} V${s} H${a} Z`, `M${c - w} ${s - a * 0.65} L${c} ${s - a * 0.35} L${c + w} ${s - a * 0.65}`],
+      [Key.Left, `M0 ${a} H${a} V${2 * a} H0 Z`, `M${a * 0.65} ${c - w} L${a * 0.35} ${c} L${a * 0.65} ${c + w}`],
       [
         Key.Right,
         `M${2 * a} ${a} H${s} V${2 * a} H${2 * a} Z`,
-        `M${s - a * 0.65} ${c - 2} L${s - a * 0.35} ${c} L${s - a * 0.65} ${c + 2}`,
+        `M${s - a * 0.65} ${c - w} L${s - a * 0.35} ${c} L${s - a * 0.65} ${c + w}`,
       ],
     ];
     for (const [key, hit, arrow] of arms) {
-      const mark = this.shape('path', { d: arrow });
+      const mark = this.shape(svg, 'path', { d: arrow });
       mark.setAttribute('stroke-linecap', 'round');
-      svg.appendChild(mark);
-      const zone = this.shape('path', { d: hit });
+      const zone = this.shape(svg, 'path', { d: hit }, false);
       zone.setAttribute('stroke', 'none');
       this.pressable(zone, key, true);
       // The zone brightens the arrow rather than itself.
       zone.addEventListener('pointerdown', () => mark.setAttribute('stroke', '#fff'));
       for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture'])
         zone.addEventListener(ev, () => mark.setAttribute('stroke', STROKE));
-      svg.appendChild(zone);
     }
     return svg;
   }
@@ -213,20 +228,26 @@ export class TouchPad {
   private button(label: string, key: string, position: string): SVGSVGElement {
     const svg = this.svg(BUTTON_MM, position);
     const r = BUTTON_MM / 2;
-    const circle = this.shape('circle', { cx: `${r}`, cy: `${r}`, r: `${r - 0.5}` });
-    const text = document.createElementNS(SVG, 'text');
-    text.setAttribute('x', `${r}`);
-    text.setAttribute('y', `${r + 2}`);
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('font-family', 'sans-serif');
-    text.setAttribute('font-size', '6');
-    text.setAttribute('fill', 'transparent');
-    text.setAttribute('stroke', STROKE);
-    text.setAttribute('stroke-width', '0.26');
-    text.style.pointerEvents = 'none';
-    text.textContent = label;
-    svg.appendChild(circle);
-    svg.appendChild(text);
+    const circle = this.shape(svg, 'circle', { cx: `${r}`, cy: `${r}`, r: `${r - 0.5}` });
+    // The letter, as an outline over its rim like the shapes.
+    for (const [stroke, width] of [
+      [RIM, 3 * PX],
+      [STROKE, PX],
+    ] as const) {
+      const text = document.createElementNS(SVG, 'text');
+      text.setAttribute('x', `${r}`);
+      text.setAttribute('y', `${r + 2}`);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-family', 'sans-serif');
+      text.setAttribute('font-size', '6');
+      text.setAttribute('fill', 'transparent');
+      text.setAttribute('stroke', stroke);
+      text.setAttribute('stroke-width', `${width}`);
+      text.setAttribute('stroke-linejoin', 'round');
+      text.style.pointerEvents = 'none';
+      text.textContent = label;
+      svg.appendChild(text);
+    }
     this.pressable(circle, key, false);
     return svg;
   }
@@ -235,8 +256,8 @@ export class TouchPad {
   private closeButton(): SVGSVGElement {
     const svg = this.svg(SMALL_MM, `left:${MARGIN_MM}mm;top:${MARGIN_MM}mm`);
     const r = SMALL_MM / 2;
-    const circle = this.shape('circle', { cx: `${r}`, cy: `${r}`, r: `${r - 0.5}` });
-    const cross = this.shape('path', { d: `M${r - 2} ${r - 2} L${r + 2} ${r + 2} M${r + 2} ${r - 2} L${r - 2} ${r + 2}` });
+    const circle = this.shape(svg, 'circle', { cx: `${r}`, cy: `${r}`, r: `${r - 0.5}` });
+    const cross = this.shape(svg, 'path', { d: `M${r - 2} ${r - 2} L${r + 2} ${r + 2} M${r + 2} ${r - 2} L${r - 2} ${r + 2}` });
     cross.style.pointerEvents = 'none';
     circle.style.pointerEvents = 'all';
     circle.style.cursor = 'pointer';
@@ -245,8 +266,6 @@ export class TouchPad {
       e.stopPropagation();
       this.show(false);
     });
-    svg.appendChild(circle);
-    svg.appendChild(cross);
     return svg;
   }
 
@@ -254,8 +273,8 @@ export class TouchPad {
   private fullscreenToggle(): SVGSVGElement {
     const svg = this.svg(SMALL_MM, `right:${MARGIN_MM}mm;top:${MARGIN_MM}mm`);
     const s = SMALL_MM;
-    const box = this.shape('rect', { x: '0.5', y: '0.5', width: `${s - 1}`, height: `${s - 1}`, rx: '1' });
-    const corners = this.shape('path', {
+    const box = this.shape(svg, 'rect', { x: '0.5', y: '0.5', width: `${s - 1}`, height: `${s - 1}`, rx: '1' });
+    const corners = this.shape(svg, 'path', {
       d: `M2.5 4.5 V2.5 H4.5 M${s - 4.5} 2.5 H${s - 2.5} V4.5 M${s - 2.5} ${s - 4.5} V${s - 2.5} H${s - 4.5} M4.5 ${s - 2.5} H2.5 V${s - 4.5}`,
     });
     corners.style.pointerEvents = 'none';
@@ -268,8 +287,6 @@ export class TouchPad {
         /* refused: nothing to do */
       });
     });
-    svg.appendChild(box);
-    svg.appendChild(corners);
     return svg;
   }
 }
