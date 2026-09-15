@@ -295,23 +295,33 @@ export function moveCursor(menu: MenuWindow, key: string): boolean {
   return true;
 }
 
+/** A held direction repeats, as a held key does on a keyboard: after this long, then at this rate. */
+export const GAMEPAD_REPEAT_FIRST_MS = 250;
+export const GAMEPAD_REPEAT_MS = 120;
+
 /**
  * Reads gamepads through the Gamepad API and pushes button presses into the
  * keyboard queue as keys. Standard mapping: buttons 0-3 are A, B, X, Y and
- * 12-15 the d-pad; the left stick also steers.
+ * 12-15 the d-pad; the left stick also steers. A held direction repeats
+ * while the game is waiting for a key, so walking flows at the game's pace
+ * and no presses pile up in the queue; the buttons never repeat.
  */
 export class GamepadReader {
-  private pressed = new Map<string, boolean>();
+  /** For each pad and key held: when it went down and when it last counted. */
+  private held = new Map<string, { since: number; last: number }>();
 
   constructor(
-    private readonly keyboard: Keyboard,
+    private readonly keyboard: Pick<Keyboard, 'push' | 'waiting'>,
     private readonly onActivity: () => void,
+    private readonly now: () => number = () => performance.now(),
+    private readonly pads: () => (Gamepad | null)[] = () =>
+      typeof navigator === 'undefined' || !navigator.getGamepads ? [] : navigator.getGamepads(),
   ) {}
 
   /** Call once per animation frame. */
   poll(): void {
-    if (typeof navigator === 'undefined' || !navigator.getGamepads) return;
-    for (const pad of navigator.getGamepads()) {
+    const t = this.now();
+    for (const pad of this.pads()) {
       if (!pad) continue;
       const map: [string, boolean][] = [
         [Key.A, pad.buttons[0]?.pressed ?? false],
@@ -325,12 +335,22 @@ export class GamepadReader {
       ];
       for (const [key, down] of map) {
         const id = `${pad.index}:${key}`;
-        const was = this.pressed.get(id) ?? false;
-        if (down && !was) {
+        const was = this.held.get(id);
+        if (!down) {
+          this.held.delete(id);
+          continue;
+        }
+        if (!was) {
+          this.held.set(id, { since: t, last: t });
           this.keyboard.push(key);
           this.onActivity();
+          continue;
         }
-        this.pressed.set(id, down);
+        const repeats = DIRECTION_KEYS.includes(key);
+        if (repeats && t - was.since >= GAMEPAD_REPEAT_FIRST_MS && t - was.last >= GAMEPAD_REPEAT_MS && this.keyboard.waiting) {
+          was.last = t;
+          this.keyboard.push(key);
+        }
       }
     }
   }

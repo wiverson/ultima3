@@ -100,7 +100,8 @@ the web version from Safari's Share menu with Add to Home Screen instead.
 
 Chosen in Settings (Escape), or by pressing any gamepad button. A tap on a
 touch screen shows a virtual controller, sized to an NES pad on any
-screen.
+screen. Holding a direction, on a gamepad or the virtual pad, keeps
+walking as a held key does.
 
     D-pad   move, or move the cursor in a menu
     A       open the command menu; choose
