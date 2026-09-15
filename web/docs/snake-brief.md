@@ -1,5 +1,7 @@
 # Snake: one 32 x 64 figure across two tiles
 
+Status: delivered and integrated; kept as the record of the correction.
+
 A correction to `figure-art-spec.md`. The first pass drew tiles 58 and 59 as
 two separate snakes. They are the two halves of one tall snake, and the
 delivered pair could not be used. Redraw it as one figure.

@@ -28,11 +28,6 @@ const ART = join(root, 'art/figures');
 const CELL = 64; // Standard's cell size
 const TILE_ROWS = 16;
 const EXODUS_PANEL_COLUMN = 5;
-/** Rows of figures.json left out, with why. */
-const SKIP: Record<string, string> = {
-  'snake-58': 'tiles 58 and 59 stack as one tall snake; the delivered pair does not',
-  'snake-59': 'see snake-58',
-};
 /** Career-table order (Fighter, Cleric, Wizard, Thief, Paladin, Barbarian, Lark, Illusionist, Druid, Alchemist, Ranger) to atlas row name. */
 const CAREERS = ['fighter', 'cleric', 'wizard', 'thief', 'paladin', 'barbarian', 'lark', 'illusionist', 'druid', 'alchemist', 'ranger'];
 const FIRST_CLASS_TILE = 68;
@@ -196,10 +191,6 @@ CAREERS.forEach((name, career) => {
 const figures = decodePng(readFileSync(join(ART, 'figures.png')));
 const atlas = JSON.parse(readFileSync(join(ART, 'figures.json'), 'utf8')) as FigureAtlas;
 for (const row of atlas.rows) {
-  if (row.name in SKIP) {
-    console.log(`skip ${row.name}: ${SKIP[row.name]}`);
-    continue;
-  }
   if (row.name === 'exodus') {
     // Four states, delivered in state order 3, 2, 1, 0; the panel column holds state n in row n.
     row.frames.forEach((rect, i) => {

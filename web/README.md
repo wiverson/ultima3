@@ -393,9 +393,9 @@ save contains except the pooled gold and food.
   `docs/figure-art-spec.md` (Apple II silhouettes on a 2 px grid, three
   tones per material, hard alpha) and lives as two atlases with their
   manifests in `art/figures/`; `npm run figures` writes them into the
-  sheet, so a redrawn atlas is one command away from the game. The two
-  snake tiles (58, 59) keep the earlier art: they stack as one tall snake,
-  which the brief got wrong.
+  sheet, so a redrawn atlas is one command away from the game. The Great
+  Serpent that blocks the pass is one 32 x 64 figure split across tiles 58
+  (north) and 59 (south), briefed separately in `docs/snake-brief.md`.
 - **One figure per class.** Cells 68-78 of a sheet hold a figure for each
   class in career-table order (Fighter, Cleric, Wizard, Thief, Paladin,
   Barbarian, Lark, Illusionist, Druid, Alchemist, Ranger), and
