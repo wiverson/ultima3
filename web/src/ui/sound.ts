@@ -14,7 +14,9 @@
  * piling up: the same effect is not started again within a few dozen
  * milliseconds, and an effect longer than half a second is not restarted
  * while it is still sounding. A long effect asks the music to duck under
- * it (`onLong`).
+ * it (`onLong`). In the Standard set the effects a turn repeats play at a
+ * slightly different pitch each time, as a game's footsteps do, so no two
+ * are the same; the Lairware set plays as recorded.
  *
  * Browsers refuse to start audio until the user has interacted with the
  * page, so the AudioContext is created lazily on the first key press or
@@ -32,6 +34,23 @@ const MIN_INTERVAL_MS = 70;
 const LONG_S = 0.5;
 /** An effect at least this long ducks the music. */
 const DUCK_S = 1;
+/** Standard-set effects that repeat every turn or every blow: each play is detuned by up to this many semitones either way. */
+const VARIED = new Set([
+  'Step',
+  'HorseWalk',
+  'Bump',
+  'Hit',
+  'Attack',
+  'Swish1',
+  'Swish2',
+  'Swish3',
+  'Swish4',
+  'Ouch',
+  'Shoot',
+  'Error1',
+  'Error2',
+]);
+const DETUNE_SEMITONES = 1;
 
 /**
  * Gain per effect in dB. The Lairware files were measured (mean level)
@@ -95,6 +114,7 @@ export class SoundPlayer {
   constructor(
     private readonly baseUrl = 'sounds/',
     private readonly now: () => number = () => performance.now(),
+    private readonly random: () => number = Math.random,
   ) {}
 
   /** Create the AudioContext. Call from a user-gesture handler. */
@@ -129,6 +149,8 @@ export class SoundPlayer {
       if (buffer.duration >= LONG_S && (this.ends.get(key) ?? 0) > ctx.currentTime) return;
       const source = ctx.createBufferSource();
       source.buffer = buffer;
+      if (set === 'Standard' && VARIED.has(name))
+        source.playbackRate.value = Math.pow(2, ((this.random() * 2 - 1) * DETUNE_SEMITONES) / 12);
       const gain = ctx.createGain();
       gain.gain.value = Math.pow(10, (GAIN_DB[set][name] ?? 0) / 20);
       source.connect(gain);

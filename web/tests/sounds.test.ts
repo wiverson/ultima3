@@ -19,7 +19,7 @@ describe('the Standard effect set', () => {
 
 /** A stand-in AudioContext: records what starts, with a settable clock. */
 function fakeAudio() {
-  const started: { name: string; gain: number }[] = [];
+  const started: { name: string; gain: number; rate: number }[] = [];
   const durations: Record<string, number> = {};
   const ctx = {
     currentTime: 0,
@@ -31,8 +31,9 @@ function fakeAudio() {
       const s = {
         buffer: null as { name: string } | null,
         gain: 1,
+        playbackRate: { value: 1 },
         connect: (g: { value: number }) => (s.gain = g.value),
-        start: () => started.push({ name: s.buffer!.name, gain: s.gain }),
+        start: () => started.push({ name: s.buffer!.name, gain: s.gain, rate: s.playbackRate.value }),
       };
       return s;
     },
@@ -78,6 +79,34 @@ describe('sound player', () => {
     expect(started.map((s) => s.name)).toEqual(['sounds/standard/Step.wav', 'sounds/standard/Step.wav', 'sounds/Step.wav']);
     expect(started[0].gain).toBe(1);
     expect(started[2].gain).toBeCloseTo(Math.pow(10, -9 / 20), 5);
+  });
+
+  it('detunes the repeated Standard effects a little each play, and never the Lairware set', async () => {
+    const { started } = fakeAudio();
+    let t = 0;
+    const rolls = [0, 1, 0.5, 0];
+    const p = new SoundPlayer(
+      'sounds/',
+      () => t,
+      () => rolls.shift() ?? 0.5,
+    );
+    p.unlock();
+    p.play('Hit'); // roll 0: a semitone down
+    t = 100;
+    p.play('Hit'); // roll 1: a semitone up
+    t = 200;
+    p.play('CombatStart'); // a jingle: as rendered
+    p.set = 'Lairware';
+    t = 300;
+    p.play('Hit'); // as recorded
+    await tick();
+    await tick();
+    expect(started.map((s) => s.rate.toFixed(4))).toEqual([
+      Math.pow(2, -1 / 12).toFixed(4),
+      Math.pow(2, 1 / 12).toFixed(4),
+      '1.0000',
+      '1.0000',
+    ]);
   });
 
   it('does not restart a long effect while it sounds, and ducks the music under it', async () => {

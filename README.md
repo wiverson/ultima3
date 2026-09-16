@@ -286,7 +286,10 @@ than the Mac version did.
   and noise, as the consoles of the day had) in the spirit of the
   originals, balanced so that what repeats every turn, a footstep or a
   bump, sits well below the one-off jingles, and the combat fanfares are
-  short. Lairware is the Macintosh port's sampled set, with a per-effect
+  short. The repeated effects (steps, bumps, hits, misses, the error
+  blip) are shaped the way a game's most-played footstep is: energy kept
+  low, no hiss, over within a few dozen milliseconds, and each play
+  detuned a little so no two are alike. Lairware is the Macintosh port's sampled set, with a per-effect
   gain table that evens out its levels. None turns effects off.
 - The same effect is not restarted within a few dozen milliseconds, a long
   one is not restarted while it sounds, and the music dips under a long

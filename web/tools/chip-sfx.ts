@@ -4,7 +4,11 @@
 // them to public/sounds/standard/ at 44.1 kHz, 16-bit mono.
 //
 // Levels are peaks in dBFS: the effects a turn repeats (steps, bumps, the
-// error blip) sit far below the one-off jingles, and nothing clips.
+// error blip) sit far below the one-off jingles, and nothing clips. The
+// repeated effects are also shaped for repetition: energy kept under
+// 500 Hz, noise low-passed, and a percussive envelope that is 20 dB down
+// within a few dozen milliseconds (the recipe of every game's most-played
+// footstep), so the average energy the ear accumulates stays small.
 
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -116,6 +120,28 @@ const vib =
   (t) =>
     f * (1 + depth * Math.sin(2 * Math.PI * hz * t));
 
+/**
+ * A percussive envelope in the shape of a well-worn game thud: instant
+ * attack, 20 dB down within `fast` seconds, then a quiet tail that fades
+ * over the rest of `dur`. Most of the sound's energy is over in the first
+ * few dozen milliseconds, so it reads as an event without wearing on the ear.
+ */
+const perc =
+  (fast: number, dur: number, tail = 0.08): Curve =>
+  (t) =>
+    t < 0.001 ? t / 0.001 : Math.max(Math.pow(0.1, t / fast), tail * Math.pow(0.001, t / dur)) * (t < dur ? 1 : 0);
+/** One-pole low-pass at `hz`: takes the edge off noise and pulse layers. */
+function lowpass(buf: Float32Array, hz: number): Float32Array {
+  const k = 1 - Math.exp((-2 * Math.PI * hz) / RATE);
+  const out = new Float32Array(buf.length);
+  let y = 0;
+  for (let i = 0; i < buf.length; i++) {
+    y += k * (buf[i] - y);
+    out[i] = y;
+  }
+  return out;
+}
+
 /** A note of the given MIDI number. */
 const midi = (n: number) => 440 * Math.pow(2, (n - 69) / 12);
 /** A run of notes: MIDI numbers, each `step` long with a plucked envelope. */
@@ -158,8 +184,14 @@ function wav(buf: Float32Array): Buffer {
 // ---------------------------------------------------------------------------
 // The effects, by the names the game uses (game/io.ts), with their peak levels.
 
-const swish = (seed: number, from: number, to: number) => noise(0.16, glide(from, to, 0.16), ad(0.02, 0.16), seed);
-const thud = (f: number, dur: number) => tone(dur, glide(f, f * 0.55, dur), 'tri', ad(0.002, dur));
+/** A miss: a dull whoosh, low-passed noise sweeping down, over in a fifth of a second. */
+const swish = (seed: number, from: number, to: number, cut: number) =>
+  lowpass(noise(0.2, glide(from, to, 0.2), perc(0.06, 0.2, 0.05), seed), cut);
+/** A thud: a triangle dropping an octave with a percussive envelope. */
+const thud = (f: number, fast: number, dur: number) => tone(dur, glide(f, f * 0.5, dur * 0.6), 'tri', perc(fast, dur));
+/** A soft impact: a thud under a short low-passed noise burst. */
+const impact = (f: number, fast: number, dur: number, cut: number, seed = 0x6543) =>
+  mix(thud(f, fast, dur), lowpass(noise(dur * 0.4, 5000, perc(fast * 0.6, dur * 0.4), seed), cut));
 const fanfare = (notes: number[], step: number, last: number) =>
   mix(seq(run(notes.slice(0, -1), step, 'p25'), tone(last, midi(notes[notes.length - 1]), 'p50', ad(0.005, last, 0.01))), [
     seq(
@@ -175,24 +207,24 @@ const fanfare = (notes: number[], step: number, last: number) =>
   ]);
 
 export const EFFECTS: Record<string, [number, () => Float32Array]> = {
-  // Movement and the interface: quiet, short, made to repeat.
-  Step: [-22, () => thud(150, 0.045)],
-  HorseWalk: [-19, () => seq(thud(220, 0.05), rest(0.09), thud(180, 0.05))],
-  Bump: [-14, () => mix(noise(0.07, 2200, ad(0.002, 0.07)), thud(110, 0.08))],
-  Error1: [-18, () => tone(0.09, glide(520, 330, 0.09), 'p50', hold(0.09))],
-  Error2: [-18, () => tone(0.11, glide(380, 260, 0.11), 'p25', hold(0.11))],
+  // Movement and the interface: quiet, short, low, and shaped to repeat (see `perc`).
+  Step: [-20, () => impact(140, 0.03, 0.14, 700, 0x0f0f)],
+  HorseWalk: [-18, () => seq(impact(230, 0.025, 0.1, 900, 0x1e1e), rest(0.06), impact(190, 0.025, 0.12, 900, 0x2d2d))],
+  Bump: [-14, () => impact(100, 0.04, 0.2, 600)],
+  Error1: [-14, () => tone(0.16, glide(440, 330, 0.06), 'tri', perc(0.04, 0.16))],
+  Error2: [-14, () => tone(0.18, glide(330, 247, 0.06), 'tri', perc(0.045, 0.18))],
   ForceField: [-16, () => tone(0.12, vib(160, 0.15, 55), 'p12', hold(0.12))],
   Creak: [-15, () => tone(0.4, (t) => 95 + 30 * Math.sin(2 * Math.PI * 4 * t) + 40 * t, 'saw', hold(0.4, 0.03))],
   MountHorse: [-14, () => run([55, 62], 0.12, 'p25')],
-  // Combat: hits and misses, a little louder, still short.
-  Attack: [-12, () => swish(0x1234, 9000, 2500)],
-  Swish1: [-12, () => swish(0x2345, 8000, 2000)],
-  Swish2: [-12, () => swish(0x3456, 10000, 3000)],
-  Swish3: [-12, () => swish(0x4567, 7000, 1800)],
-  Swish4: [-12, () => swish(0x5678, 11000, 2600)],
-  Hit: [-10, () => mix(noise(0.09, 6000, ad(0.002, 0.09)), tone(0.1, glide(300, 90, 0.1), 'p50', ad(0.002, 0.1)))],
-  Ouch: [-12, () => tone(0.14, glide(700, 300, 0.14), 'p25', ad(0.004, 0.14))],
-  Shoot: [-12, () => mix(tone(0.22, glide(1400, 500, 0.22), 'p12', ad(0.003, 0.22)), noise(0.1, 12000, ad(0.002, 0.1)))],
+  // Combat: hits and misses, a little louder, still low and percussive.
+  Attack: [-12, () => swish(0x1234, 6000, 1500, 1600)],
+  Swish1: [-12, () => swish(0x2345, 5000, 1200, 1400)],
+  Swish2: [-12, () => swish(0x3456, 7000, 1800, 1800)],
+  Swish3: [-12, () => swish(0x4567, 4500, 1000, 1200)],
+  Swish4: [-12, () => swish(0x5678, 8000, 2000, 2000)],
+  Hit: [-10, () => impact(220, 0.04, 0.3, 1200, 0x7b7b)],
+  Ouch: [-12, () => tone(0.22, glide(520, 200, 0.12), 'tri', perc(0.06, 0.22))],
+  Shoot: [-12, () => mix(tone(0.25, glide(900, 380, 0.15), 'tri', perc(0.08, 0.25)), lowpass(noise(0.08, 9000, perc(0.03, 0.08)), 2000))],
   FailedSpell: [-14, () => seq(tone(0.09, 466, 'p50', hold(0.09)), tone(0.16, glide(440, 220, 0.16), 'p50', ad(0.003, 0.16)))],
   MonsterSpell: [-12, () => tone(0.4, glide(1800, 220, 0.4), 'p25', ad(0.005, 0.4))],
   MiscSpell: [-12, () => run([72, 76, 79, 84], 0.06, 'p12')],
