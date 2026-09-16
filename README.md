@@ -144,7 +144,8 @@ boxes and Enter. The same controls are in the game under Settings > Help.
 ### Settings
 
 Input mode, tile set, auto combat, poison kills, starvation, balanced XP,
-the turn timer, sound effects, music and Help. Every setting is remembered
+the turn timer, sound effects (Standard, Lairware or None), music and
+Help. Every setting is remembered
 by the browser. A new game asks "Choose Thine Adventure!": Modern
 (recommended), Classic (hardcore, the Apple II's rules) or Story
 (relaxed), each a preset of the difficulty settings that can be changed
@@ -278,6 +279,18 @@ than the Mac version did.
 - Auto combat, LairWare's addition, kept, with a smarter planner: members
   path round comrades and walls to the nearest square they can strike
   from.
+
+### Sound
+
+- Two sets of effects. Standard is new: chip-tune voices (pulse, triangle
+  and noise, as the consoles of the day had) in the spirit of the
+  originals, balanced so that what repeats every turn, a footstep or a
+  bump, sits well below the one-off jingles, and the combat fanfares are
+  short. Lairware is the Macintosh port's sampled set, with a per-effect
+  gain table that evens out its levels. None turns effects off.
+- The same effect is not restarted within a few dozen milliseconds, a long
+  one is not restarted while it sounds, and the music dips under a long
+  effect.
 
 ### Play
 

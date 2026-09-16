@@ -678,7 +678,7 @@ export class Screen implements GameIO {
         { key: 'V', label: `Starving: ${w.starvation[0].toUpperCase()}${w.starvation.slice(1)}` },
         { key: 'X', label: `Balanced XP: ${onOff(w.balancedXp)}` },
         { key: 'R', label: `Timer: ${w.timer[0].toUpperCase()}${w.timer.slice(1)}` },
-        { key: 'S', label: `Sound effects: ${onOff(w.soundEnabled)}` },
+        { key: 'S', label: `Sound effects: ${w.soundEnabled ? this.sounds.set : 'None'}` },
         { key: 'M', label: `Music: ${onOff(this.musicPlayer.enabled)}` },
         { key: 'H', label: 'Help' },
         { key: 'B', label: 'Back' },
@@ -711,7 +711,15 @@ export class Screen implements GameIO {
           w.timer = TIMER_MODES[(TIMER_MODES.indexOf(w.timer) + 1) % TIMER_MODES.length];
           break;
         case 'S':
-          w.soundEnabled = !w.soundEnabled;
+          // Standard, Lairware, None, round again.
+          if (!w.soundEnabled) {
+            w.soundEnabled = true;
+            this.sounds.set = 'Standard';
+          } else if (this.sounds.set === 'Standard') {
+            this.sounds.set = 'Lairware';
+          } else {
+            w.soundEnabled = false;
+          }
           break;
         case 'M':
           this.musicPlayer.enabled = !this.musicPlayer.enabled; // the player stops or resumes the current track itself

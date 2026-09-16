@@ -181,6 +181,21 @@ export class MusicPlayer {
     this.sync();
   }
 
+  /**
+   * Dip under a sound effect of `seconds`: down to a third for its length,
+   * then back over a moment. (`duck` has no effect before the first key.)
+   */
+  duck(seconds: number): void {
+    if (!this.master || !this.context) return;
+    const g = this.master.gain;
+    const now = this.context.currentTime;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(g.value, now);
+    g.linearRampToValueAtTime(this.volume / 3, now + 0.05);
+    g.setValueAtTime(this.volume / 3, now + Math.max(0.05, seconds - 0.25));
+    g.linearRampToValueAtTime(this.volume, now + seconds + 0.3);
+  }
+
   /** The track playing or loading, 0 while silent. */
   get active(): number {
     return this.activeTrack;

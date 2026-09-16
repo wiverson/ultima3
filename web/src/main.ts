@@ -31,7 +31,7 @@ import { AutoMap, MAP_MODES, type MapMode } from './game/automap.ts';
 import { mainMenu } from './game/menu.ts';
 import { GraphicsSet, loadImages } from './ui/graphics.ts';
 import { Keyboard } from './ui/input.ts';
-import { SoundPlayer } from './ui/sound.ts';
+import { SoundPlayer, SOUND_SETS, type SoundSet } from './ui/sound.ts';
 import { TouchPad } from './ui/touch.ts';
 import { MusicPlayer } from './ui/music.ts';
 import { Screen } from './ui/screen.ts';
@@ -51,6 +51,7 @@ interface Prefs {
   /** The turn timer; Fast, the Apple II's, for games from before the setting. */
   timer: Timer;
   sound: boolean;
+  soundSet: SoundSet;
   music: boolean;
   dungeonMap: MapMode;
   /** The virtual controller shown; on first visit, shown on a touch screen. */
@@ -66,6 +67,7 @@ const DEFAULT_PREFS: Prefs = {
   balancedXp: true,
   timer: 'fast',
   sound: true,
+  soundSet: 'Standard',
   music: true,
   dungeonMap: 'off',
   touchPad: typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches,
@@ -81,6 +83,7 @@ function loadPrefs(): Prefs {
     if (!MAP_MODES.includes(prefs.dungeonMap)) prefs.dungeonMap = 'off';
     if (!STARVATION_MODES.includes(prefs.starvation)) prefs.starvation = 'mild';
     if (!TIMER_MODES.includes(prefs.timer)) prefs.timer = 'fast';
+    if (!SOUND_SETS.includes(prefs.soundSet)) prefs.soundSet = 'Standard';
     return prefs;
   } catch {
     return { ...DEFAULT_PREFS };
@@ -200,7 +203,9 @@ async function start(): Promise<void> {
   }
 
   const sounds = new SoundPlayer();
+  sounds.set = prefs.soundSet;
   const music = new MusicPlayer();
+  sounds.onLong = (seconds) => music.duck(seconds); // long effects duck the music
   music.enabled = prefs.music;
   const keyboard = new Keyboard();
   // Audio may only start after a user gesture. A key press or a click is
@@ -231,6 +236,7 @@ async function start(): Promise<void> {
       balancedXp: world.balancedXp,
       timer: world.timer,
       sound: world.soundEnabled,
+      soundSet: sounds.set,
       music: music.enabled,
       dungeonMap: world.mapMode,
       touchPad: prefs.touchPad,

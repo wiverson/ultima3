@@ -233,10 +233,11 @@ src/ui/     browser only
   dungeonArt.ts   dungeon sheets painted per tile set
   moonArt.ts      moon phases painted per tile set
   platform.ts     iOS detection and the storage warning
-  sound.ts        Web Audio effects
+  sound.ts        Web Audio effects: two sets, a gain table, repeat rules
   music.ts        QuickTime music decoder and synthesizer
 src/main.ts       bootstrap, service worker, export/import transfer
 tools/compose-figures.ts   art/figures/ -> the Standard tile sheet
+tools/chip-sfx.ts          renders the Standard sound effects (npm run sfx)
 ```
 
 ### Semantic prompts

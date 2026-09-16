@@ -1,27 +1,101 @@
 /**
  * sound.ts
  *
- * Sound effects through the Web Audio API. Effects are the original Mac
- * sounds in public/sounds, decoded once and cached. The Mac files were
- * IMA ADPCM WAVs, which browsers cannot decode; they are shipped as
- * 16-bit PCM (converted once, sample rates kept).
+ * Sound effects through the Web Audio API, from one of two sets:
+ *
+ *   Standard   chip-tune effects rendered by tools/chip-sfx.ts into
+ *              public/sounds/standard/, balanced against each other.
+ *   Lairware   the original Mac effects in public/sounds (IMA ADPCM WAVs,
+ *              shipped as 16-bit PCM with their sample rates kept), which
+ *              were recorded at very different levels: a gain table below
+ *              brings them into line.
+ *
+ * Effects are decoded once and cached. Two mixing rules keep repeats from
+ * piling up: the same effect is not started again within a few dozen
+ * milliseconds, and an effect longer than half a second is not restarted
+ * while it is still sounding. A long effect asks the music to duck under
+ * it (`onLong`).
  *
  * Browsers refuse to start audio until the user has interacted with the
  * page, so the AudioContext is created lazily on the first key press or
  * click (main.ts).
- *
- * Music is not handled here: the original tracks are QuickTime Music
- * Architecture files (a MIDI-like format) that browsers cannot play. They
- * need a one-time conversion to MIDI and then to OGG/MP3 before a music
- * player can be added.
  */
+
+export type SoundSet = 'Standard' | 'Lairware';
+export const SOUND_SETS: SoundSet[] = ['Standard', 'Lairware'];
+
+const FOLDER: Record<SoundSet, string> = { Standard: 'standard/', Lairware: '' };
+
+/** The same effect starts at most this often. */
+const MIN_INTERVAL_MS = 70;
+/** An effect at least this long is not restarted while it plays. */
+const LONG_S = 0.5;
+/** An effect at least this long ducks the music. */
+const DUCK_S = 1;
+
+/**
+ * Gain per effect in dB. The Lairware files were measured (mean level)
+ * and pulled to targets by kind: what a turn repeats far below the
+ * one-off jingles. The Standard set is rendered at its levels already.
+ */
+const GAIN_DB: Record<SoundSet, Record<string, number>> = {
+  Standard: {},
+  Lairware: {
+    Step: -9,
+    HorseWalk: 0,
+    Bump: -9,
+    Error1: -8,
+    Error2: -6,
+    Attack: -6,
+    Swish1: 1,
+    Swish2: -1,
+    Swish3: -3,
+    Swish4: -5,
+    Hit: -8,
+    Ouch: -5,
+    Shoot: -3,
+    DeathMale: -4,
+    DeathFemale: -10,
+    BigDeath: -8,
+    CombatStart: -7,
+    CombatVictory: -9,
+    Alarm: -5,
+    Creak: -2,
+    TorchIgnite: -6,
+    Sink: -5,
+    Moongate: -9,
+    MountHorse: -9,
+    Upwards: -7,
+    Downwards: -7,
+    ForceField: -8,
+    FailedSpell: -7,
+    Immolate: -9,
+    MiscSpell: -10,
+    MonsterSpell: -5,
+    Invocation: -4,
+    Heal: -11,
+    Shrine: -13,
+    LBLevelRise: -10,
+    ExpLevelUp: -6,
+  },
+};
 
 export class SoundPlayer {
   private context: AudioContext | null = null;
   private buffers = new Map<string, Promise<AudioBuffer | null>>();
+  /** When each effect last started, by set and name (milliseconds, performance clock). */
+  private lastStart = new Map<string, number>();
+  /** When each long effect ends (AudioContext time). */
+  private ends = new Map<string, number>();
   enabled = true;
+  set: SoundSet = 'Standard';
+  /** Called with the length in seconds when a long effect starts (the music ducks). */
+  onLong: ((seconds: number) => void) | null = null;
 
-  constructor(private readonly baseUrl = 'sounds/') {}
+  constructor(
+    private readonly baseUrl = 'sounds/',
+    private readonly now: () => number = () => performance.now(),
+  ) {}
 
   /** Create the AudioContext. Call from a user-gesture handler. */
   unlock(): void {
@@ -29,27 +103,39 @@ export class SoundPlayer {
     if (this.context.state === 'suspended') void this.context.resume();
   }
 
-  private load(name: string): Promise<AudioBuffer | null> {
-    let p = this.buffers.get(name);
+  private load(key: string): Promise<AudioBuffer | null> {
+    let p = this.buffers.get(key);
     if (!p) {
-      p = fetch(`${this.baseUrl}${name}.wav`)
+      p = fetch(`${this.baseUrl}${key}.wav`)
         .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.statusText))))
         .then((data) => this.context!.decodeAudioData(data))
         .catch(() => null);
-      this.buffers.set(name, p);
+      this.buffers.set(key, p);
     }
     return p;
   }
 
-  /** Play a named effect. Missing files fail silently. */
+  /** Play a named effect from the current set. Missing files fail silently. */
   play(name: string): void {
     if (!this.enabled || !this.context) return;
-    void this.load(name).then((buffer) => {
+    const set = this.set;
+    const key = `${FOLDER[set]}${name}`;
+    const t = this.now();
+    if (t - (this.lastStart.get(key) ?? -Infinity) < MIN_INTERVAL_MS) return;
+    this.lastStart.set(key, t);
+    void this.load(key).then((buffer) => {
       if (!buffer || !this.context) return;
-      const source = this.context.createBufferSource();
+      const ctx = this.context;
+      if (buffer.duration >= LONG_S && (this.ends.get(key) ?? 0) > ctx.currentTime) return;
+      const source = ctx.createBufferSource();
       source.buffer = buffer;
-      source.connect(this.context.destination);
+      const gain = ctx.createGain();
+      gain.gain.value = Math.pow(10, (GAIN_DB[set][name] ?? 0) / 20);
+      source.connect(gain);
+      gain.connect(ctx.destination);
       source.start();
+      if (buffer.duration >= LONG_S) this.ends.set(key, ctx.currentTime + buffer.duration);
+      if (buffer.duration >= DUCK_S) this.onLong?.(buffer.duration);
     });
   }
 }
